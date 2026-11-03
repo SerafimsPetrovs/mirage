@@ -18,3 +18,12 @@ export function nextCheckIn(last: { day: string; streak: number } | null, today:
   const reward = CHECKIN_REWARDS[(streak - 1) % CHECKIN_REWARDS.length];
   return { streak, reward };
 }
+
+export function daysAgo(n: number) {
+  return new Date(Date.now() - n * 86400_000);
+}
+
+/** UTC day keys for the last `n` days, oldest first. */
+export function lastNDays(n: number) {
+  return Array.from({ length: n }, (_, i) => utcDay(daysAgo(n - 1 - i)));
+}
