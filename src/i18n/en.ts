@@ -362,6 +362,30 @@ export const en: Dict = {
     unpublish: "Unpublish",
     publish: "Publish",
   },
+  about: {
+    title: "Stories dreamed up by neural networks",
+    lead: "MIRAGE is a streaming platform for series created with artificial intelligence. Vertical 1–3 minute short dramas and epic widescreen stories — all in one place.",
+    points: [
+      { t: "AI-only content", d: "Every series is made with neural networks — and we honestly show which ones." },
+      { t: "Watch your way", d: "The Stream feed for your phone, a cinema for the big screen." },
+      { t: "Viewers shape the plot", d: "“What happens next?” polls help creators decide the characters' fate." },
+      { t: "A fair model", d: "First episodes are free. After that — coins per episode or VIP." },
+    ],
+    termsTitle: "Terms of use",
+    terms: "By using MIRAGE you agree not to upload content that infringes third-party rights and not to depict real people as characters without their consent. Coins are not money and cannot be exchanged for cash. We may unpublish content that violates platform rules.",
+  },
+  creators: {
+    title: "Publish your AI series on MIRAGE",
+    lead: "Making stories with Sora, Kling, Veo or Runway? Turn them into income.",
+    steps: [
+      { t: "Apply", d: "Tell us about yourself in your profile — we review applications within a couple of days." },
+      { t: "Upload a series", d: "Poster, bilingual description, mp4 episodes. Share how it was made." },
+      { t: "Pass moderation", d: "We check quality and rule compliance. Usually fast." },
+      { t: "Earn", d: "You get 50% of coins from every episode unlock. Real-time stats." },
+    ],
+    cta: "Become a creator",
+    ctaStudio: "Open Studio",
+  },
   footer: {
     tagline: "Stories dreamed up by neural networks.",
     about: "About",
