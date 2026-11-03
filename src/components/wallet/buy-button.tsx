@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { btn } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
+import { safePath } from "@/lib/url";
 import { purchaseAction } from "@/app/actions/wallet";
 
 export function BuyButton({
@@ -36,7 +37,7 @@ export function BuyButton({
           if (!r.ok) return toast(t.common.error, "error");
           if (r.redirectUrl) return void (location.href = r.redirectUrl);
           toast(successText, variant === "vip" ? "ok" : "coin");
-          if (next && next.startsWith("/")) router.push(next);
+          if (next && safePath(next, "") ) router.push(safePath(next));
           else router.refresh();
         })
       }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
+import { safePath } from "@/lib/url";
 import { AuthForm } from "@/components/auth/auth-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,6 +12,6 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next = "/" } = await searchParams;
-  if (await getCurrentUser()) redirect(next.startsWith("/") ? next : "/");
-  return <AuthForm mode="login" next={next} />;
+  if (await getCurrentUser()) redirect(safePath(next));
+  return <AuthForm next={safePath(next)} mode="login" />;
 }

@@ -7,16 +7,14 @@ import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { grantCoins } from "@/lib/coins";
 import { getI18n } from "@/i18n/server";
+import { safePath } from "@/lib/url";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/shared";
 
 export type FormState = { error?: string; ok?: boolean; message?: string } | undefined;
 
 const WELCOME_BONUS = 50;
 
-function safeNext(next: FormDataEntryValue | null) {
-  const n = typeof next === "string" ? next : "";
-  return n.startsWith("/") && !n.startsWith("//") ? n : "/";
-}
+const safeNext = (next: FormDataEntryValue | null) => safePath(next);
 
 export async function loginAction(_: FormState, form: FormData): Promise<FormState> {
   const { t } = await getI18n();

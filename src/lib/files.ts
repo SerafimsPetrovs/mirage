@@ -39,15 +39,15 @@ export function resolveMediaPath(ref: string): string | null {
   } else return null;
   const full = path.resolve(base, rel);
   if (!full.startsWith(base + path.sep)) return null;
-  return fs.existsSync(full) ? full : null;
+  return fs.existsSync(/*turbopackIgnore: true*/ full) ? full : null;
 }
 
 /** Serves a file with HTTP Range support (needed for video seeking). */
 export function serveFile(full: string, req: Request, extraHeaders: Record<string, string> = {}) {
-  const stat = fs.statSync(full);
+  const stat = fs.statSync(/*turbopackIgnore: true*/ full);
   const type = mimeOf(full);
   const range = req.headers.get("range");
-  const base = { "Content-Type": type, "Accept-Ranges": "bytes", ...extraHeaders };
+  const base = { "Content-Type": type, "Accept-Ranges": "bytes", "X-Content-Type-Options": "nosniff", ...extraHeaders };
   if (range) {
     const m = /bytes=(\d*)-(\d*)/.exec(range);
     let start = m && m[1] ? parseInt(m[1], 10) : 0;
@@ -60,13 +60,13 @@ export function serveFile(full: string, req: Request, extraHeaders: Record<strin
     if (start > end || start >= stat.size) {
       return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${stat.size}` } });
     }
-    const stream = Readable.toWeb(fs.createReadStream(full, { start, end })) as ReadableStream;
+    const stream = Readable.toWeb(fs.createReadStream(/*turbopackIgnore: true*/ full, { start, end })) as ReadableStream;
     return new Response(stream, {
       status: 206,
       headers: { ...base, "Content-Range": `bytes ${start}-${end}/${stat.size}`, "Content-Length": String(end - start + 1) },
     });
   }
-  const stream = Readable.toWeb(fs.createReadStream(full)) as ReadableStream;
+  const stream = Readable.toWeb(fs.createReadStream(/*turbopackIgnore: true*/ full)) as ReadableStream;
   return new Response(stream, { headers: { ...base, "Content-Length": String(stat.size) } });
 }
 
@@ -79,10 +79,10 @@ export async function saveUpload(file: File, kind: "video" | "image", maxBytes: 
   if (!allowed.has(ext)) throw new Error("BAD_FILE_TYPE");
   if (file.size > maxBytes) throw new Error("FILE_TOO_LARGE");
   const dir = path.join(STORAGE_DIR, kind === "video" ? "videos" : "images");
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const name = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${ext}`;
   const target = path.join(dir, name);
-  await fs.promises.writeFile(target, Readable.fromWeb(file.stream() as import("stream/web").ReadableStream));
+  await fs.promises.writeFile(/*turbopackIgnore: true*/ target, Readable.fromWeb(file.stream() as import("stream/web").ReadableStream));
   return `storage:${kind === "video" ? "videos" : "images"}/${name}`;
 }
 

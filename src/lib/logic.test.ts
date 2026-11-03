@@ -86,3 +86,14 @@ describe("payment catalog", () => {
     expect(priceFor({ rub: 549, usd: 9.99 }, "ru")).toEqual({ amountCents: 54900, currency: "RUB" });
   });
 });
+
+import { safePath } from "./url";
+describe("safePath", () => {
+  it("allows same-origin paths and blocks open redirects", () => {
+    expect(safePath("/watch/1")).toBe("/watch/1");
+    expect(safePath("//evil.com")).toBe("/");
+    expect(safePath(String.raw`/\evil.com`)).toBe("/");
+    expect(safePath("https://evil.com")).toBe("/");
+    expect(safePath(undefined)).toBe("/");
+  });
+});
