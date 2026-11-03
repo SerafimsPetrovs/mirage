@@ -85,9 +85,11 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
             );
           })}
         </div>
-        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted">
-          <Info size={14} /> {t.wallet.mockNote}
-        </p>
+        {(process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENTS === "1") && (
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-muted">
+            <Info size={14} /> {t.wallet.mockNote}
+          </p>
+        )}
       </div>
     </div>
   );

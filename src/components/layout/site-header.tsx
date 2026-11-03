@@ -30,7 +30,7 @@ export async function SiteHeader() {
           {user ? (
             <>
               {!vip && (
-                <Link href="/vip" className={btn("glass", "sm", "hidden sm:inline-flex")}>
+                <Link href="/vip" className={btn("glass", "sm", "max-sm:hidden")}>
                   <Crown size={15} className="text-vip" /> VIP
                 </Link>
               )}
@@ -43,7 +43,7 @@ export async function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/login" className={btn("ghost", "sm", "hidden sm:inline-flex")}>
+              <Link href="/login" className={btn("ghost", "sm", "max-sm:hidden")}>
                 {t.nav.login}
               </Link>
               <Link href="/register" className={btn("primary", "sm")}>

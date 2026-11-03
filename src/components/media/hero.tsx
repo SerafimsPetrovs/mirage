@@ -45,11 +45,11 @@ export function Hero({ items }: { items: SeriesCard[] }) {
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-bg/10" />
       <div className="absolute inset-0 hidden bg-gradient-to-r from-bg/95 via-bg/40 to-transparent md:block" />
 
-      <div key={s.id} className="animate-fade-up absolute inset-x-0 bottom-0 px-4 pb-10 md:bottom-[12%] md:max-w-[min(720px,55vw)] md:px-10 md:pb-0">
+      <div key={s.id} className="animate-fade-up absolute inset-x-0 bottom-0 px-4 pb-14 md:bottom-[12%] md:max-w-[min(720px,55vw)] md:px-10 md:pb-0">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <AiChip label={t.home.aiBadge} />
           {s.aiModels.slice(0, 2).map((m) => (
-            <AiChip key={m} label={m} className="hidden sm:inline-flex" />
+            <AiChip key={m} label={m} className="max-sm:hidden" />
           ))}
         </div>
         <h1 className="font-display text-[34px] font-bold leading-[1.05] tracking-tight drop-shadow-lg md:text-[60px]">{s.title}</h1>
