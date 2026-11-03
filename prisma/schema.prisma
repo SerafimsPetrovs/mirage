@@ -51,6 +51,13 @@ enum SubStatus {
   EXPIRED
 }
 
+enum GenStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
 enum AppStatus {
   PENDING
   APPROVED
@@ -65,6 +72,7 @@ model User {
   avatarHue    Int      @default(330)
   role         Role     @default(VIEWER)
   coins        Int      @default(0)
+  genCredits   Int      @default(100)
   bio          String?
   banned       Boolean  @default(false)
   createdAt    DateTime @default(now())
@@ -84,6 +92,7 @@ model User {
   checkIns     CheckIn[]
   pollVotes    PollVote[]
   applications CreatorApplication[]
+  generations  GenerationJob[]
 }
 
 model Session {
@@ -331,4 +340,26 @@ model CreatorApplication {
   status    AppStatus @default(PENDING)
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// AI video generation job (creator studio). Provider "mock" simulates progress
+/// over time and returns a demo clip; a real provider (ComfyUI etc.) plugs in later.
+model GenerationJob {
+  id          String      @id @default(cuid())
+  userId      String
+  prompt      String
+  style       String      @default("cinematic")
+  orientation Orientation @default(VERTICAL)
+  durationSec Int         @default(5)
+  seed        Int
+  cost        Int
+  provider    String      @default("mock")
+  status      GenStatus   @default(QUEUED)
+  resultUrl   String?
+  error       String?
+  createdAt   DateTime    @default(now())
+  finishedAt  DateTime?
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

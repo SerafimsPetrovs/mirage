@@ -16,6 +16,7 @@ export function PosterCard({ s, t, locale, className, priority }: CardProps) {
         <img
           src={s.poster}
           alt=""
+          data-vt={`poster-${s.slug}`}
           loading={priority ? "eager" : "lazy"}
           className="absolute inset-0 h-full w-full object-cover transition duration-500 md:group-hover:scale-[1.04]"
         />

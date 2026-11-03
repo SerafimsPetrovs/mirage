@@ -4,6 +4,8 @@ import "./globals.css";
 import { getI18n } from "@/i18n/server";
 import { I18nProvider } from "@/i18n/client";
 import { ToastProvider } from "@/components/ui/toast";
+import { CommandPalette } from "@/components/layout/command-palette";
+import { PosterMorph } from "@/components/media/poster-morph";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded", display: "swap" });
@@ -31,7 +33,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} className={`${inter.variable} ${unbounded.variable}`}>
       <body className="min-h-dvh">
         <I18nProvider locale={locale}>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            {children}
+            <CommandPalette />
+            <PosterMorph />
+          </ToastProvider>
         </I18nProvider>
       </body>
     </html>

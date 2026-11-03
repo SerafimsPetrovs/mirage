@@ -44,7 +44,11 @@ export default async function SeriesPage({ params }: Props) {
 
         <div className="relative flex flex-col gap-6 px-4 pb-8 pt-[calc(var(--header-h)+24px)] md:flex-row md:items-end md:gap-10 md:px-10 md:pb-12 md:pt-[calc(var(--header-h)+64px)]">
           <div className={vertical ? "mx-auto w-[180px] shrink-0 md:mx-0 md:w-[260px]" : "hidden"}>
-            <div className="relative aspect-[9/16] overflow-hidden rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,.9)] ring-1 ring-white/15">
+            {/* Morph target for the clicked poster card (see PosterMorph) */}
+            <div
+              data-vt-target={`poster-${s.slug}`}
+              className="relative aspect-[9/16] overflow-hidden rounded-3xl shadow-[0_30px_80px_-20px_rgba(0,0,0,.9)] ring-1 ring-white/15"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={s.poster} alt={s.title} className="h-full w-full object-cover" />
             </div>

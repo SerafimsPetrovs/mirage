@@ -87,6 +87,27 @@ export async function listSeries(
   return rows.map((r) => toCard(r, locale));
 }
 
+/** Text search over published series (titles, taglines, descriptions, AI models, genres). */
+export async function searchSeries(raw: string, locale: Locale, genreLabels: Record<string, string>, take = 48) {
+  const q = raw.trim().slice(0, 80);
+  if (!q) return [];
+  // SQLite `contains` is case-sensitive for non-ASCII; search a few case variants.
+  const variants = Array.from(new Set([q, q.toLowerCase(), q.charAt(0).toUpperCase() + q.slice(1).toLowerCase()]));
+  const fields = ["titleRu", "titleEn", "taglineRu", "taglineEn", "descriptionRu", "descriptionEn", "aiModels", "genres"] as const;
+  const genreKeys = Object.entries(genreLabels)
+    .filter(([, label]) => label.toLowerCase().includes(q.toLowerCase()))
+    .map(([k]) => k);
+  return listSeries(locale, {
+    where: {
+      OR: [
+        ...variants.flatMap((v) => fields.map((f) => ({ [f]: { contains: v } }))),
+        ...genreKeys.map((g) => ({ genres: { contains: g } })),
+      ],
+    },
+    take,
+  });
+}
+
 export async function getHomeData(locale: Locale, userId: string | null) {
   const [featured, top, shorts, epics, fresh] = await Promise.all([
     listSeries(locale, { where: { featured: true }, orderBy: { views: "desc" }, take: 6 }),

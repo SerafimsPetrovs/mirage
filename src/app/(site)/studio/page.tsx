@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Coins, Eye, Film, Plus, Unlock } from "lucide-react";
+import { Bookmark, Coins, Eye, Film, Plus, Unlock, Wand2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { CREATOR_SHARE } from "@/lib/access";
@@ -61,9 +61,14 @@ export default async function StudioPage() {
           <h1 className="font-display text-3xl font-bold">{t.studio.title}</h1>
           <p className="mt-1 text-muted">{t.studio.sub}</p>
         </div>
-        <Link href="/studio/series/new" className={btn("primary", "md")}>
-          <Plus size={18} /> {t.studio.newSeries}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/studio/generate" className={btn("vip", "md")}>
+            <Wand2 size={18} /> {t.gen.nav}
+          </Link>
+          <Link href="/studio/series/new" className={btn("primary", "md")}>
+            <Plus size={18} /> {t.studio.newSeries}
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

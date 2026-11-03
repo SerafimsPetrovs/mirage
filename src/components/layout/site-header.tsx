@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Crown, Search } from "lucide-react";
+import { Crown } from "lucide-react";
 import { getCurrentUser, isVip } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
 import { btn } from "@/components/ui/button";
 import { CoinAmount, Logo } from "@/components/ui/misc";
 import { HeaderShell, NavLinks } from "./header-client";
 import { UserMenu } from "./user-menu";
+import { SearchButton } from "./command-palette";
 
 export async function SiteHeader() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
@@ -24,9 +25,7 @@ export async function SiteHeader() {
         </Link>
         <NavLinks links={links} />
         <div className="ml-auto flex items-center gap-1.5 md:gap-2.5">
-          <Link href="/search" aria-label={t.nav.search} className={btn("ghost", "icon")}>
-            <Search size={20} strokeWidth={1.75} />
-          </Link>
+          <SearchButton label={t.nav.search} />
           {user ? (
             <>
               {!vip && (

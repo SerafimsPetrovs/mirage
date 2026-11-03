@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Search, SearchX } from "lucide-react";
-import { listSeries } from "@/lib/catalog";
+import { searchSeries } from "@/lib/catalog";
 import { getI18n } from "@/i18n/server";
 import { fmt } from "@/i18n/shared";
 import { SeriesGrid } from "@/components/media/grid";
@@ -19,24 +19,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const q = raw.trim().slice(0, 80);
   const { t, locale } = await getI18n();
 
-  let results = null;
-  if (q) {
-    // SQLite `contains` is case-sensitive for non-ASCII; search a few case variants.
-    const variants = Array.from(new Set([q, q.toLowerCase(), q.charAt(0).toUpperCase() + q.slice(1).toLowerCase()]));
-    const fields = ["titleRu", "titleEn", "taglineRu", "taglineEn", "descriptionRu", "descriptionEn", "aiModels", "genres"] as const;
-    const genreKeys = Object.entries(t.genres)
-      .filter(([, label]) => label.toLowerCase().includes(q.toLowerCase()))
-      .map(([k]) => k);
-    results = await listSeries(locale, {
-      where: {
-        OR: [
-          ...variants.flatMap((v) => fields.map((f) => ({ [f]: { contains: v } }))),
-          ...genreKeys.map((g) => ({ genres: { contains: g } })),
-        ],
-      },
-      take: 48,
-    });
-  }
+  const results = q ? await searchSeries(q, locale, t.genres) : null;
 
   return (
     <div className="px-4 pb-10 pt-[calc(var(--header-h)+24px)] md:px-10">

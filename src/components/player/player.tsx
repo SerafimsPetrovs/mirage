@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronLeft, ChevronUp, Heart, LayoutGrid, Maximize, MessageCircle, Pause, Play, Share2, SkipForward, Volume2, VolumeX,
+  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, Pause, Play, Share2, SkipForward, Volume2, VolumeX,
 } from "lucide-react";
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
@@ -16,6 +16,7 @@ import { saveProgressAction, toggleLikeAction } from "@/app/actions/library";
 import { Sheet } from "./sheet";
 import { Comments } from "./comments";
 import { LockOverlay } from "./lock-overlay";
+import { Ambient } from "./ambient";
 
 export type PlayerProps = {
   episode: { id: string; number: number; title: string; locked: boolean; reason: "login" | "locked" | null; price: number; startAt: number };
@@ -52,6 +53,8 @@ export function Player(props: PlayerProps) {
   const [liked, setLiked] = useState(props.liked);
   const [likes, setLikes] = useState(props.likeCount);
   const [chrome, setChrome] = useState(true);
+  const [fast, setFast] = useState(false);
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number; r: number }[]>([]);
   const [, start] = useTransition();
   const lastSaved = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -144,6 +147,57 @@ export function Player(props: PlayerProps) {
     });
   };
 
+  // Double-tap only ever likes (never un-likes), like TikTok.
+  const likeOn = () => {
+    if (!user) return router.push(`/login?next=/watch/${episode.id}`);
+    if (!liked) like();
+  };
+
+  // Tap = play/pause, double-tap = like (vertical) / fullscreen (horizontal), hold = 2× speed.
+  const heartSeq = useRef(0);
+  const gesture = useRef<{ x: number; y: number; hold?: ReturnType<typeof setTimeout>; held: boolean; tap?: ReturnType<typeof setTimeout> }>({ x: 0, y: 0, held: false });
+  const endHold = () => {
+    const g = gesture.current;
+    clearTimeout(g.hold);
+    if (g.held && videoRef.current) videoRef.current.playbackRate = 1;
+    setFast(false);
+  };
+  const onVideoPointerDown = (e: React.PointerEvent<HTMLVideoElement>) => {
+    const g = gesture.current;
+    g.x = e.clientX;
+    g.y = e.clientY;
+    g.held = false;
+    clearTimeout(g.hold);
+    g.hold = setTimeout(() => {
+      const v = videoRef.current;
+      if (!v || v.paused) return;
+      g.held = true;
+      v.playbackRate = 2;
+      setFast(true);
+    }, 450);
+  };
+  const onVideoPointerMove = (e: React.PointerEvent<HTMLVideoElement>) => {
+    const g = gesture.current;
+    if (!g.held && Math.hypot(e.clientX - g.x, e.clientY - g.y) > 12) clearTimeout(g.hold);
+  };
+  const onVideoClick = (e: React.MouseEvent<HTMLVideoElement>) => {
+    const g = gesture.current;
+    if (g.held) { g.held = false; return; }
+    if (g.tap) {
+      clearTimeout(g.tap);
+      g.tap = undefined;
+      if (vertical) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const id = ++heartSeq.current;
+        setHearts((h) => [...h, { id, x: e.clientX - rect.left, y: e.clientY - rect.top, r: ((id * 37) % 41) - 20 }]);
+        setTimeout(() => setHearts((h) => h.filter((x) => x.id !== id)), 900);
+        likeOn();
+      } else fullscreen();
+      return;
+    }
+    g.tap = setTimeout(() => { g.tap = undefined; toggle(); }, 240);
+  };
+
   const share = async () => {
     const url = `${location.origin}/series/${series.slug}`;
     if (navigator.share) {
@@ -193,7 +247,7 @@ export function Player(props: PlayerProps) {
       ref={videoRef}
       key={episode.id}
       src={`/api/stream/${episode.id}`}
-      className={clsx("absolute inset-0 h-full w-full", vertical ? "object-cover" : "object-contain")}
+      className={clsx("absolute inset-0 h-full w-full select-none [-webkit-touch-callout:none]", vertical ? "object-cover" : "object-contain")}
       playsInline
       preload="auto"
       poster={vertical ? series.poster : series.backdrop}
@@ -212,8 +266,33 @@ export function Player(props: PlayerProps) {
         setPlaying(false);
         if (nextId) setCountdown(5);
       }}
-      onClick={toggle}
+      onClick={onVideoClick}
+      onPointerDown={onVideoPointerDown}
+      onPointerMove={onVideoPointerMove}
+      onPointerUp={endHold}
+      onPointerCancel={endHold}
+      onPointerLeave={endHold}
+      onContextMenu={(e) => fast && e.preventDefault()}
     />
+  );
+
+  const effects = !episode.locked && (
+    <>
+      {hearts.map((h) => (
+        <Heart
+          key={h.id}
+          size={96}
+          aria-hidden
+          className="animate-heart pointer-events-none absolute z-20 fill-accent text-accent drop-shadow-[0_6px_24px_rgba(255,46,99,.6)]"
+          style={{ left: h.x - 48, top: h.y - 48, ["--r" as string]: `${h.r}deg` }}
+        />
+      ))}
+      {fast && (
+        <div className="glass animate-pop pointer-events-none absolute left-1/2 top-[calc(max(12px,env(safe-area-inset-top))+56px)] z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold">
+          2× <FastForward size={15} fill="currentColor" />
+        </div>
+      )}
+    </>
   );
 
   const nextOverlay = countdown !== null && nextId && (
@@ -263,6 +342,7 @@ export function Player(props: PlayerProps) {
         {/* Ambient blurred backdrop on wide screens */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={series.poster} alt="" className="absolute inset-0 hidden h-full w-full scale-125 object-cover opacity-40 blur-3xl md:block" />
+        {!episode.locked && <Ambient videoRef={videoRef} className="inset-0 hidden h-full w-full scale-110 md:block" />}
         <div className="relative mx-auto flex h-full items-center justify-center gap-6">
           <div
             ref={wrapRef}
@@ -301,6 +381,7 @@ export function Player(props: PlayerProps) {
 
             {centerPlay}
             {spinner}
+            {effects}
 
             {/* Right rail (mobile overlays the video) */}
             <div className="absolute bottom-28 right-3 z-10 flex flex-col items-center gap-4 md:hidden">
@@ -371,9 +452,9 @@ export function Player(props: PlayerProps) {
 
   // Horizontal / widescreen layout
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh overflow-x-clip bg-bg">
       <div className="mx-auto max-w-[1400px] md:px-6 md:pt-6">
-        <div className="flex items-center gap-3 px-4 py-3 md:px-0">
+        <div className="relative z-10 flex items-center gap-3 px-4 py-3 md:px-0">
           <Link href={`/series/${series.slug}`} aria-label={t.common.back} className={btn("ghost", "icon")}>
             <ChevronLeft size={22} />
           </Link>
@@ -384,6 +465,8 @@ export function Player(props: PlayerProps) {
             </p>
           </div>
         </div>
+        <div className="relative mx-auto max-w-[calc(78vh*16/9)]">
+        {!episode.locked && <Ambient videoRef={videoRef} className="-inset-x-[6%] -inset-y-[10%] h-[120%] w-[112%] rounded-[48px]" />}
         <div ref={wrapRef} className="group/player relative aspect-video max-h-[78vh] w-full overflow-hidden bg-black md:rounded-3xl" onMouseMove={poke}>
           {episode.locked && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -392,6 +475,7 @@ export function Player(props: PlayerProps) {
           {video}
           {centerPlay}
           {spinner}
+          {effects}
           {!episode.locked && (
             <div className={clsx("absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent px-4 pb-3 pt-10 transition-opacity", !chrome && playing && "opacity-0")}>
               {progressBar}
@@ -421,8 +505,9 @@ export function Player(props: PlayerProps) {
           {nextOverlay}
           {lock}
         </div>
+        </div>
 
-        <div className="flex flex-wrap items-center gap-2 px-4 py-5 md:px-0">
+        <div className="relative flex flex-wrap items-center gap-2 px-4 py-5 md:px-0">
           <button onClick={like} aria-pressed={liked} className={btn("glass", "md")}>
             <Heart size={18} className={liked ? "fill-accent text-accent" : ""} /> {formatNumber(likes, locale)}
           </button>
@@ -438,7 +523,7 @@ export function Player(props: PlayerProps) {
             </button>
           )}
         </div>
-        <div className="px-4 pb-16 md:px-0">
+        <div className="relative px-4 pb-16 md:px-0">
           <h2 className="mb-3 font-display text-lg font-semibold">{t.series.episodes}</h2>
           <EpisodeList episodes={series.episodes} backdrop={series.backdrop} t={t} />
         </div>
