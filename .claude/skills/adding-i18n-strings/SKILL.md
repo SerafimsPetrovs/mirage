@@ -1,6 +1,6 @@
 ---
 name: adding-i18n-strings
-description: Use when adding or changing any user-visible text, labels, buttons, toasts, emails, errors or metadata in MIRAGE, or when text appears untranslated or mixed Russian/English.
+description: Use when adding or changing any user-visible text, labels, buttons, toasts, errors or metadata in MIRAGE, or when text appears untranslated or mixed Russian/English.
 ---
 
 # Adding i18n Strings
@@ -9,21 +9,21 @@ description: Use when adding or changing any user-visible text, labels, buttons,
 MIRAGE ships Russian (default) and English. No user-visible literal strings in components.
 
 ## Where things live
-- Dictionaries: `src/i18n/ru.ts` (source of truth, typed) and `src/i18n/en.ts` (must satisfy `typeof ru`, so a missing key is a type error).
-- Locale: cookie `locale` (`ru` | `en`), read in `src/i18n/server.ts` → `getDict()`; client components use `useT()` from `src/i18n/client.tsx`.
-- Content data (series titles/descriptions) is stored per-locale in DB fields `titleRu/titleEn`, `descriptionRu/descriptionEn`; use `pick(obj, "title", locale)` from `src/i18n/pick.ts`, falling back to RU.
+- Dictionaries: `src/i18n/ru.ts` (source of truth, exports `Dict = typeof ru`) and `src/i18n/en.ts` (typed `Dict`, so a missing key is a type error).
+- Server components / actions: `const { t, locale } = await getI18n()` from `src/i18n/server.ts`.
+- Client components: `const { t, locale } = useI18n()` from `src/i18n/client.tsx`.
+- Helpers in `src/i18n/shared.ts`: `fmt(template, vars)`, `plural(n, forms, locale)`, `pick(obj, "title", locale)`, `formatNumber`, `formatMoney`, `formatDate`.
+- Locale = cookie `locale` (`ru` | `en`), else `Accept-Language`. Switch via `setLocaleAction` (`LangSwitch` component).
+- DB content is bilingual: `titleRu/titleEn`, `descriptionRu/En`, `taglineRu/En`, `promptNotesRu/En`, poll `questionRu/En`, option `labelRu/En`. Read with `pick()` (falls back to RU when EN empty).
 
 ## Pattern
 ```ts
-// ru.ts
-player: { unlockFor: "Открыть за {price}", nextEpisode: "Следующая серия" }
-// component
-const t = await getDict();               // server
-t.player.unlockFor.replace("{price}", String(price))   // or fmt(t.player.unlockFor, { price })
+// ru.ts → player: { unlockFor: "Открыть за {price}" }
+fmt(t.player.unlockFor, { price: 30 })
+`${n} ${plural(n, t.common.episodes, locale)}`   // common.episodes = ["серия","серии","серий"]
 ```
 
 ## Rules
-- Group keys by screen/feature (`home`, `player`, `studio`, `admin`, `auth`, `wallet`).
-- Plurals in RU need 3 forms → use `plural(n, ["серия","серии","серий"])` from `src/i18n/plural.ts`.
-- Numbers/dates via `Intl` with the active locale.
-- After adding keys, run `npx tsc --noEmit` — EN must compile.
+- Group keys by screen (`home`, `player`, `series`, `studio`, `admin`, `wallet`, …).
+- Add the key to BOTH files in the same edit; run `npx tsc --noEmit`.
+- Never use `Date.now()`/`new Date()` math inside component bodies (react-hooks/purity lint) — use helpers in `src/lib/rewards.ts` (`daysAgo`, `lastNDays`, `utcDay`).
