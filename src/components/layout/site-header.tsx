@@ -1,0 +1,58 @@
+import Link from "next/link";
+import { Crown, Search } from "lucide-react";
+import { getCurrentUser, isVip } from "@/lib/auth";
+import { getI18n } from "@/i18n/server";
+import { btn } from "@/components/ui/button";
+import { CoinAmount, Logo } from "@/components/ui/misc";
+import { HeaderShell, NavLinks } from "./header-client";
+import { UserMenu } from "./user-menu";
+
+export async function SiteHeader() {
+  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const vip = isVip(user);
+  const links = [
+    { href: "/", label: t.nav.home },
+    { href: "/feed", label: t.nav.feed },
+    { href: "/browse", label: t.nav.browse },
+    ...(user ? [{ href: "/me#list", label: t.nav.myList }] : []),
+  ];
+  return (
+    <HeaderShell>
+      <div className="flex h-full items-center gap-4 px-4 md:gap-8 md:px-10">
+        <Link href="/" aria-label="MIRAGE" className="shrink-0">
+          <Logo />
+        </Link>
+        <NavLinks links={links} />
+        <div className="ml-auto flex items-center gap-1.5 md:gap-2.5">
+          <Link href="/search" aria-label={t.nav.search} className={btn("ghost", "icon")}>
+            <Search size={20} strokeWidth={1.75} />
+          </Link>
+          {user ? (
+            <>
+              {!vip && (
+                <Link href="/vip" className={btn("glass", "sm", "hidden sm:inline-flex")}>
+                  <Crown size={15} className="text-vip" /> VIP
+                </Link>
+              )}
+              <Link href="/me/wallet" className={btn("glass", "sm", "px-3")} aria-label={t.nav.wallet}>
+                <CoinAmount value={user.coins} size={15} />
+              </Link>
+              <UserMenu
+                user={{ name: user.name, email: user.email, hue: user.avatarHue, role: user.role, vip }}
+              />
+            </>
+          ) : (
+            <>
+              <Link href="/login" className={btn("ghost", "sm", "hidden sm:inline-flex")}>
+                {t.nav.login}
+              </Link>
+              <Link href="/register" className={btn("primary", "sm")}>
+                {t.nav.register}
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </HeaderShell>
+  );
+}

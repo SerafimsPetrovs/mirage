@@ -1,0 +1,334 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VIEWER
+  CREATOR
+  ADMIN
+}
+
+enum Orientation {
+  VERTICAL
+  HORIZONTAL
+}
+
+enum SeriesStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum CoinReason {
+  PURCHASE
+  UNLOCK
+  CHECKIN
+  BONUS
+  REFUND
+  ADMIN
+}
+
+enum OrderKind {
+  COINS
+  VIP
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum SubStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+}
+
+enum AppStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatarHue    Int      @default(330)
+  role         Role     @default(VIEWER)
+  coins        Int      @default(0)
+  bio          String?
+  banned       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  sessions     Session[]
+  subscription Subscription?
+  series       Series[]
+  unlocks      Unlock[]
+  transactions CoinTransaction[]
+  orders       Order[]
+  earnings     CreatorEarning[]
+  progress     WatchProgress[]
+  listItems    ListItem[]
+  likes        Like[]
+  comments     Comment[]
+  ratings      Rating[]
+  checkIns     CheckIn[]
+  pollVotes    PollVote[]
+  applications CreatorApplication[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  plan             String
+  status           SubStatus @default(ACTIVE)
+  currentPeriodEnd DateTime
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Series {
+  id               String       @id @default(cuid())
+  slug             String       @unique
+  titleRu          String
+  titleEn          String
+  taglineRu        String       @default("")
+  taglineEn        String       @default("")
+  descriptionRu    String
+  descriptionEn    String
+  orientation      Orientation  @default(VERTICAL)
+  posterUrl        String?
+  backdropUrl      String?
+  hue              Int          @default(330)
+  genres           String       @default("")
+  moods            String       @default("")
+  aiModels         String       @default("")
+  promptNotesRu    String       @default("")
+  promptNotesEn    String       @default("")
+  ageRating        String       @default("16+")
+  status           SeriesStatus @default(DRAFT)
+  rejectReason     String?
+  featured         Boolean      @default(false)
+  freeEpisodes     Int          @default(5)
+  defaultCoinPrice Int          @default(30)
+  views            Int          @default(0)
+  creatorId        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  publishedAt      DateTime?
+
+  creator   User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  episodes  Episode[]
+  listItems ListItem[]
+  ratings   Rating[]
+  polls     Poll[]
+  progress  WatchProgress[]
+
+  @@index([status, featured])
+  @@index([creatorId])
+}
+
+model Episode {
+  id           String   @id @default(cuid())
+  seriesId     String
+  number       Int
+  titleRu      String   @default("")
+  titleEn      String   @default("")
+  durationSec  Int      @default(90)
+  videoUrl     String
+  thumbnailUrl String?
+  coinPrice    Int?
+  views        Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  series       Series            @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  unlocks      Unlock[]
+  likes        Like[]
+  comments     Comment[]
+  progress     WatchProgress[]
+  earnings     CreatorEarning[]
+  transactions CoinTransaction[]
+
+  @@unique([seriesId, number])
+}
+
+model Unlock {
+  userId    String
+  episodeId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, episodeId])
+}
+
+model CoinTransaction {
+  id        String     @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    CoinReason
+  note      String?
+  episodeId String?
+  orderId   String?
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode?   @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  kind        OrderKind
+  sku         String
+  amountCents Int
+  currency    String
+  status      OrderStatus @default(PENDING)
+  provider    String
+  createdAt   DateTime    @default(now())
+  paidAt      DateTime?
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreatorEarning {
+  id        String   @id @default(cuid())
+  creatorId String
+  episodeId String
+  coins     Int
+  createdAt DateTime @default(now())
+  creator   User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, createdAt])
+}
+
+model WatchProgress {
+  userId      String
+  episodeId   String
+  seriesId    String
+  positionSec Int      @default(0)
+  completed   Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  series      Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([userId, episodeId])
+  @@index([userId, updatedAt])
+}
+
+model ListItem {
+  userId    String
+  seriesId  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([userId, seriesId])
+}
+
+model Like {
+  userId    String
+  episodeId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, episodeId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  episodeId String
+  body      String
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId, createdAt])
+}
+
+model Rating {
+  userId   String
+  seriesId String
+  value    Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([userId, seriesId])
+}
+
+model CheckIn {
+  userId    String
+  day       String
+  streak    Int
+  reward    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+}
+
+model Poll {
+  id         String       @id @default(cuid())
+  seriesId   String
+  questionRu String
+  questionEn String
+  closesAt   DateTime
+  createdAt  DateTime     @default(now())
+  series     Series       @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  options    PollOption[]
+  votes      PollVote[]
+}
+
+model PollOption {
+  id      String     @id @default(cuid())
+  pollId  String
+  labelRu String
+  labelEn String
+  poll    Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes   PollVote[]
+}
+
+model PollVote {
+  userId   String
+  pollId   String
+  optionId String
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option   PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pollId])
+}
+
+model CreatorApplication {
+  id        String    @id @default(cuid())
+  userId    String
+  message   String
+  portfolio String    @default("")
+  status    AppStatus @default(PENDING)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
