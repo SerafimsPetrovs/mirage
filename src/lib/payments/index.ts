@@ -58,17 +58,23 @@ export async function fulfillOrder(orderId: string) {
     if (item.kind === "COINS") {
       await grantCoins(order.userId, item.pack.coins + item.pack.bonus, "PURCHASE", { orderId }, tx);
     } else {
-      const existing = await tx.subscription.findUnique({ where: { userId: order.userId } });
-      const base = existing && existing.status === "ACTIVE" && existing.currentPeriodEnd > new Date()
-        ? existing.currentPeriodEnd
-        : new Date();
-      const end = new Date(base.getTime() + item.plan.days * 86400_000);
-      await tx.subscription.upsert({
-        where: { userId: order.userId },
-        create: { userId: order.userId, plan: item.plan.sku, currentPeriodEnd: end },
-        update: { plan: item.plan.sku, status: "ACTIVE", currentPeriodEnd: end },
-      });
+      await extendVip(tx, order.userId, item.plan.days, item.plan.sku);
     }
     return true;
   });
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+/** Adds `days` of VIP starting from the later of now / current period end. */
+export async function extendVip(tx: Tx, userId: string, days: number, plan: string) {
+  const existing = await tx.subscription.findUnique({ where: { userId } });
+  const base = existing && existing.status === "ACTIVE" && existing.currentPeriodEnd > new Date() ? existing.currentPeriodEnd : new Date();
+  const end = new Date(base.getTime() + days * 86400_000);
+  await tx.subscription.upsert({
+    where: { userId },
+    create: { userId, plan, currentPeriodEnd: end },
+    update: { plan, status: "ACTIVE", currentPeriodEnd: end },
+  });
+  return end;
 }

@@ -3,6 +3,7 @@ import { decideAccess, type AccessEpisode } from "./access";
 import { nextCheckIn, previousUtcDay, CHECKIN_REWARDS } from "./rewards";
 import { fmt, plural, pick } from "../i18n/shared";
 import { findSku, priceFor } from "./payments/catalog";
+import { canMovePayout, isValidIban, maskDetails, normalizeDetails, payoutCents, refundsCoins } from "./payout-rules";
 
 const series = { freeEpisodes: 5, defaultCoinPrice: 30, creatorId: "creator" };
 const ep = (number: number, coinPrice: number | null = null): AccessEpisode => ({ id: "e" + number, number, coinPrice, series });
@@ -154,5 +155,29 @@ describe("spicy rules", () => {
     expect(adultSeriesBlock({ ...adult, kidsMode: true }, { isAdult: true })).toBe("kids");
     expect(adultSeriesBlock({ ...adult, showAdult: false }, { isAdult: true })).toBe("age");
     expect(adultSeriesBlock(adult, { isAdult: true })).toBeNull();
+  });
+});
+
+describe("payout rules", () => {
+  it("validates IBANs with the mod-97 checksum", () => {
+    expect(isValidIban("DE89 3704 0044 0532 0130 00")).toBe(true);
+    expect(isValidIban("GB82WEST12345698765432")).toBe(true);
+    expect(isValidIban("DE88 3704 0044 0532 0130 00")).toBe(false);
+    expect(isValidIban("hello")).toBe(false);
+  });
+  it("normalises and masks details", () => {
+    expect(normalizeDetails("IBAN", " de89 3704 0044 0532 0130 00 ")).toBe("DE89370400440532013000");
+    expect(normalizeDetails("PAYPAL", "A@B.co")).toBe("a@b.co");
+    expect(normalizeDetails("PAYPAL", "nope")).toBeNull();
+    expect(maskDetails("IBAN", "DE89370400440532013000")).toBe("DE89 •••• 3000");
+    expect(maskDetails("PAYPAL", "anna@mail.com")).toBe("a•••@mail.com");
+  });
+  it("only allows forward status moves and refunds on reject/cancel", () => {
+    expect(canMovePayout("PENDING", "APPROVED")).toBe(true);
+    expect(canMovePayout("APPROVED", "CANCELED")).toBe(false);
+    expect(canMovePayout("PAID", "REJECTED")).toBe(false);
+    expect(refundsCoins("REJECTED")).toBe(true);
+    expect(refundsCoins("PAID")).toBe(false);
+    expect(payoutCents(1500)).toBe(900);
   });
 });

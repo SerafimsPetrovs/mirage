@@ -37,6 +37,7 @@ enum CoinReason {
   SCENE
   CHAT
   PHOTO
+  PROMO
 }
 
 enum OrderKind {
@@ -89,32 +90,36 @@ model User {
   adultConfirmedAt   DateTime?
   /// Viewer opted in to see 18+ series and fan-service add-ons (off by default; never in kids mode).
   showAdult          Boolean   @default(false)
+  /// Creator's withdrawable coins (cache of earnings.coins minus open/paid payouts).
+  payoutCoins        Int       @default(0)
   bio                String?
   banned             Boolean   @default(false)
   createdAt          DateTime  @default(now())
 
-  sessions       Session[]
-  subscription   Subscription?
-  series         Series[]
-  unlocks        Unlock[]
-  transactions   CoinTransaction[]
-  orders         Order[]
-  earnings       CreatorEarning[]
-  progress       WatchProgress[]
-  listItems      ListItem[]
-  likes          Like[]
-  comments       Comment[]
-  ratings        Rating[]
-  checkIns       CheckIn[]
-  pollVotes      PollVote[]
-  applications   CreatorApplication[]
-  generations    GenerationJob[]
-  kidsAllowances KidsAllowance[]
-  pollBoosts     PollBoost[]
-  skinUnlocks    SkinUnlock[]
-  sceneUnlocks   SceneUnlock[]
-  chatThreads    ChatThread[]
-  photoUnlocks   PhotoUnlock[]
+  sessions         Session[]
+  subscription     Subscription?
+  series           Series[]
+  unlocks          Unlock[]
+  transactions     CoinTransaction[]
+  orders           Order[]
+  earnings         CreatorEarning[]
+  payouts          Payout[]
+  promoRedemptions PromoRedemption[]
+  progress         WatchProgress[]
+  listItems        ListItem[]
+  likes            Like[]
+  comments         Comment[]
+  ratings          Rating[]
+  checkIns         CheckIn[]
+  pollVotes        PollVote[]
+  applications     CreatorApplication[]
+  generations      GenerationJob[]
+  kidsAllowances   KidsAllowance[]
+  pollBoosts       PollBoost[]
+  skinUnlocks      SkinUnlock[]
+  sceneUnlocks     SceneUnlock[]
+  chatThreads      ChatThread[]
+  photoUnlocks     PhotoUnlock[]
 }
 
 model Session {
@@ -566,4 +571,58 @@ model ChatMessage {
   photo     CharacterPhoto? @relation(fields: [photoId], references: [id], onDelete: SetNull)
 
   @@index([threadId, createdAt])
+}
+
+/// Creator withdrawal request. Coins are reserved (User.payoutCoins decremented) when created,
+/// returned on REJECTED/CANCELED. Flow: PENDING → APPROVED → PAID, or → REJECTED / CANCELED.
+model Payout {
+  id          String    @id @default(cuid())
+  userId      String
+  coins       Int
+  amountCents Int
+  currency    String    @default("EUR")
+  /// IBAN | PAYPAL | CARD
+  method      String
+  details     String
+  holderName  String
+  /// PENDING | APPROVED | PAID | REJECTED | CANCELED
+  status      String    @default("PENDING")
+  adminNote   String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Promo code. COINS grants bonus coins (never withdrawable), VIP_DAYS extends VIP.
+model PromoCode {
+  id           String            @id @default(cuid())
+  /// Upper-case, unique.
+  code         String            @unique
+  /// COINS | VIP_DAYS
+  kind         String
+  value        Int
+  /// null = unlimited
+  maxUses      Int?
+  usesCount    Int               @default(0)
+  expiresAt    DateTime?
+  /// Only accounts registered after the code was created.
+  newUsersOnly Boolean           @default(false)
+  active       Boolean           @default(true)
+  note         String?
+  createdAt    DateTime          @default(now())
+  redemptions  PromoRedemption[]
+}
+
+model PromoRedemption {
+  promoId   String
+  userId    String
+  createdAt DateTime  @default(now())
+  promo     PromoCode @relation(fields: [promoId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([promoId, userId])
+  @@index([userId])
 }

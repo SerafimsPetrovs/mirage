@@ -5,6 +5,10 @@ const STYLES: Record<string, string> = {
   PENDING: "bg-coin/15 text-coin",
   PUBLISHED: "bg-ok/15 text-ok",
   REJECTED: "bg-red-500/15 text-red-300",
+  // payouts
+  APPROVED: "bg-vip/15 text-vip",
+  PAID: "bg-ok/15 text-ok",
+  CANCELED: "bg-white/8 text-muted",
 };
 
 export function StatusBadge({ status, label }: { status: string; label: string }) {

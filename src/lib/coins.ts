@@ -82,8 +82,11 @@ export async function chargeForContent(
       credits: share.credits,
     },
   });
-  if (share.credits > 0) {
-    await tx.user.update({ where: { id: opts.creatorId }, data: { genCredits: { increment: share.credits } } });
+  if (share.credits > 0 || share.coins > 0) {
+    await tx.user.update({
+      where: { id: opts.creatorId },
+      data: { genCredits: { increment: share.credits }, payoutCoins: { increment: share.coins } },
+    });
   }
   return charge;
 }

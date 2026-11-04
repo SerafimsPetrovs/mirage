@@ -493,7 +493,7 @@ async function main() {
         aiModels: s.ai.join(","),
         promptNotesRu: s.notesRu,
         promptNotesEn: s.notesEn,
-        ageRating: s.age ?? "16+",
+        ageRating: s.slug === "my-husband-is-a-ghost" ? "18+" : s.age ?? "16+",
         status: "PUBLISHED",
         featured: !!s.featured,
         isFamilySafe: !!s.familySafe,
@@ -611,6 +611,25 @@ async function main() {
         data: { creatorId: series.creatorId, episodeId: ep.id, seriesId: series.id, coins: Math.floor(series.defaultCoinPrice / 2), createdAt: new Date(Date.now() - k * 86400_000 / 2) },
       });
     }
+  }
+
+  // Older payouts history: Studio Lumen earned more earlier and already withdrew once; Neon Lotus has one request in review.
+  const old = (d: number) => new Date(Date.now() - d * 86400_000);
+  await prisma.creatorEarning.create({ data: { creatorId: creatorA.id, source: "UNLOCK", coins: 3200, createdAt: old(45) } });
+  await prisma.payout.create({
+    data: { userId: creatorA.id, coins: 1500, amountCents: 900, method: "IBAN", details: "DE89370400440532013000", holderName: "Studio Lumen GmbH", status: "PAID", createdAt: old(30), processedAt: old(28) },
+  });
+  await prisma.creatorEarning.create({ data: { creatorId: creatorB.id, source: "UNLOCK", coins: 1900, createdAt: old(20) } });
+  await prisma.payout.create({
+    data: { userId: creatorB.id, coins: 1600, amountCents: 960, method: "PAYPAL", details: "lotus.studio@example.com", holderName: "Mei Lin", status: "PENDING", createdAt: old(1) },
+  });
+  // payoutCoins cache = all earned coins − coins in open or paid payouts
+  for (const c of [creatorA, creatorB]) {
+    const [earned, out] = await Promise.all([
+      prisma.creatorEarning.aggregate({ where: { creatorId: c.id }, _sum: { coins: true } }),
+      prisma.payout.aggregate({ where: { userId: c.id, status: { in: ["PENDING", "APPROVED", "PAID"] } }, _sum: { coins: true } }),
+    ]);
+    await prisma.user.update({ where: { id: c.id }, data: { payoutCoins: (earned._sum.coins ?? 0) - (out._sum.coins ?? 0) } });
   }
 
   await seedFanService(created);

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Coins, Eye, Film, Plus, Unlock, Wand2 } from "lucide-react";
+import { Banknote, Bookmark, Coins, Eye, Film, Plus, Unlock, Wand2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { CREATOR_SHARE } from "@/lib/access";
@@ -50,7 +50,7 @@ export default async function StudioPage() {
   const stats = [
     { label: t.studio.stats.views, value: formatNumber(views, locale), icon: Eye },
     { label: t.studio.stats.unlocks, value: formatNumber(unlocks, locale), icon: Unlock },
-    { label: t.studio.cashEarnings, value: formatNumber(earn._sum.coins ?? 0, locale), icon: Coins, coin: true },
+    { label: t.payouts.available, value: formatNumber(user.payoutCoins, locale), icon: Coins, coin: true, href: "/studio/payouts" },
     { label: t.studio.creditEarnings, value: formatNumber(earn._sum.credits ?? 0, locale), icon: Wand2 },
     { label: t.studio.stats.followers, value: formatNumber(lists, locale), icon: Bookmark },
   ];
@@ -63,6 +63,9 @@ export default async function StudioPage() {
           <p className="mt-1 text-muted">{t.studio.sub}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/studio/payouts" className={btn("coin", "md")}>
+            <Banknote size={18} /> {t.payouts.withdraw}
+          </Link>
           <Link href="/studio/generate" className={btn("vip", "md")}>
             <Wand2 size={18} /> {t.gen.nav}
           </Link>
@@ -73,14 +76,22 @@ export default async function StudioPage() {
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
-        {stats.map(({ label, value, icon: Icon, coin }) => (
-          <div key={label} className="rounded-3xl bg-surface p-4 ring-1 ring-line md:p-5">
-            <div className="flex items-center gap-2 text-sm text-muted">
-              <Icon size={16} className={coin ? "text-coin" : ""} /> {label}
-            </div>
-            <p className={`mt-2 font-display text-2xl font-bold tabular-nums md:text-3xl ${coin ? "text-coin" : ""}`}>{value}</p>
-          </div>
-        ))}
+        {stats.map(({ label, value, icon: Icon, coin, href }) => {
+          const body = (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted">
+                <Icon size={16} className={coin ? "text-coin" : ""} /> {label}
+              </div>
+              <p className={`mt-2 font-display text-2xl font-bold tabular-nums md:text-3xl ${coin ? "text-coin" : ""}`}>{value}</p>
+            </>
+          );
+          const cls = "rounded-3xl bg-surface p-4 ring-1 ring-line md:p-5";
+          return href ? (
+            <Link key={label} href={href} className={`${cls} transition hover:ring-coin/50`}>{body}</Link>
+          ) : (
+            <div key={label} className={cls}>{body}</div>
+          );
+        })}
       </div>
 
       <div className="mt-4 rounded-3xl bg-surface p-5 ring-1 ring-line">
