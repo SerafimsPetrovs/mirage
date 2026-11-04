@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { dailyCheckIn, InsufficientCoinsError, unlockEpisode } from "@/lib/coins";
 import { createOrder } from "@/lib/payments";
-import { getLocale } from "@/i18n/server";
 
 export type UnlockResult =
   | { ok: true; balance: number; charged: number }
@@ -30,7 +29,7 @@ export async function purchaseAction(sku: string): Promise<{ ok: boolean; redire
   const user = await getCurrentUser();
   if (!user || user.kidsMode) return { ok: false, error: "auth" };
   try {
-    const { redirectUrl } = await createOrder(user.id, sku, await getLocale());
+    const { redirectUrl } = await createOrder(user.id, sku);
     revalidatePath("/", "layout");
     return { ok: true, redirectUrl };
   } catch (e) {

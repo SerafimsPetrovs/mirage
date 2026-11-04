@@ -97,7 +97,7 @@ describe("unlockEpisode", () => {
 
 describe("orders", () => {
   it("fulfills a coin order exactly once", async () => {
-    const order = await prisma.order.create({ data: { userId: viewerId, kind: "COINS", sku: "coins_300", amountCents: 27900, currency: "RUB", provider: "mock" } });
+    const order = await prisma.order.create({ data: { userId: viewerId, kind: "COINS", sku: "coins_300", amountCents: 299, currency: "EUR", provider: "mock" } });
     expect(await fulfillOrder(order.id)).toBe(true);
     expect(await fulfillOrder(order.id)).toBe(false);
     const u = await prisma.user.findUniqueOrThrow({ where: { id: viewerId } });
@@ -107,7 +107,7 @@ describe("orders", () => {
   });
 
   it("VIP order creates and then extends subscription", async () => {
-    const mk = () => prisma.order.create({ data: { userId: viewerId, kind: "VIP", sku: "vip_week", amountCents: 19900, currency: "RUB", provider: "mock" } });
+    const mk = () => prisma.order.create({ data: { userId: viewerId, kind: "VIP", sku: "vip_week", amountCents: 199, currency: "EUR", provider: "mock" } });
     await fulfillOrder((await mk()).id);
     const first = await prisma.subscription.findUniqueOrThrow({ where: { userId: viewerId } });
     await fulfillOrder((await mk()).id);

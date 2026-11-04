@@ -28,10 +28,10 @@ export function getProvider(): PaymentProvider {
   throw new Error("No payment provider configured");
 }
 
-export async function createOrder(userId: string, sku: string, locale: string) {
+export async function createOrder(userId: string, sku: string) {
   const item = findSku(sku);
   if (!item) throw new Error("UNKNOWN_SKU");
-  const price = priceFor(item.kind === "COINS" ? item.pack : item.plan, locale);
+  const price = priceFor(item.kind === "COINS" ? item.pack : item.plan);
   const provider = getProvider();
   const order = await prisma.order.create({
     data: { userId, kind: item.kind, sku, provider: provider.name, ...price },

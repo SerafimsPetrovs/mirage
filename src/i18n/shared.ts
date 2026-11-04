@@ -41,7 +41,7 @@ export function formatNumber(n: number, locale: Locale) {
 }
 
 export function formatMoney(amount: number, currency: string, locale: Locale) {
-  return new Intl.NumberFormat(locale === "en" ? "en-US" : "ru-RU", { style: "currency", currency, maximumFractionDigits: currency === "RUB" ? 0 : 2 }).format(amount);
+  return new Intl.NumberFormat(locale === "en" ? "en-US" : "ru-RU", { style: "currency", currency, maximumFractionDigits: currency === "RUB" ? 0 : 2, minimumFractionDigits: currency === "RUB" ? 0 : 2 }).format(amount);
 }
 
 export function formatDate(d: Date, locale: Locale) {

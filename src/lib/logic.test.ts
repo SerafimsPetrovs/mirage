@@ -82,8 +82,7 @@ describe("payment catalog", () => {
     expect(findSku("nope")).toBeNull();
   });
   it("prices in locale currency", () => {
-    expect(priceFor({ rub: 549, usd: 9.99 }, "en")).toEqual({ amountCents: 999, currency: "USD" });
-    expect(priceFor({ rub: 549, usd: 9.99 }, "ru")).toEqual({ amountCents: 54900, currency: "RUB" });
+    expect(priceFor({ eur: 5.49 })).toEqual({ amountCents: 549, currency: "EUR" });
   });
 });
 

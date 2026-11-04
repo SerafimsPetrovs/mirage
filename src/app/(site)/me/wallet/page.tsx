@@ -4,7 +4,7 @@ import { ArrowDownLeft, ArrowUpRight, Coins, Info, Receipt } from "lucide-react"
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getCheckInState } from "@/lib/coins";
-import { COIN_PACKS } from "@/lib/payments/catalog";
+import { COIN_PACKS, CURRENCY } from "@/lib/payments/catalog";
 import { getI18n } from "@/i18n/server";
 import { fmt, formatMoney, pick } from "@/i18n/shared";
 import { CoinAmount, EmptyState } from "@/components/ui/misc";
@@ -62,7 +62,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       <h2 className="mb-4 mt-10 font-display text-xl font-semibold">{t.wallet.buy}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {COIN_PACKS.map((p) => {
-          const price = locale === "en" ? formatMoney(p.usd, "USD", locale) : formatMoney(p.rub, "RUB", locale);
+          const price = formatMoney(p.eur, CURRENCY, locale);
           return (
             <div
               key={p.sku}

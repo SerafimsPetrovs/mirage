@@ -3,7 +3,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Check, Crown, Info } from "lucide-react";
 import { forbidInKidsMode, getCurrentUser, isVip } from "@/lib/auth";
-import { VIP_PLANS } from "@/lib/payments/catalog";
+import { CURRENCY, VIP_PLANS } from "@/lib/payments/catalog";
 import { getI18n } from "@/i18n/server";
 import { fmt, formatDate, formatMoney } from "@/i18n/shared";
 import { btn } from "@/components/ui/button";
@@ -55,8 +55,8 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {VIP_PLANS.map((p) => {
-            const price = locale === "en" ? formatMoney(p.usd, "USD", locale) : formatMoney(p.rub, "RUB", locale);
-            const perDay = locale === "en" ? formatMoney(p.usd / p.days, "USD", locale) : formatMoney(Math.round(p.rub / p.days), "RUB", locale);
+            const price = formatMoney(p.eur, CURRENCY, locale);
+            const perDay = formatMoney(p.eur / p.days, CURRENCY, locale);
             const hl = p.badge === "popular";
             return (
               <div
