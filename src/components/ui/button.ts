@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-type Variant = "primary" | "secondary" | "ghost" | "glass" | "vip" | "coin" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "glass" | "vip" | "coin" | "danger" | "kids";
 type Size = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<Variant, string> = {
@@ -10,6 +10,7 @@ const variants: Record<Variant, string> = {
   glass: "glass text-text hover:bg-white/12",
   vip: "bg-mirage text-white shadow-[0_8px_30px_-8px_rgba(124,92,255,.7)] hover:brightness-110",
   coin: "bg-coin text-black hover:brightness-105 shadow-[0_8px_30px_-10px_rgba(255,200,61,.7)]",
+  kids: "bg-[linear-gradient(100deg,#3ec5ff_0%,#7b6cff_45%,#ff7eb6_100%)] text-white shadow-[0_8px_30px_-8px_rgba(62,197,255,.65)] hover:brightness-110",
   danger: "bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30",
 };
 

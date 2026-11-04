@@ -2,11 +2,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { grantCoins } from "@/lib/coins";
+import { deductCoins, grantCoins } from "@/lib/coins";
 
 async function requireAdmin() {
   const user = await getCurrentUser();
-  if (!user || user.role !== "ADMIN") throw new Error("FORBIDDEN");
+  if (!user || user.kidsMode || user.role !== "ADMIN") throw new Error("FORBIDDEN");
   return user;
 }
 
@@ -21,11 +21,12 @@ export async function moderateSeriesAction(seriesId: string, decision: "approve"
   revalidatePath("/");
 }
 
-export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
+export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
   await requireAdmin();
+  const clean = { featured: patch.featured, isFamilySafe: patch.isFamilySafe, status: patch.status };
   await prisma.series.update({
     where: { id: seriesId },
-    data: { ...patch, ...(patch.status === "PUBLISHED" ? { publishedAt: new Date() } : {}) },
+    data: { ...clean, ...(patch.status === "PUBLISHED" ? { publishedAt: new Date() } : {}) },
   });
   revalidatePath("/admin", "layout");
   revalidatePath("/");
@@ -53,10 +54,12 @@ export async function grantCoinsAction(userId: string, amount: number) {
   const n = Math.trunc(amount);
   if (!n || Math.abs(n) > 100000) return;
   if (n < 0) {
-    const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (u.coins + n < 0) return;
-  }
-  await grantCoins(userId, n, "ADMIN");
+    try {
+      await deductCoins(userId, -n);
+    } catch {
+      return; // not enough coins — never go negative
+    }
+  } else await grantCoins(userId, n, "ADMIN");
   revalidatePath("/admin/users");
 }
 

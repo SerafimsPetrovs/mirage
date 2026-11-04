@@ -8,7 +8,7 @@ import type { FormState } from "./auth";
 
 async function requireCreator() {
   const user = await getCurrentUser();
-  if (!user || (user.role !== "CREATOR" && user.role !== "ADMIN")) throw new Error("FORBIDDEN");
+  if (!user || user.kidsMode || (user.role !== "CREATOR" && user.role !== "ADMIN")) throw new Error("FORBIDDEN");
   return user;
 }
 

@@ -5,7 +5,7 @@ import { Compass, Home, PlaySquare, Search, User } from "lucide-react";
 import clsx from "clsx";
 import { useI18n } from "@/i18n/client";
 
-export function MobileTabBar({ overlay = false }: { overlay?: boolean }) {
+export function MobileTabBar({ overlay = false, kids = false }: { overlay?: boolean; kids?: boolean }) {
   const { t } = useI18n();
   const path = usePathname();
   const tabs = [
@@ -13,7 +13,7 @@ export function MobileTabBar({ overlay = false }: { overlay?: boolean }) {
     { href: "/feed", label: t.nav.feed, icon: PlaySquare },
     { href: "/browse", label: t.nav.browse, icon: Compass },
     { href: "/search", label: t.nav.search, icon: Search },
-    { href: "/me", label: t.nav.profile, icon: User },
+    ...(kids ? [] : [{ href: "/me", label: t.nav.profile, icon: User }]),
   ];
   return (
     <nav

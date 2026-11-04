@@ -44,6 +44,15 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <p className="relative mt-1 flex items-center gap-3 font-display text-5xl font-bold tabular-nums">
           <Coins size={40} className="text-coin" /> {user.coins}
         </p>
+        <div className="relative mt-4 flex flex-wrap gap-2 text-sm">
+          <span className="rounded-full bg-black/25 px-3 py-1.5 ring-1 ring-white/10">
+            {t.wallet.paidCoins}: <b className="tabular-nums text-coin">{user.paidCoins}</b>
+          </span>
+          <span className="rounded-full bg-black/25 px-3 py-1.5 ring-1 ring-white/10">
+            {t.wallet.bonusCoins}: <b className="tabular-nums text-ok">{user.bonusCoins}</b>
+          </span>
+          <span className="self-center text-xs text-muted">{t.wallet.splitNote}</span>
+        </div>
       </div>
 
       <div className="mt-6">
@@ -90,7 +99,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-medium">
-                  {t.wallet.reasons[tx.reason]}
+                  {{ ...t.wallet.reasons, ...t.wallet.extraReasons }[tx.reason]}
+                  {tx.note && tx.reason === "POLL_BOOST" && <span className="text-muted"> {tx.note}</span>}
                   {tx.episode && <span className="text-muted"> · {pick(tx.episode.series, "title", locale)}, {tx.episode.number}</span>}
                 </p>
                 <p className="text-xs text-muted">{df.format(tx.createdAt)}</p>

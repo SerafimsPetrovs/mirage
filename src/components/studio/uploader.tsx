@@ -15,7 +15,7 @@ export function Uploader({
   preview,
   aspect = "aspect-[9/16]",
 }: {
-  kind: "video" | "image";
+  kind: "video" | "image" | "private";
   accept: string;
   label: string;
   onDone: (ref: string) => void;
@@ -34,7 +34,7 @@ export function Uploader({
     setError(null);
     setDone(null);
     onFile?.(file);
-    if (kind === "image") setLocalPreview(URL.createObjectURL(file));
+    if (kind !== "video") setLocalPreview(URL.createObjectURL(file));
     const fd = new FormData();
     fd.append("file", file);
     fd.append("kind", kind);
@@ -76,11 +76,11 @@ export function Uploader({
         }}
         className={clsx(
           "relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-line-strong bg-surface-2 text-center text-sm text-muted transition hover:border-accent/60",
-          kind === "image" ? aspect : "h-28",
+          kind !== "video" ? aspect : "h-28",
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {shown && kind === "image" && <img src={shown} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />}
+        {shown && kind !== "video" && <img src={shown} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />}
         <span className="relative flex flex-col items-center gap-1.5 rounded-xl bg-black/40 px-3 py-2">
           {done ? <CheckCircle2 size={22} className="text-ok" /> : <UploadCloud size={22} />}
           {progress !== null ? fmt(t.studio.uploading, { p: progress }) : done ? <span className="max-w-[180px] truncate">{done}</span> : t.studio.upload}

@@ -53,8 +53,17 @@ export const getCurrentUser = cache(async () => {
     include: { user: { include: { subscription: true } } },
   });
   if (!session || session.expiresAt < new Date() || session.user.banned) return null;
-  return session.user;
+  const u = session.user;
+  return { ...u, coins: u.paidCoins + u.bonusCoins, kidsMode: session.kidsMode, sessionId: session.id };
 });
+
+/** Kids mode for the current request (false for guests). */
+export const getKidsMode = cache(async () => (await getCurrentUser())?.kidsMode ?? false);
+
+/** Redirects away from grown-up-only pages (wallet, studio, admin, profile settings) in kids mode. */
+export async function forbidInKidsMode() {
+  if (await getKidsMode()) redirect("/?kids=locked");
+}
 
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 

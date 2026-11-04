@@ -44,7 +44,7 @@ export async function toggleLikeAction(episodeId: string): Promise<Result<{ like
 
 export async function addCommentAction(episodeId: string, body: string): Promise<Result<{ id: string }>> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "auth" };
+  if (!user || user.kidsMode) return { ok: false, error: "auth" };
   const text = z.string().trim().min(1).max(500).safeParse(body);
   if (!text.success) return { ok: false, error: "invalid" };
   const c = await prisma.comment.create({ data: { userId: user.id, episodeId, body: text.data } });
@@ -52,6 +52,7 @@ export async function addCommentAction(episodeId: string, body: string): Promise
 }
 
 export async function getCommentsAction(episodeId: string) {
+  if ((await getCurrentUser())?.kidsMode) return [];
   const comments = await prisma.comment.findMany({
     where: { episodeId, hidden: false },
     orderBy: { createdAt: "desc" },

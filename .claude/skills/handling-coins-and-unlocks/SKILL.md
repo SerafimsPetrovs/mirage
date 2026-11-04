@@ -13,9 +13,11 @@ Watchable if ANY: `episode.number <= series.freeEpisodes` · user is ADMIN or th
 DB wrapper: `getEpisodeAccess(user, episodeId)` in `src/lib/coins.ts`. `/api/stream/[episodeId]` re-checks it on every request (and hides unpublished series from non-owners). Never send a locked episode's video URL to the client.
 
 ## Balance invariants
-- `User.coins` is a cache; truth is `CoinTransaction` (signed `amount`, `reason`: PURCHASE | UNLOCK | CHECKIN | BONUS | REFUND | ADMIN).
-- Every change = ledger row + balance update in ONE transaction. Use `grantCoins(userId, amount, reason, extra, tx)` for credits.
-- Debit only via `unlockEpisode(userId, episodeId)`: conditional `updateMany({ where: { coins: { gte: price } } })`, unique `Unlock(userId, episodeId)` (P2002 → whole tx rolls back), creator earning = `floor(price * CREATOR_SHARE)` (0.5).
+- Balance is split: `User.paidCoins` (bought with money, only `PURCHASE`) and `User.bonusCoins` (welcome, check-in, admin). `getCurrentUser()` adds `coins` = total. Both are caches; truth is `CoinTransaction` (signed `amount` = `paid` + `bonus`; reasons PURCHASE | UNLOCK | CHECKIN | BONUS | REFUND | ADMIN | POLL_BOOST | SKIN | SCENE | CHAT | PHOTO).
+- Every change = ledger row + balance update in ONE transaction. Credits: `grantCoins(userId, amount, reason, extra, tx)` (picks the bucket by reason).
+- Debits: `spendCoins(tx, …)` (bonus first, conditional `updateMany` on both buckets, retries a lost race) — or for anything a creator sells, `chargeForContent(tx, {…})`, which also writes `CreatorEarning`: `coins` (withdrawable) = 50% of the **paid** part only, `credits` (= `genCredits` for AI generation) = the rest of the 50% share. Pure math: `splitCharge` / `splitShare` in `access.ts`.
+- `unlockEpisode` creates the unique `Unlock` first (P2002 → whole tx rolls back), then `chargeForContent`. Add-ons (skins, roulette, scenes, poll boosts, chat messages, photos) live in `src/lib/extras.ts` and follow the same pattern; owners get them free.
+- Kids mode: no one-tap spending — `unlockEpisodeAction` refuses; the parental gate (`actions/kids.ts`) needs the PIN. 18+ add-ons are gated by `spicyBlock()` (kids mode / family series / 18+ not confirmed).
 - Already unlocked / free / own content → `{ charged: 0 }`, never a second charge.
 - Price = `episode.coinPrice ?? series.defaultCoinPrice`, read on the server.
 
@@ -26,7 +28,7 @@ DB wrapper: `getEpisodeAccess(user, episodeId)` in `src/lib/coins.ts`. `/api/str
 `dailyCheckIn(userId)` — one per UTC day (PK `userId+day`); streak/reward logic is pure in `src/lib/rewards.ts` (`nextCheckIn`, 7-day `CHECKIN_REWARDS`).
 
 ## Tests
-`src/lib/coins.db.test.ts` (real SQLite `prisma/test.db`) covers insufficient funds, idempotency, concurrent double-click, creator share, order idempotency, VIP extension, check-in. Any change here must keep `npm test` green and add a case for new behavior.
+`src/lib/coins.db.test.ts` and `src/lib/extras.db.test.ts` (real SQLite `prisma/test.db`) cover paid/bonus split, add-ons, chat pricing, kids PIN lockout, insufficient funds, idempotency, concurrent double-click, creator share, order idempotency, VIP extension, check-in. Any change here must keep `npm test` green and add a case for new behavior.
 
 ## Common mistakes
-Checking access only in UI · `user.coins - price` computed in JS then saved · charging before checking the existing unlock · forgetting the creator earning · granting coins without a ledger row.
+Checking access only in UI · `paidCoins - price` computed in JS then saved · charging before checking the existing unlock · forgetting the creator earning · granting coins without a ledger row.

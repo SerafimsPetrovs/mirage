@@ -2,6 +2,7 @@ import { Search } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isVip } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
+import { fmt } from "@/i18n/shared";
 import { Avatar, CoinAmount, VipBadge } from "@/components/ui/misc";
 import { UserControls } from "@/components/admin/admin-actions";
 
@@ -31,7 +32,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 </p>
                 <p className="truncate text-xs text-muted">{u.email}</p>
               </div>
-              <CoinAmount value={u.coins} size={14} className="ml-auto text-sm" />
+              <span className="ml-auto text-right" title={fmt(t.admin.coinsSplit, { paid: u.paidCoins, bonus: u.bonusCoins })}>
+                <CoinAmount value={u.paidCoins + u.bonusCoins} size={14} className="text-sm" />
+                <span className="block text-[10px] text-muted">{fmt(t.admin.coinsSplit, { paid: u.paidCoins, bonus: u.bonusCoins })}</span>
+              </span>
             </div>
             <UserControls userId={u.id} role={u.role} banned={u.banned} self={u.id === me?.id} />
           </div>

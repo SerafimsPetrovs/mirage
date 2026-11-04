@@ -20,7 +20,7 @@ function readRecent(): string[] {
   }
 }
 
-export function CommandPalette() {
+export function CommandPalette({ kids = false }: { kids?: boolean }) {
   const { t, locale } = useI18n();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -153,8 +153,12 @@ export function CommandPalette() {
     const quick = [
       { href: "/feed", label: t.nav.feed, icon: Zap, cls: "text-accent" },
       { href: "/browse", label: t.nav.browse, icon: Compass, cls: "text-text" },
-      { href: "/vip", label: "VIP", icon: Crown, cls: "text-vip" },
-      { href: "/creators", label: t.footer.creators, icon: Sparkles, cls: "text-coin" },
+      ...(kids
+        ? []
+        : [
+            { href: "/vip", label: "VIP", icon: Crown, cls: "text-vip" },
+            { href: "/creators", label: t.footer.creators, icon: Sparkles, cls: "text-coin" },
+          ]),
     ];
     for (const l of quick)
       rows.push({
@@ -279,7 +283,7 @@ export function SearchButton({ label }: { label: string }) {
       onClick={() => window.dispatchEvent(new Event(OPEN_SEARCH_EVENT))}
       aria-label={label}
       aria-keyshortcuts="Control+K"
-      className="inline-flex h-10 items-center gap-2 rounded-full px-2.5 text-muted transition hover:bg-white/8 hover:text-text md:bg-surface/60 md:pl-3 md:pr-2 md:ring-1 md:ring-line"
+      className="inline-flex h-10 items-center gap-2 rounded-full px-2.5 text-muted transition hover:bg-white/8 hover:text-text max-sm:hidden md:bg-surface/60 md:pl-3 md:pr-2 md:ring-1 md:ring-line"
     >
       <Search size={19} strokeWidth={1.75} />
       <span className="hidden text-sm lg:inline">{label}</span>

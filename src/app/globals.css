@@ -157,3 +157,44 @@ input, textarea, select {
   ::view-transition-old(*),
   ::view-transition-new(*) { animation: none !important; }
 }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+/* "Kids mode" button: soft breathing glow so a parent spots it instantly */
+@keyframes kids-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(62, 197, 255, 0.55), 0 8px 30px -8px rgba(123, 108, 255, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(62, 197, 255, 0), 0 8px 30px -8px rgba(255, 126, 182, 0.8); }
+}
+.kids-glow { animation: kids-glow 2.6s ease-in-out infinite; }
+
+/* ───────── Kids mode ("Storytime") theme ─────────
+   A lighter, fairy-tale twilight: lavender-indigo sky, candy accents, starry background.
+   Same tokens, so every component re-skins without per-component changes. */
+[data-theme="kids"] {
+  --bg: #1d1747;
+  --surface: #2a2263;
+  --surface-2: #352c78;
+  --surface-3: #42388c;
+  --line: rgba(255, 255, 255, 0.13);
+  --line-strong: rgba(255, 255, 255, 0.24);
+  --text: #fffaf2;
+  --muted: #cfc6f2;
+  --accent: #ff6b9a;
+  --accent-2: #ff8db2;
+  --vip: #ffd36e;
+  --mirage: linear-gradient(100deg, #3ec5ff 0%, #a78bfa 50%, #ff7eb6 100%);
+  color-scheme: dark;
+}
+[data-theme="kids"] body {
+  background:
+    radial-gradient(60vw 40vh at 85% -5%, rgba(255, 211, 110, 0.18), transparent 70%),
+    radial-gradient(70vw 50vh at 0% 10%, rgba(62, 197, 255, 0.16), transparent 70%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><g fill='white'><circle cx='20' cy='30' r='1.2' opacity='.7'/><circle cx='120' cy='18' r='0.9' opacity='.5'/><circle cx='190' cy='70' r='1.4' opacity='.8'/><circle cx='70' cy='110' r='0.8' opacity='.5'/><circle cx='160' cy='150' r='1.1' opacity='.6'/><circle cx='40' cy='190' r='1.3' opacity='.7'/><circle cx='105' cy='200' r='0.7' opacity='.4'/></g></svg>"),
+    var(--bg);
+  background-attachment: fixed;
+}
+[data-theme="kids"] .rounded-3xl { border-radius: 28px; }

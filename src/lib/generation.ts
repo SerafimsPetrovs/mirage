@@ -41,7 +41,7 @@ export function mockResult(seed: number, orientation: "VERTICAL" | "HORIZONTAL")
 
 // Hard platform rule: no sexual content involving minors. Generation is
 // otherwise unfiltered; this check is a floor, not a full moderation system.
-const MINOR =
+export const MINOR_RE =
   /(child|kid|minor|underage|teen(?!s?\s*\+)|preteen|loli|shota|schoolgirl|schoolboy|\b1[0-7]\s*(?:yo|y\/o|years?\s*old)|ребён|ребен|дет(?:и|ск|ей)|малолет|несовершеннолет|подрост|школьни|девочк|мальчик|\b1[0-7]\s*(?:лет|год))/i;
 const SEXUAL =
   /(sex|nude|naked|porn|nsfw|erotic|explicit|lewd|hentai|undress|топлес|голы|голая|обнаж|порн|секс|эрот|интим|раздет)/i;
@@ -52,6 +52,6 @@ export function checkPrompt(prompt: string): PromptCheck {
   const p = prompt.trim();
   if (!p) return { ok: false, reason: "empty" };
   if (p.length > PROMPT_MAX) return { ok: false, reason: "too_long" };
-  if (MINOR.test(p) && SEXUAL.test(p)) return { ok: false, reason: "forbidden" };
+  if (MINOR_RE.test(p) && SEXUAL.test(p)) return { ok: false, reason: "forbidden" };
   return { ok: true };
 }

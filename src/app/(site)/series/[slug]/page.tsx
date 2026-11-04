@@ -13,6 +13,9 @@ import { PosterCard } from "@/components/media/cards";
 import { EpisodeList, EpisodeNumberGrid } from "@/components/series/episode-grid";
 import { ListButton, RatingStars, ShareButton } from "@/components/series/series-actions";
 import { PollCard } from "@/components/series/poll-card";
+import { CharacterStrip } from "@/components/player/spicy";
+import { getSeriesCharacters } from "@/lib/extras";
+import { spicyBlock } from "@/lib/spicy";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -29,7 +32,13 @@ export default async function SeriesPage({ params }: Props) {
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const s = await getSeriesPage(slug, user, locale);
   if (!s) notFound();
-  const [similar, poll] = await Promise.all([getSimilar(s.id, s.genres, locale), getActivePoll(s.id, user?.id ?? null, locale)]);
+  const block = spicyBlock(user, s);
+  const showSpicy = block !== "kids" && block !== "family";
+  const [similar, poll, characters] = await Promise.all([
+    getSimilar(s.id, s.genres, locale),
+    getActivePoll(s.id, user?.id ?? null, locale),
+    showSpicy ? getSeriesCharacters(s.id, locale) : [],
+  ]);
   const vip = isVip(user);
   const vertical = s.orientation === "VERTICAL";
 
@@ -120,7 +129,12 @@ export default async function SeriesPage({ params }: Props) {
         </div>
 
         <aside className="space-y-5">
-          {poll && <PollCard poll={poll} loggedIn={!!user} />}
+          {characters.length > 0 && (
+            <div className="rounded-3xl p-5 ring-1 ring-line md:p-6" style={{ background: "radial-gradient(100% 140% at 0% 0%, rgba(255,46,99,.18), transparent 55%), var(--surface)" }}>
+              <CharacterStrip characters={characters} />
+            </div>
+          )}
+          {poll && <PollCard poll={poll} loggedIn={!!user} canBoost={!!user && !s.kids && !s.owner} balance={user?.coins ?? 0} />}
 
           <div className="rounded-3xl bg-surface p-5 ring-1 ring-line md:p-6">
             <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-accent-2">

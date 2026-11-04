@@ -11,9 +11,15 @@ let paidEp2: string;
 
 async function ledgerMatches(userId: string) {
   const u = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-  const sum = await prisma.coinTransaction.aggregate({ where: { userId }, _sum: { amount: true } });
-  return u.coins === (sum._sum.amount ?? 0);
+  const sum = await prisma.coinTransaction.aggregate({ where: { userId }, _sum: { amount: true, paid: true, bonus: true } });
+  return (
+    u.paidCoins === (sum._sum.paid ?? 0) &&
+    u.bonusCoins === (sum._sum.bonus ?? 0) &&
+    u.paidCoins + u.bonusCoins === (sum._sum.amount ?? 0)
+  );
 }
+
+const total = (u: { paidCoins: number; bonusCoins: number }) => u.paidCoins + u.bonusCoins;
 
 beforeAll(async () => {
   const creator = await prisma.user.create({ data: { email: `c${Date.now()}@t.t`, name: "C", passwordHash: "x", role: "CREATOR" } });
@@ -51,7 +57,7 @@ afterAll(async () => {
 describe("unlockEpisode", () => {
   it("rejects when balance is insufficient and charges nothing", async () => {
     await expect(unlockEpisode(viewerId, paidEp)).rejects.toBeInstanceOf(InsufficientCoinsError);
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: viewerId } })).coins).toBe(0);
+    expect(total(await prisma.user.findUniqueOrThrow({ where: { id: viewerId } }))).toBe(0);
   });
 
   it("free episodes cost nothing", async () => {
@@ -64,7 +70,9 @@ describe("unlockEpisode", () => {
     expect(res).toEqual({ balance: 70, charged: 30 });
     expect(await prisma.unlock.count({ where: { userId: viewerId, episodeId: paidEp } })).toBe(1);
     const earning = await prisma.creatorEarning.findFirstOrThrow({ where: { episodeId: paidEp } });
-    expect(earning.coins).toBe(15);
+    // Paid with bonus coins only → the creator's 50% comes as generation credits, not withdrawable coins
+    expect(earning.coins).toBe(0);
+    expect(earning.credits).toBe(15);
     expect(earning.creatorId).toBe(creatorId);
     expect(await ledgerMatches(viewerId)).toBe(true);
   });
@@ -77,7 +85,7 @@ describe("unlockEpisode", () => {
     const results = await Promise.allSettled([unlockEpisode(viewerId, paidEp2), unlockEpisode(viewerId, paidEp2)]);
     expect(results.some((r) => r.status === "fulfilled")).toBe(true);
     const u = await prisma.user.findUniqueOrThrow({ where: { id: viewerId } });
-    expect(u.coins).toBe(20); // 70 - 50 (per-episode price)
+    expect(total(u)).toBe(20); // 70 - 50 (per-episode price)
     expect(await prisma.coinTransaction.count({ where: { userId: viewerId, episodeId: paidEp2 } })).toBe(1);
     expect(await ledgerMatches(viewerId)).toBe(true);
   });
@@ -93,7 +101,8 @@ describe("orders", () => {
     expect(await fulfillOrder(order.id)).toBe(true);
     expect(await fulfillOrder(order.id)).toBe(false);
     const u = await prisma.user.findUniqueOrThrow({ where: { id: viewerId } });
-    expect(u.coins).toBe(20 + 330);
+    expect(total(u)).toBe(20 + 330);
+    expect(u.paidCoins).toBe(330); // purchases are paid coins
     expect(await ledgerMatches(viewerId)).toBe(true);
   });
 

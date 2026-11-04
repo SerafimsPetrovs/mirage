@@ -32,6 +32,11 @@ enum CoinReason {
   BONUS
   REFUND
   ADMIN
+  POLL_BOOST
+  SKIN
+  SCENE
+  CHAT
+  PHOTO
 }
 
 enum OrderKind {
@@ -65,39 +70,56 @@ enum AppStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  avatarHue    Int      @default(330)
-  role         Role     @default(VIEWER)
-  coins        Int      @default(0)
-  genCredits   Int      @default(100)
-  bio          String?
-  banned       Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  avatarHue          Int       @default(330)
+  role               Role      @default(VIEWER)
+  /// Coins bought with real money. Only these produce withdrawable creator earnings.
+  paidCoins          Int       @default(0)
+  /// Free coins (welcome bonus, daily check-in, admin grants). Spent first.
+  bonusCoins         Int       @default(0)
+  genCredits         Int       @default(100)
+  /// bcrypt hash of the 4-digit parental PIN for kids mode.
+  kidsPinHash        String?
+  kidsPinFails       Int       @default(0)
+  kidsPinLockedUntil DateTime?
+  /// Set when the user confirmed they are 18+ (needed for spicy add-ons).
+  adultConfirmedAt   DateTime?
+  bio                String?
+  banned             Boolean   @default(false)
+  createdAt          DateTime  @default(now())
 
-  sessions     Session[]
-  subscription Subscription?
-  series       Series[]
-  unlocks      Unlock[]
-  transactions CoinTransaction[]
-  orders       Order[]
-  earnings     CreatorEarning[]
-  progress     WatchProgress[]
-  listItems    ListItem[]
-  likes        Like[]
-  comments     Comment[]
-  ratings      Rating[]
-  checkIns     CheckIn[]
-  pollVotes    PollVote[]
-  applications CreatorApplication[]
-  generations  GenerationJob[]
+  sessions       Session[]
+  subscription   Subscription?
+  series         Series[]
+  unlocks        Unlock[]
+  transactions   CoinTransaction[]
+  orders         Order[]
+  earnings       CreatorEarning[]
+  progress       WatchProgress[]
+  listItems      ListItem[]
+  likes          Like[]
+  comments       Comment[]
+  ratings        Rating[]
+  checkIns       CheckIn[]
+  pollVotes      PollVote[]
+  applications   CreatorApplication[]
+  generations    GenerationJob[]
+  kidsAllowances KidsAllowance[]
+  pollBoosts     PollBoost[]
+  skinUnlocks    SkinUnlock[]
+  sceneUnlocks   SceneUnlock[]
+  chatThreads    ChatThread[]
+  photoUnlocks   PhotoUnlock[]
 }
 
 model Session {
   id        String   @id
   userId    String
+  /// Kids mode is per session/device: entering is one click, leaving needs the parent PIN.
+  kidsMode  Boolean  @default(false)
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -137,6 +159,8 @@ model Series {
   status           SeriesStatus @default(DRAFT)
   rejectReason     String?
   featured         Boolean      @default(false)
+  /// Set by moderators. Only these series are visible in kids mode.
+  isFamilySafe     Boolean      @default(false)
   freeEpisodes     Int          @default(5)
   defaultCoinPrice Int          @default(30)
   views            Int          @default(0)
@@ -145,12 +169,15 @@ model Series {
   updatedAt        DateTime     @updatedAt
   publishedAt      DateTime?
 
-  creator   User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  episodes  Episode[]
-  listItems ListItem[]
-  ratings   Rating[]
-  polls     Poll[]
-  progress  WatchProgress[]
+  creator        User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  episodes       Episode[]
+  listItems      ListItem[]
+  ratings        Rating[]
+  polls          Poll[]
+  progress       WatchProgress[]
+  characters     Character[]
+  kidsAllowances KidsAllowance[]
+  earnings       CreatorEarning[]
 
   @@index([status, featured])
   @@index([creatorId])
@@ -176,6 +203,8 @@ model Episode {
   progress     WatchProgress[]
   earnings     CreatorEarning[]
   transactions CoinTransaction[]
+  skins        Skin[]
+  bonusScene   BonusScene?
 
   @@unique([seriesId, number])
 }
@@ -193,7 +222,10 @@ model Unlock {
 model CoinTransaction {
   id        String     @id @default(cuid())
   userId    String
+  /// Signed total = paid + bonus.
   amount    Int
+  paid      Int        @default(0)
+  bonus     Int        @default(0)
   reason    CoinReason
   note      String?
   episodeId String?
@@ -219,14 +251,21 @@ model Order {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+/// Creator's share of a purchase. `coins` = withdrawable (from paid coins only);
+/// `credits` = generation credits (from bonus coins, not withdrawable).
 model CreatorEarning {
   id        String   @id @default(cuid())
   creatorId String
-  episodeId String
-  coins     Int
+  episodeId String?
+  seriesId  String?
+  /// UNLOCK | POLL_BOOST | SKIN | SCENE | CHAT | PHOTO
+  source    String   @default("UNLOCK")
+  coins     Int      @default(0)
+  credits   Int      @default(0)
   createdAt DateTime @default(now())
   creator   User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  series    Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
 
   @@index([creatorId, createdAt])
 }
@@ -310,15 +349,17 @@ model Poll {
   series     Series       @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   options    PollOption[]
   votes      PollVote[]
+  boosts     PollBoost[]
 }
 
 model PollOption {
-  id      String     @id @default(cuid())
+  id      String      @id @default(cuid())
   pollId  String
   labelRu String
   labelEn String
-  poll    Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll    Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes   PollVote[]
+  boosts  PollBoost[]
 }
 
 model PollVote {
@@ -362,4 +403,163 @@ model GenerationJob {
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// "Allow auto-unlocking episodes of this series today", granted by a parent with the PIN.
+model KidsAllowance {
+  userId   String
+  seriesId String
+  day      String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  series   Series @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([userId, seriesId, day])
+}
+
+/// Extra paid votes in a "What's next?" poll (on top of the free one).
+model PollBoost {
+  id        String     @id @default(cuid())
+  userId    String
+  pollId    String
+  optionId  String
+  votes     Int
+  coins     Int
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@index([pollId])
+}
+
+/// Alternative cut of an episode with a different outfit ("skin").
+/// The player swaps the stream to this file at the current second.
+model Skin {
+  id        String       @id @default(cuid())
+  episodeId String
+  nameRu    String
+  nameEn    String
+  emoji     String       @default("👗")
+  /// common | rare | epic (roulette weights)
+  rarity    String       @default("common")
+  videoUrl  String
+  price     Int          @default(40)
+  createdAt DateTime     @default(now())
+  episode   Episode      @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  unlocks   SkinUnlock[]
+
+  @@index([episodeId])
+}
+
+model SkinUnlock {
+  userId    String
+  skinId    String
+  /// buy | spin
+  via       String   @default("buy")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skin      Skin     @relation(fields: [skinId], references: [id], onDelete: Cascade)
+
+  @@id([userId, skinId])
+}
+
+/// Paid 18+ bonus clip attached to an episode ("uncut scene").
+model BonusScene {
+  id           String        @id @default(cuid())
+  episodeId    String        @unique
+  titleRu      String
+  titleEn      String
+  videoUrl     String
+  durationSec  Int           @default(30)
+  price        Int           @default(30)
+  /// Second of the main episode when the offer pops up; null = at the end.
+  triggerAtSec Int?
+  createdAt    DateTime      @default(now())
+  episode      Episode       @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  unlocks      SceneUnlock[]
+}
+
+model SceneUnlock {
+  userId    String
+  sceneId   String
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scene     BonusScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sceneId])
+}
+
+/// A series character viewers can chat with (LLM-backed). Always an adult (age >= 18).
+model Character {
+  id         String           @id @default(cuid())
+  seriesId   String
+  nameRu     String
+  nameEn     String
+  taglineRu  String           @default("")
+  taglineEn  String           @default("")
+  greetingRu String           @default("")
+  greetingEn String           @default("")
+  /// Creator-written personality prompt.
+  persona    String
+  age        Int
+  avatarUrl  String?
+  hue        Int              @default(330)
+  createdAt  DateTime         @default(now())
+  series     Series           @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  photos     CharacterPhoto[]
+  threads    ChatThread[]
+
+  @@index([seriesId])
+}
+
+/// "Exclusive set photo / selfie" the character can send in chat, blurred until bought.
+model CharacterPhoto {
+  id          String        @id @default(cuid())
+  characterId String
+  imageUrl    String
+  captionRu   String        @default("")
+  captionEn   String        @default("")
+  price       Int           @default(25)
+  order       Int           @default(0)
+  character   Character     @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  unlocks     PhotoUnlock[]
+  messages    ChatMessage[]
+}
+
+model PhotoUnlock {
+  userId    String
+  photoId   String
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo     CharacterPhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, photoId])
+}
+
+model ChatThread {
+  id           String        @id @default(cuid())
+  userId       String
+  characterId  String
+  /// Messages the viewer has sent (the first few are free).
+  userMessages Int           @default(0)
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  character    Character     @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+
+  @@unique([userId, characterId])
+}
+
+model ChatMessage {
+  id        String          @id @default(cuid())
+  threadId  String
+  /// user | character
+  role      String
+  body      String
+  photoId   String?
+  createdAt DateTime        @default(now())
+  thread    ChatThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  photo     CharacterPhoto? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
 }

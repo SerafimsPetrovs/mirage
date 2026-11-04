@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, Coins, Eye, EyeOff, Star, X } from "lucide-react";
+import { Ban, Baby, Check, Coins, Eye, EyeOff, Star, X } from "lucide-react";
 import { btn, inputCls } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
@@ -53,10 +53,19 @@ export function ModerationButtons({ seriesId }: { seriesId: string }) {
   );
 }
 
-export function SeriesFlags({ seriesId, featured, status }: { seriesId: string; featured: boolean; status: string }) {
+export function SeriesFlags({ seriesId, featured, status, familySafe }: { seriesId: string; featured: boolean; status: string; familySafe: boolean }) {
   const { pending, run, t } = useAct();
   return (
     <div className="flex flex-wrap gap-2">
+      <button
+        disabled={pending}
+        aria-pressed={familySafe}
+        onClick={() => run(() => setSeriesFlagsAction(seriesId, { isFamilySafe: !familySafe }))}
+        className={btn(familySafe ? "kids" : "glass", "sm")}
+        title={t.admin.familySafeHint}
+      >
+        <Baby size={15} /> {familySafe ? t.admin.familySafeOn : t.admin.familySafeOff}
+      </button>
       <button disabled={pending} onClick={() => run(() => setSeriesFlagsAction(seriesId, { featured: !featured }))} className={btn(featured ? "coin" : "glass", "sm")}>
         <Star size={15} className={featured ? "fill-black" : ""} /> {featured ? t.admin.unfeature : t.admin.feature}
       </button>

@@ -1,5 +1,8 @@
 import { PrismaClient, type Orientation } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
 
 const prisma = new PrismaClient();
 
@@ -21,6 +24,7 @@ type SeedSeries = {
   episodes: number;
   age?: string;
   featured?: boolean;
+  familySafe?: boolean;
   creator: 0 | 1;
   views: number;
 };
@@ -318,6 +322,7 @@ const SERIES: SeedSeries[] = [
     notesEn: "Anime style: key frames are drawn in Midjourney, then animated in Kling with low motion strength to keep the hand-drawn look.",
     episodes: 24,
     age: "6+",
+    familySafe: true,
     creator: 0,
     views: 580000,
   },
@@ -341,6 +346,48 @@ const SERIES: SeedSeries[] = [
     featured: true,
     creator: 1,
     views: 1120000,
+  },
+  {
+    slug: "fox-and-star-lantern",
+    titleRu: "Лисёнок и звёздный фонарь",
+    titleEn: "The Little Fox and the Star Lantern",
+    taglineRu: "Каждую ночь одна звезда падает в лес. Кто-то должен вернуть её на небо.",
+    taglineEn: "Every night one star falls into the forest. Someone has to bring it back to the sky.",
+    descriptionRu: "Рыжий лисёнок Тимка находит упавшую звезду и обещает вернуть её домой. По пути он знакомится с совой-библиотекарем, ворчливым ежом и светлячками, которые боятся темноты.",
+    descriptionEn: "Timka the little fox finds a fallen star and promises to take it home. On the way he meets a librarian owl, a grumpy hedgehog and fireflies who are afraid of the dark.",
+    orientation: "VERTICAL",
+    hue: 28,
+    genres: ["fantasy", "comedy"],
+    moods: ["wonder", "laugh"],
+    ai: ["Midjourney v7", "Kling 2.5", "ElevenLabs"],
+    notesRu: "Мягкий акварельный стиль задан референсами детских книг. Голоса — ElevenLabs, колыбельная в финале каждой серии — Suno.",
+    notesEn: "The soft watercolour look comes from picture-book references. Voices by ElevenLabs; the lullaby at the end of every episode is by Suno.",
+    episodes: 12,
+    age: "0+",
+    familySafe: true,
+    creator: 0,
+    views: 410000,
+  },
+  {
+    slug: "cloud-post",
+    titleRu: "Облачная почта",
+    titleEn: "Cloud Post",
+    taglineRu: "Письма, которые разносят облака. Иногда — не по адресу.",
+    taglineEn: "Letters delivered by clouds. Sometimes to the wrong address.",
+    descriptionRu: "Маленькое облако Пуф работает почтальоном в небесном городе. Однажды ветер уносит мешок писем, и Пуф отправляется в путешествие над морями и горами, чтобы каждое письмо нашло адресата.",
+    descriptionEn: "Puff the little cloud works as a postman in the sky city. When the wind blows away a sack of letters, Puff travels over seas and mountains so every letter finds its way home.",
+    orientation: "HORIZONTAL",
+    hue: 200,
+    genres: ["fantasy", "comedy"],
+    moods: ["wonder", "laugh"],
+    ai: ["Veo 3", "Suno v5"],
+    notesRu: "Серии по 10 минут — удобно перед сном. Облака анимированы в Veo 3, музыка написана Suno в стиле музыкальной шкатулки.",
+    notesEn: "Ten-minute episodes, perfect before bedtime. Clouds animated in Veo 3; music-box score by Suno.",
+    episodes: 6,
+    age: "0+",
+    familySafe: true,
+    creator: 1,
+    views: 260000,
   },
 ];
 
@@ -396,7 +443,7 @@ async function main() {
   const passwordHash = await bcrypt.hash("mirage123", 10);
 
   const admin = await prisma.user.create({
-    data: { email: "admin@mirage.tv", name: "Admin", role: "ADMIN", passwordHash, avatarHue: 0, coins: 0 },
+    data: { email: "admin@mirage.tv", name: "Admin", role: "ADMIN", passwordHash, avatarHue: 0 },
   });
   const creatorA = await prisma.user.create({
     data: { email: "creator@mirage.tv", name: "Studio Lumen", role: "CREATOR", passwordHash, avatarHue: 330, bio: "Короткие ИИ-дорамы с длинным послевкусием." },
@@ -405,12 +452,13 @@ async function main() {
     data: { email: "lotus@mirage.tv", name: "Neon Lotus", role: "CREATOR", passwordHash, avatarHue: 260, bio: "AI cinema, sci-fi & palace intrigue." },
   });
   const viewer = await prisma.user.create({
-    data: { email: "viewer@mirage.tv", name: "Алиса", role: "VIEWER", passwordHash, avatarHue: 200, coins: 120 },
+    data: { email: "viewer@mirage.tv", name: "Алиса", role: "VIEWER", passwordHash, avatarHue: 200, bonusCoins: 120, paidCoins: 330 },
   });
   await prisma.coinTransaction.createMany({
     data: [
-      { userId: viewer.id, amount: 50, reason: "BONUS", note: "welcome" },
-      { userId: viewer.id, amount: 70, reason: "CHECKIN", note: "history" },
+      { userId: viewer.id, amount: 50, bonus: 50, reason: "BONUS", note: "welcome" },
+      { userId: viewer.id, amount: 70, bonus: 70, reason: "CHECKIN", note: "history" },
+      { userId: viewer.id, amount: 330, paid: 330, reason: "PURCHASE", note: "coins_300" },
     ],
   });
   const yesterday = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
@@ -448,6 +496,7 @@ async function main() {
         ageRating: s.age ?? "16+",
         status: "PUBLISHED",
         featured: !!s.featured,
+        isFamilySafe: !!s.familySafe,
         freeEpisodes: vertical ? 6 : 2,
         defaultCoinPrice: vertical ? 30 : 60,
         views: s.views,
@@ -556,12 +605,14 @@ async function main() {
       const exists = await prisma.unlock.findUnique({ where: { userId_episodeId: { userId: fan.id, episodeId: ep.id } } });
       if (exists) continue;
       await prisma.unlock.create({ data: { userId: fan.id, episodeId: ep.id, createdAt: new Date(Date.now() - k * 86400_000 / 2) } });
-      await prisma.coinTransaction.create({ data: { userId: fan.id, amount: -series.defaultCoinPrice, reason: "UNLOCK", episodeId: ep.id } });
+      await prisma.coinTransaction.create({ data: { userId: fan.id, amount: -series.defaultCoinPrice, paid: -series.defaultCoinPrice, reason: "UNLOCK", episodeId: ep.id } });
       await prisma.creatorEarning.create({
-        data: { creatorId: series.creatorId, episodeId: ep.id, coins: Math.floor(series.defaultCoinPrice / 2), createdAt: new Date(Date.now() - k * 86400_000 / 2) },
+        data: { creatorId: series.creatorId, episodeId: ep.id, seriesId: series.id, coins: Math.floor(series.defaultCoinPrice / 2), createdAt: new Date(Date.now() - k * 86400_000 / 2) },
       });
     }
   }
+
+  await seedFanService(created);
 
   // A pending series + creator application for the admin queues
   await prisma.series.create({
@@ -589,6 +640,125 @@ async function main() {
 
   const counts = await Promise.all([prisma.series.count(), prisma.episode.count(), prisma.user.count(), prisma.comment.count()]);
   console.log(`Seeded: ${counts[0]} series, ${counts[1]} episodes, ${counts[2]} users, ${counts[3]} comments`);
+}
+
+// ───────── Fan service 18+: skins, deleted scenes, chat characters ─────────
+
+/** Stylised "set photo" art (no real people): gradient, bokeh and a silhouette. */
+function portraitSvg(hue: number, variant: number, w = 600, h = 800) {
+  const bokeh = Array.from({ length: 9 }, (_, i) => {
+    const x = (i * 137 + variant * 61) % w;
+    const y = (i * 89 + variant * 37) % (h * 0.6);
+    const r = 14 + ((i * 23 + variant * 7) % 46);
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${(hue + i * 18) % 360} 90% 75%)" opacity="${0.12 + (i % 3) * 0.08}"/>`;
+  }).join("");
+  const tilt = (variant % 3) * 6 - 6;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="hsl(${hue} 70% 32%)"/><stop offset="1" stop-color="hsl(${(hue + 50) % 360} 75% 14%)"/></linearGradient>
+    <radialGradient id="rim" cx="0.7" cy="0.25" r="0.8"><stop offset="0" stop-color="hsl(${(hue + 20) % 360} 100% 80%)" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <linearGradient id="sil" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue} 40% 12%)"/><stop offset="1" stop-color="#05040a"/></linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bg)"/>
+  ${bokeh}
+  <rect width="100%" height="100%" fill="url(#rim)"/>
+  <g transform="rotate(${tilt} ${w / 2} ${h})" fill="url(#sil)">
+    <ellipse cx="${w / 2}" cy="${h * 0.42}" rx="${w * 0.15}" ry="${h * 0.13}"/>
+    <path d="M${w * 0.42} ${h * 0.52} Q${w / 2} ${h * 0.6} ${w * 0.58} ${h * 0.52} L${w * 0.6} ${h * 0.6} Q${w * 0.92} ${h * 0.66} ${w * 0.98} ${h} L${w * 0.02} ${h} Q${w * 0.08} ${h * 0.66} ${w * 0.4} ${h * 0.6} Z"/>
+    <path d="M${w * 0.33} ${h * 0.4} Q${w * 0.34} ${h * 0.24} ${w / 2} ${h * 0.25} Q${w * 0.68} ${h * 0.25} ${w * 0.68} ${h * 0.44} Q${w * 0.74} ${h * 0.6} ${w * 0.7} ${h * 0.68} L${w * 0.62} ${h * 0.5} Q${w * 0.64} ${h * 0.36} ${w / 2} ${h * 0.33} Q${w * 0.37} ${h * 0.36} ${w * 0.38} ${h * 0.5} L${w * 0.3} ${h * 0.68} Q${w * 0.26} ${h * 0.58} ${w * 0.33} ${h * 0.4} Z"/>
+  </g>
+  <rect width="100%" height="100%" fill="hsl(${hue} 80% 50%)" opacity=".06"/>
+</svg>`;
+}
+
+async function writeArt(folder: "images" | "private", name: string, svg: string, width: number) {
+  const dir = path.join(process.cwd(), "storage", folder);
+  fs.mkdirSync(dir, { recursive: true });
+  await sharp(Buffer.from(svg)).resize({ width }).webp({ quality: 88 }).toFile(path.join(dir, name));
+  return `storage:${folder}/${name}`;
+}
+
+async function seedFanService(created: { id: string; slug: string }[]) {
+  const bySlug = (slug: string) => created.find((s) => s.slug === slug)!;
+  const epOf = (seriesId: string, number: number) => prisma.episode.findFirstOrThrow({ where: { seriesId, number } });
+
+  // Skins + deleted scenes (on free episodes so anyone can try them)
+  const skinSets = [
+    { slug: "hundred-day-contract", eps: [1, 2] },
+    { slug: "bride-of-ashes", eps: [1] },
+    { slug: "my-husband-is-a-ghost", eps: [1] },
+  ];
+  const SKINS = [
+    { nameRu: "Купальник", nameEn: "Swimsuit", emoji: "👙", rarity: "rare", video: "v-rose", price: 40 },
+    { nameRu: "Латекс", nameEn: "Latex", emoji: "🖤", rarity: "epic", video: "v-violet", price: 60 },
+    { nameRu: "Горничная", nameEn: "Maid", emoji: "🎀", rarity: "common", video: "v-amber", price: 30 },
+    { nameRu: "Вечернее платье", nameEn: "Evening gown", emoji: "👗", rarity: "common", video: "v-crimson", price: 30 },
+  ];
+  for (const set of skinSets) {
+    const series = bySlug(set.slug);
+    for (const n of set.eps) {
+      const ep = await epOf(series.id, n);
+      await prisma.skin.createMany({
+        data: SKINS.map((k) => ({ episodeId: ep.id, nameRu: k.nameRu, nameEn: k.nameEn, emoji: k.emoji, rarity: k.rarity, videoUrl: `demo:${k.video}.mp4`, price: k.price })),
+      });
+      await prisma.bonusScene.create({
+        data: {
+          episodeId: ep.id,
+          titleRu: n === 1 ? "Ночь у бассейна" : "То, что осталось за дверью",
+          titleEn: n === 1 ? "A night by the pool" : "What happened behind the door",
+          videoUrl: "demo:v-crimson.mp4",
+          durationSec: 40,
+          price: 30,
+          triggerAtSec: n === 1 ? 6 : null,
+        },
+      });
+    }
+  }
+
+  // Chat characters with "exclusive set photos" (all adults)
+  const CHARS = [
+    {
+      slug: "hundred-day-contract", nameRu: "Аня", nameEn: "Anya", age: 24, hue: 330,
+      taglineRu: "Официантка с контрактом на сто дней", taglineEn: "The waitress with a hundred-day contract",
+      greetingRu: "Ой, привет! Только смену закончила. Ты же не скажешь ему, что я тебе пишу? 😉",
+      greetingEn: "Oh, hi! Just finished my shift. You won’t tell him I’m texting you, right? 😉",
+      persona: "Аня, 24 года. Работает официанткой, мечтает открыть свою кофейню. Подписала фиктивный брачный контракт с холодным наследником корпорации Марком и делает вид, что ей всё равно, но тайно влюблена. Остроумная, дерзкая, любит подкалывать собеседника, флиртует легко и игриво. Иногда проговаривается о том, что будет в следующих сериях, но тут же делает вид, что это шутка.",
+    },
+    {
+      slug: "hundred-day-contract", nameRu: "Марк", nameEn: "Mark", age: 29, hue: 220,
+      taglineRu: "Холодный наследник. Только снаружи.", taglineEn: "The cold heir. Only on the outside.",
+      greetingRu: "У меня пять минут между советом директоров и ужином. Удиви меня.",
+      greetingEn: "I have five minutes between the board meeting and dinner. Surprise me.",
+      persona: "Марк, 29 лет. Наследник корпорации, привык всё контролировать. Говорит коротко и уверенно, с ленивой иронией. За маской холода — заботливый и ревнивый. Флиртует сдержанно, но очень прямо. Ненавидит, когда ему врут, и обожает, когда с ним спорят.",
+    },
+    {
+      slug: "bride-of-ashes", nameRu: "Линь Сяо", nameEn: "Lin Xiao", age: 26, hue: 350,
+      taglineRu: "Вернулась из пепла. Помнит всех.", taglineEn: "Back from the ashes. Remembers everyone.",
+      greetingRu: "Пришёл посмотреть, как горит мой список врагов? Садись ближе.",
+      greetingEn: "Came to watch my list of enemies burn? Sit closer.",
+      persona: "Линь Сяо, 26 лет. Погибла в пожаре в день свадьбы и очнулась за год до трагедии. Внешне мягкая и улыбчивая, внутри — холодный расчёт и жажда мести. Говорит загадками, с опасным обаянием. Флиртует как игрок: проверяет собеседника на верность и смелость.",
+    },
+  ];
+  const captions = [
+    ["Между дублями 📸", "Between takes 📸"],
+    ["Только для тебя", "Just for you"],
+    ["Гримёрка, 2 часа ночи", "Dressing room, 2 a.m."],
+    ["Сцену вырезали. Фото осталось 😏", "They cut the scene. The photo stayed 😏"],
+  ];
+  for (const [i, c] of CHARS.entries()) {
+    const series = bySlug(c.slug);
+    const avatarUrl = await writeArt("images", `seed-char-${i}.webp`, portraitSvg(c.hue, i, 600, 600), 256);
+    const ch = await prisma.character.create({
+      data: {
+        seriesId: series.id, nameRu: c.nameRu, nameEn: c.nameEn, age: c.age, hue: c.hue, persona: c.persona,
+        taglineRu: c.taglineRu, taglineEn: c.taglineEn, greetingRu: c.greetingRu, greetingEn: c.greetingEn, avatarUrl,
+      },
+    });
+    for (const [k, [ru, en]] of captions.entries()) {
+      const imageUrl = await writeArt("private", `seed-photo-${i}-${k}.webp`, portraitSvg((c.hue + k * 25) % 360, i * 4 + k + 1), 720);
+      await prisma.characterPhoto.create({ data: { characterId: ch.id, imageUrl, captionRu: ru, captionEn: en, price: k === 3 ? 40 : 25, order: k } });
+    }
+  }
 }
 
 main()

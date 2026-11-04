@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Clapperboard } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { forbidInKidsMode, getCurrentUser } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
 import { btn } from "@/components/ui/button";
 
@@ -11,6 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CreatorsPage() {
+  await forbidInKidsMode();
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const isCreator = user && (user.role === "CREATOR" || user.role === "ADMIN");
   return (

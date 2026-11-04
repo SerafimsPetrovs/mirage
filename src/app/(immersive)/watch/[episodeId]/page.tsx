@@ -7,6 +7,8 @@ import { decideAccess } from "@/lib/access";
 import { getI18n } from "@/i18n/server";
 import { pick } from "@/i18n/shared";
 import { Player } from "@/components/player/player";
+import { getSpicyForEpisode } from "@/lib/extras";
+import { hasKidsAllowance } from "@/lib/kids";
 
 type Props = { params: Promise<{ episodeId: string }> };
 
@@ -32,11 +34,14 @@ export default async function WatchPage({ params }: Props) {
   const unlocked = user ? !!(await prisma.unlock.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } })) : false;
   const access = decideAccess(user, ep, unlocked);
   const idx = s.episodes.findIndex((e) => e.id === ep.id);
-  const [progress, liked, likeCount, commentCount] = await Promise.all([
+  const kids = !!user?.kidsMode;
+  const [progress, liked, likeCount, commentCount, spicy, kidsAutoAllowed] = await Promise.all([
     user ? prisma.watchProgress.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } }) : null,
     user ? prisma.like.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } }) : null,
     prisma.like.count({ where: { episodeId } }),
-    prisma.comment.count({ where: { episodeId, hidden: false } }),
+    kids ? 0 : prisma.comment.count({ where: { episodeId, hidden: false } }),
+    getSpicyForEpisode(user, { id: ep.id, seriesId: ep.seriesId, creatorId: ep.series.creatorId }, ep.series, locale),
+    kids && user && !access.ok ? hasKidsAllowance(user.id, ep.seriesId) : false,
   ]);
 
   return (
@@ -58,6 +63,9 @@ export default async function WatchPage({ params }: Props) {
       likeCount={likeCount}
       commentCount={commentCount}
       user={user ? { coins: user.coins, name: user.name, hue: user.avatarHue } : null}
+      kids={kids}
+      kidsAutoAllowed={kidsAutoAllowed}
+      spicy={spicy}
     />
   );
 }

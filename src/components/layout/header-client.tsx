@@ -30,7 +30,7 @@ export function NavLinks({ links }: { links: { href: string; label: string }[] }
     <nav className="hidden items-center gap-1 md:flex">
       {links.map((l) => {
         const base = l.href.split("#")[0];
-        const active = base === "/" ? path === "/" : path.startsWith(base);
+        const active = base === "/" || base === "/me" ? path === base : path.startsWith(base);
         return (
           <Link
             key={l.href}

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { posterUrl } from "@/lib/poster";
 import { mediaUrl } from "@/lib/files";
-import { splitList } from "@/lib/catalog";
+import { splitList, visibleSeries } from "@/lib/catalog";
 import { getI18n } from "@/i18n/server";
 import { pick } from "@/i18n/shared";
 import { Feed, type FeedItem } from "@/components/feed/feed";
@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FeedPage() {
   const [{ locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const series = await prisma.series.findMany({
-    where: { status: "PUBLISHED", orientation: "VERTICAL" },
+    where: { ...(await visibleSeries()), orientation: "VERTICAL" },
     orderBy: { views: "desc" },
     take: 30,
     include: {
@@ -53,7 +53,7 @@ export default async function FeedPage() {
   return (
     <>
       <Feed items={items} />
-      <MobileTabBar overlay />
+      <MobileTabBar overlay kids={!!user?.kidsMode} />
     </>
   );
 }

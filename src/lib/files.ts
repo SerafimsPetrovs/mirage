@@ -73,17 +73,19 @@ export function serveFile(full: string, req: Request, extraHeaders: Record<strin
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
 
-export async function saveUpload(file: File, kind: "video" | "image", maxBytes: number) {
+/** kind "private" = images served only through access-checked routes (character photos). */
+export async function saveUpload(file: File, kind: "video" | "image" | "private", maxBytes: number) {
   const ext = path.extname(file.name).toLowerCase();
   const allowed = kind === "video" ? VIDEO_EXT : IMAGE_EXT;
   if (!allowed.has(ext)) throw new Error("BAD_FILE_TYPE");
   if (file.size > maxBytes) throw new Error("FILE_TOO_LARGE");
-  const dir = path.join(STORAGE_DIR, kind === "video" ? "videos" : "images");
+  const folder = kind === "video" ? "videos" : kind === "private" ? "private" : "images";
+  const dir = path.join(STORAGE_DIR, folder);
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const name = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${ext}`;
   const target = path.join(dir, name);
   await fs.promises.writeFile(/*turbopackIgnore: true*/ target, Readable.fromWeb(file.stream() as import("stream/web").ReadableStream));
-  return `storage:${kind === "video" ? "videos" : "images"}/${name}`;
+  return `storage:${folder}/${name}`;
 }
 
 /** Public URL for an image ref (storage refs go through /api/media). */

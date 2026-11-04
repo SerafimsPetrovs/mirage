@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, Pause, Play, Share2, SkipForward, Volume2, VolumeX,
+  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX,
 } from "lucide-react";
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
@@ -17,6 +17,9 @@ import { Sheet } from "./sheet";
 import { Comments } from "./comments";
 import { LockOverlay } from "./lock-overlay";
 import { Ambient } from "./ambient";
+import { CharacterStrip, SceneOffer, SkinsSheet, useSpicyRunner, type SpicyData } from "./spicy";
+import { ParentGate } from "@/components/kids/parent-gate";
+import { KidsToolButtons, SleepOverlay, useKidsTools } from "@/components/kids/kids-tools";
 
 export type PlayerProps = {
   episode: { id: string; number: number; title: string; locked: boolean; reason: "login" | "locked" | null; price: number; startAt: number };
@@ -27,6 +30,11 @@ export type PlayerProps = {
   likeCount: number;
   commentCount: number;
   user: { coins: number; name: string; hue: number } | null;
+  /** Kids mode: no comments, parental gate instead of the paywall, sleep timer + loop. */
+  kids: boolean;
+  kidsAutoAllowed: boolean;
+  /** 18+ add-ons (null in kids mode / on family series). */
+  spicy: SpicyData | null;
 };
 
 function clock(s: number) {
@@ -49,12 +57,22 @@ export function Player(props: PlayerProps) {
   const [duration, setDuration] = useState(0);
   const [buffering, setBuffering] = useState(true);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [sheet, setSheet] = useState<"episodes" | "comments" | null>(null);
+  const [sheet, setSheet] = useState<"episodes" | "comments" | "skins" | "characters" | null>(null);
   const [liked, setLiked] = useState(props.liked);
   const [likes, setLikes] = useState(props.likeCount);
   const [chrome, setChrome] = useState(true);
   const [fast, setFast] = useState(false);
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number; r: number }[]>([]);
+  const [balance, setBalance] = useState(user?.coins ?? 0);
+  const [skins, setSkins] = useState(props.spicy?.skins ?? []);
+  const [scene, setScene] = useState(props.spicy?.scene ?? null);
+  const [skinId, setSkinId] = useState<string | null>(null);
+  const [ended, setEnded] = useState(false);
+  const pendingSeek = useRef<number | null>(null);
+  const runner = useSpicyRunner(setBalance);
+  const kidsTools = useKidsTools(videoRef, props.kids, episode.id);
+  const characters = props.spicy?.characters ?? [];
+  const sceneVisible = !!scene && !episode.locked && (ended || (scene.triggerAt !== null && time >= scene.triggerAt));
   const [, start] = useTransition();
   const lastSaved = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -198,6 +216,14 @@ export function Player(props: PlayerProps) {
     g.tap = setTimeout(() => { g.tap = undefined; toggle(); }, 240);
   };
 
+  const wear = (id: string | null) => {
+    const v = videoRef.current;
+    if (id === skinId) return;
+    if (v) pendingSeek.current = v.currentTime;
+    setSkinId(id);
+    setSheet(null);
+  };
+
   const share = async () => {
     const url = `${location.origin}/series/${series.slug}`;
     if (navigator.share) {
@@ -246,7 +272,7 @@ export function Player(props: PlayerProps) {
     <video
       ref={videoRef}
       key={episode.id}
-      src={`/api/stream/${episode.id}`}
+      src={`/api/stream/${episode.id}${skinId ? `?skin=${skinId}` : ""}`}
       className={clsx("absolute inset-0 h-full w-full select-none [-webkit-touch-callout:none]", vertical ? "object-cover" : "object-contain")}
       playsInline
       preload="auto"
@@ -256,7 +282,16 @@ export function Player(props: PlayerProps) {
       onWaiting={() => setBuffering(true)}
       onPlaying={() => setBuffering(false)}
       onCanPlay={() => setBuffering(false)}
-      onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+      onDurationChange={(e) => isFinite(e.currentTarget.duration) && setDuration(e.currentTarget.duration)}
+      onLoadedMetadata={(e) => {
+        const v = e.currentTarget;
+        setDuration(v.duration);
+        if (pendingSeek.current !== null) {
+          v.currentTime = Math.min(pendingSeek.current, Math.max(0, v.duration - 0.5));
+          pendingSeek.current = null;
+          v.play().catch(() => {});
+        }
+      }}
       onTimeUpdate={(e) => {
         setTime(e.currentTarget.currentTime);
         if (Date.now() - lastSaved.current > 10_000) save();
@@ -264,7 +299,8 @@ export function Player(props: PlayerProps) {
       onEnded={() => {
         save(true);
         setPlaying(false);
-        if (nextId) setCountdown(5);
+        setEnded(true);
+        if (nextId && !(scene && !scene.owned)) setCountdown(5);
       }}
       onClick={onVideoClick}
       onPointerDown={onVideoPointerDown}
@@ -318,8 +354,17 @@ export function Player(props: PlayerProps) {
     <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-10 w-10 -translate-x-1/2 -translate-y-1/2 animate-spin rounded-full border-2 border-white/20 border-t-white" />
   );
 
-  const lock = episode.locked && episode.reason && (
-    <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={user?.coins ?? 0} />
+  const lock =
+    episode.locked &&
+    episode.reason &&
+    (props.kids && episode.reason === "locked" ? (
+      <ParentGate episodeId={episode.id} price={episode.price} autoAllowed={props.kidsAutoAllowed} />
+    ) : (
+      <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={balance} />
+    ));
+
+  const sceneOffer = scene && (
+    <SceneOffer scene={scene} setScene={setScene} visible={sceneVisible} runner={runner} onOpenChange={(o) => o && videoRef.current?.pause()} />
   );
 
   const sheets = (
@@ -327,11 +372,36 @@ export function Player(props: PlayerProps) {
       <Sheet open={sheet === "episodes"} onClose={() => setSheet(null)} title={`${t.player.episodesList} · ${series.episodes.length}`}>
         {vertical ? <EpisodeNumberGrid episodes={series.episodes} currentId={episode.id} t={t} /> : <EpisodeList episodes={series.episodes} backdrop={series.backdrop} t={t} />}
       </Sheet>
-      <Sheet open={sheet === "comments"} onClose={() => setSheet(null)} title={`${t.player.comments} · ${props.commentCount}`}>
-        <Comments episodeId={episode.id} loggedIn={!!user} me={user ? { name: user.name, hue: user.hue } : null} active={sheet === "comments"} />
-      </Sheet>
+      {!props.kids && (
+        <Sheet open={sheet === "comments"} onClose={() => setSheet(null)} title={`${t.player.comments} · ${props.commentCount}`}>
+          <Comments episodeId={episode.id} loggedIn={!!user} me={user ? { name: user.name, hue: user.hue } : null} active={sheet === "comments"} />
+        </Sheet>
+      )}
+      {skins.length > 0 && (
+        <SkinsSheet
+          open={sheet === "skins"}
+          onClose={() => setSheet(null)}
+          episodeId={episode.id}
+          skins={skins}
+          setSkins={setSkins}
+          current={skinId}
+          onWear={wear}
+          balance={balance}
+          runner={runner}
+        />
+      )}
+      {characters.length > 0 && (
+        <Sheet open={sheet === "characters"} onClose={() => setSheet(null)} title={t.chat.online}>
+          <p className="-mt-1 mb-4 text-sm text-muted">{t.chat.onlineSub}</p>
+          <CharacterStrip characters={characters} compact />
+        </Sheet>
+      )}
+      {props.kids && <SleepOverlay tools={kidsTools} />}
+      {runner.gate}
     </>
   );
+
+  const showSkins = skins.length > 0 && !episode.locked;
 
   const railBtn = "flex flex-col items-center gap-1 text-[11px] font-semibold text-white drop-shadow";
   const railIcon = "flex h-12 w-12 items-center justify-center rounded-full bg-black/35 backdrop-blur-md transition active:scale-90 md:bg-white/10 md:hover:bg-white/20";
@@ -367,6 +437,7 @@ export function Player(props: PlayerProps) {
                 <p className="truncate text-sm font-semibold">{series.title}</p>
                 <p className="text-xs text-white/70">{fmt(t.feed.episodeOf, { n: episode.number, total: series.episodes.length })}</p>
               </div>
+              {props.kids && !episode.locked && <KidsToolButtons tools={kidsTools} />}
               {!episode.locked && (
                 <button
                   onClick={() => { const v = videoRef.current; if (v) { v.muted = !v.muted; setMuted(v.muted); } }}
@@ -389,10 +460,27 @@ export function Player(props: PlayerProps) {
                 <span className={railIcon}><Heart size={24} className={liked ? "fill-accent text-accent" : ""} /></span>
                 {formatNumber(likes, locale)}
               </button>
-              <button onClick={() => setSheet("comments")} className={railBtn} aria-label={t.player.comments}>
-                <span className={railIcon}><MessageCircle size={24} /></span>
-                {formatNumber(props.commentCount, locale)}
-              </button>
+              {!props.kids && (
+                <button onClick={() => setSheet("comments")} className={railBtn} aria-label={t.player.comments}>
+                  <span className={railIcon}><MessageCircle size={24} /></span>
+                  {formatNumber(props.commentCount, locale)}
+                </button>
+              )}
+              {showSkins && (
+                <button onClick={() => setSheet("skins")} className={railBtn} aria-label={t.spicy.skins}>
+                  <span className={clsx(railIcon, "ring-1 ring-accent/60", skinId && "bg-accent/80 md:bg-accent/80")}><Shirt size={22} /></span>
+                  {t.spicy.badge}
+                </button>
+              )}
+              {characters.length > 0 && (
+                <button onClick={() => setSheet("characters")} className={railBtn} aria-label={t.chat.online}>
+                  <span className={clsx(railIcon, "relative")}>
+                    <MessageCircleHeart size={22} />
+                    <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-ok ring-2 ring-black/40" />
+                  </span>
+                  {t.player.characters}
+                </button>
+              )}
               <button onClick={() => setSheet("episodes")} className={railBtn} aria-label={t.player.episodesList}>
                 <span className={railIcon}><LayoutGrid size={22} /></span>
                 {series.episodes.length}
@@ -403,6 +491,7 @@ export function Player(props: PlayerProps) {
             </div>
 
             {/* Bottom info + seek */}
+            {sceneOffer && <div className="absolute bottom-24 left-4 z-20 pr-20 md:pr-0">{sceneOffer}</div>}
             <div className={clsx("absolute inset-x-0 bottom-0 z-10 px-4 pb-[max(16px,env(safe-area-inset-bottom))] transition-opacity", !chrome && playing && "md:opacity-0")}>
               <p className="pr-16 font-display text-[15px] font-semibold md:pr-0">
                 {t.common.episode} {episode.number}
@@ -432,10 +521,27 @@ export function Player(props: PlayerProps) {
               <span className={railIcon}><Heart size={24} className={liked ? "fill-accent text-accent" : ""} /></span>
               {formatNumber(likes, locale)}
             </button>
-            <button onClick={() => setSheet("comments")} className={railBtn} aria-label={t.player.comments}>
-              <span className={railIcon}><MessageCircle size={24} /></span>
-              {formatNumber(props.commentCount, locale)}
-            </button>
+            {!props.kids && (
+              <button onClick={() => setSheet("comments")} className={railBtn} aria-label={t.player.comments}>
+                <span className={railIcon}><MessageCircle size={24} /></span>
+                {formatNumber(props.commentCount, locale)}
+              </button>
+            )}
+            {showSkins && (
+              <button onClick={() => setSheet("skins")} className={railBtn} aria-label={t.spicy.skins}>
+                <span className={clsx(railIcon, "ring-1 ring-accent/60", skinId && "bg-accent/80 md:bg-accent/80")}><Shirt size={22} /></span>
+                {t.spicy.badge}
+              </button>
+            )}
+            {characters.length > 0 && (
+              <button onClick={() => setSheet("characters")} className={railBtn} aria-label={t.chat.online}>
+                <span className={clsx(railIcon, "relative")}>
+                  <MessageCircleHeart size={22} />
+                  <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-ok ring-2 ring-black/40" />
+                </span>
+                {t.player.characters}
+              </button>
+            )}
             <button onClick={() => setSheet("episodes")} className={railBtn} aria-label={t.player.episodesList}>
               <span className={railIcon}><LayoutGrid size={22} /></span>
               {series.episodes.length}
@@ -496,12 +602,14 @@ export function Player(props: PlayerProps) {
                   {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
                 <span className="text-xs tabular-nums text-white/70">{clock(time)} / {clock(duration)}</span>
+                {props.kids && <div className="ml-auto"><KidsToolButtons tools={kidsTools} tone="bar" /></div>}
                 <button onClick={fullscreen} aria-label={t.player.fullscreen} className={btn("ghost", "icon", "ml-auto")}>
                   <Maximize size={20} />
                 </button>
               </div>
             </div>
           )}
+          {sceneOffer && <div className="absolute right-4 top-4 z-20">{sceneOffer}</div>}
           {nextOverlay}
           {lock}
         </div>
@@ -511,9 +619,16 @@ export function Player(props: PlayerProps) {
           <button onClick={like} aria-pressed={liked} className={btn("glass", "md")}>
             <Heart size={18} className={liked ? "fill-accent text-accent" : ""} /> {formatNumber(likes, locale)}
           </button>
-          <button onClick={() => setSheet("comments")} className={btn("glass", "md")}>
-            <MessageCircle size={18} /> {formatNumber(props.commentCount, locale)}
-          </button>
+          {!props.kids && (
+            <button onClick={() => setSheet("comments")} className={btn("glass", "md")}>
+              <MessageCircle size={18} /> {formatNumber(props.commentCount, locale)}
+            </button>
+          )}
+          {showSkins && (
+            <button onClick={() => setSheet("skins")} className={btn("glass", "md", skinId ? "ring-1 ring-accent" : "")}>
+              <Shirt size={18} className="text-accent-2" /> {t.spicy.skins}
+            </button>
+          )}
           <button onClick={share} className={btn("glass", "md")} aria-label={t.series.share}>
             <Share2 size={18} />
           </button>
@@ -523,6 +638,11 @@ export function Player(props: PlayerProps) {
             </button>
           )}
         </div>
+        {characters.length > 0 && (
+          <div className="relative px-4 pb-8 md:max-w-xl md:px-0">
+            <CharacterStrip characters={characters} />
+          </div>
+        )}
         <div className="relative px-4 pb-16 md:px-0">
           <h2 className="mb-3 font-display text-lg font-semibold">{t.series.episodes}</h2>
           <EpisodeList episodes={series.episodes} backdrop={series.backdrop} t={t} />

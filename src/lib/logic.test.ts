@@ -97,3 +97,49 @@ describe("safePath", () => {
     expect(safePath(undefined)).toBe("/");
   });
 });
+
+import { splitCharge, splitShare } from "./access";
+import { chatMessagePrice, pickSkin, shouldSendPhoto, spicyBlock, CHAT_FREE_MESSAGES, CHAT_MESSAGE_PRICE } from "./spicy";
+
+describe("coin split", () => {
+  it("spends bonus first", () => {
+    expect(splitCharge(30, { paidCoins: 100, bonusCoins: 10 })).toEqual({ bonus: 10, paid: 20 });
+    expect(splitCharge(30, { paidCoins: 0, bonusCoins: 50 })).toEqual({ bonus: 30, paid: 0 });
+  });
+  it("returns null when total is not enough", () => {
+    expect(splitCharge(30, { paidCoins: 10, bonusCoins: 19 })).toBeNull();
+  });
+  it("creator share: withdrawable only from paid coins", () => {
+    expect(splitShare({ paid: 20, bonus: 10 })).toEqual({ coins: 10, credits: 5 });
+    expect(splitShare({ paid: 0, bonus: 30 })).toEqual({ coins: 0, credits: 15 });
+    expect(splitShare({ paid: 31, bonus: 0 })).toEqual({ coins: 15, credits: 0 });
+  });
+});
+
+describe("spicy rules", () => {
+  it("roulette respects weights and handles empty pools", () => {
+    const pool = [{ rarity: "common" }, { rarity: "epic" }];
+    expect(pickSkin(pool, 0)).toBe(pool[0]);
+    expect(pickSkin(pool, 0.99)).toBe(pool[1]);
+    expect(pickSkin([], 0.5)).toBeNull();
+  });
+  it("chat: first messages free", () => {
+    expect(chatMessagePrice(0)).toBe(0);
+    expect(chatMessagePrice(CHAT_FREE_MESSAGES - 1)).toBe(0);
+    expect(chatMessagePrice(CHAT_FREE_MESSAGES)).toBe(CHAT_MESSAGE_PRICE);
+  });
+  it("photo drops when asked or every few replies", () => {
+    expect(shouldSendPhoto("покажи себя", 0, true)).toBe(true);
+    expect(shouldSendPhoto("hi", 1, true)).toBe(false);
+    expect(shouldSendPhoto("hi", 4, true)).toBe(true);
+    expect(shouldSendPhoto("send me a selfie", 9, false)).toBe(false);
+  });
+  it("18+ add-ons are blocked in kids mode, on family series and until 18+ is confirmed", () => {
+    const adult = { kidsMode: false, adultConfirmedAt: new Date() };
+    expect(spicyBlock(adult, { isFamilySafe: false })).toBeNull();
+    expect(spicyBlock(adult, { isFamilySafe: true })).toBe("family");
+    expect(spicyBlock({ ...adult, kidsMode: true }, { isFamilySafe: false })).toBe("kids");
+    expect(spicyBlock({ kidsMode: false, adultConfirmedAt: null }, { isFamilySafe: false })).toBe("age");
+    expect(spicyBlock(null, { isFamilySafe: false })).toBe("auth");
+  });
+});

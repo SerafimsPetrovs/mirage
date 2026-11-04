@@ -1,8 +1,8 @@
 import "server-only";
 import { prisma } from "./db";
 import { decideAccess } from "./access";
-import type { CurrentUser } from "./auth";
-import { seriesCardSelect, toCard, splitList } from "./catalog";
+import { getKidsMode, type CurrentUser } from "./auth";
+import { seriesCardSelect, toCard, splitList, visibleSeries } from "./catalog";
 import { posterUrl, backdropUrl } from "./poster";
 import { mediaUrl } from "./files";
 import { pick, type Locale } from "@/i18n/shared";
@@ -32,6 +32,8 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
   if (!s) return null;
   const owner = !!user && (user.role === "ADMIN" || user.id === s.creatorId);
   if (s.status !== "PUBLISHED" && !owner) return null;
+  const kids = await getKidsMode();
+  if (kids && (!s.isFamilySafe || s.status !== "PUBLISHED")) return null;
 
   const [unlocks, progress, inList, myRating, ratingAgg] = await Promise.all([
     user ? prisma.unlock.findMany({ where: { userId: user.id, episode: { seriesId: s.id } }, select: { episodeId: true } }) : [],
@@ -94,12 +96,15 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
     myRating: myRating?.value ?? 0,
     rating: { avg: ratingAgg._avg.value ?? 0, count: ratingAgg._count },
     owner,
+    isFamilySafe: s.isFamilySafe,
+    creatorId: s.creatorId,
+    kids,
   };
 }
 
 export async function getSimilar(seriesId: string, genres: string[], locale: Locale) {
   const rows = await prisma.series.findMany({
-    where: { status: "PUBLISHED", id: { not: seriesId }, OR: genres.map((g) => ({ genres: { contains: g } })) },
+    where: { ...(await visibleSeries()), id: { not: seriesId }, OR: genres.map((g) => ({ genres: { contains: g } })) },
     orderBy: { views: "desc" },
     take: 12,
     select: seriesCardSelect,
@@ -114,13 +119,19 @@ export async function getActivePoll(seriesId: string, userId: string | null, loc
     include: { options: { include: { _count: { select: { votes: true } } } } },
   });
   if (!poll) return null;
-  const mine = userId ? await prisma.pollVote.findUnique({ where: { userId_pollId: { userId, pollId: poll.id } } }) : null;
+  const [mine, boosts, myBoost] = await Promise.all([
+    userId ? prisma.pollVote.findUnique({ where: { userId_pollId: { userId, pollId: poll.id } } }) : null,
+    prisma.pollBoost.groupBy({ by: ["optionId"], where: { pollId: poll.id }, _sum: { votes: true } }),
+    userId ? prisma.pollBoost.aggregate({ where: { pollId: poll.id, userId }, _sum: { votes: true } }) : null,
+  ]);
+  const boostMap = new Map(boosts.map((b) => [b.optionId, b._sum.votes ?? 0]));
   return {
     id: poll.id,
     question: pick(poll, "question", locale),
     closesAt: poll.closesAt.toISOString(),
     closed: poll.closesAt < new Date(),
     myOptionId: mine?.optionId ?? null,
-    options: poll.options.map((o) => ({ id: o.id, label: pick(o, "label", locale), votes: o._count.votes })),
+    myBoost: myBoost?._sum.votes ?? 0,
+    options: poll.options.map((o) => ({ id: o.id, label: pick(o, "label", locale), votes: o._count.votes + (boostMap.get(o.id) ?? 0) })),
   };
 }

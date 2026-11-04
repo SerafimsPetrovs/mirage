@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db";
-import { requireRole } from "@/lib/auth";
+import { forbidInKidsMode, requireRole } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
 import { AdminNav } from "@/components/admin/admin-nav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await forbidInKidsMode();
   await requireRole(["ADMIN"], "/admin");
   const { t } = await getI18n();
   const [pending, apps] = await Promise.all([

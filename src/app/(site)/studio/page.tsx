@@ -28,7 +28,7 @@ export default async function StudioPage() {
   });
   const ids = series.map((s) => s.id);
   const [earn, unlocks, earn30] = await Promise.all([
-    prisma.creatorEarning.aggregate({ where: { creatorId: user.id }, _sum: { coins: true } }),
+    prisma.creatorEarning.aggregate({ where: { creatorId: user.id }, _sum: { coins: true, credits: true } }),
     prisma.unlock.count({ where: { episode: { seriesId: { in: ids } } } }),
     prisma.creatorEarning.findMany({
       where: { creatorId: user.id, createdAt: { gte: daysAgo(14) } },
@@ -50,7 +50,8 @@ export default async function StudioPage() {
   const stats = [
     { label: t.studio.stats.views, value: formatNumber(views, locale), icon: Eye },
     { label: t.studio.stats.unlocks, value: formatNumber(unlocks, locale), icon: Unlock },
-    { label: t.studio.stats.earnings, value: formatNumber(earn._sum.coins ?? 0, locale), icon: Coins, coin: true },
+    { label: t.studio.cashEarnings, value: formatNumber(earn._sum.coins ?? 0, locale), icon: Coins, coin: true },
+    { label: t.studio.creditEarnings, value: formatNumber(earn._sum.credits ?? 0, locale), icon: Wand2 },
     { label: t.studio.stats.followers, value: formatNumber(lists, locale), icon: Bookmark },
   ];
 
@@ -71,7 +72,7 @@ export default async function StudioPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
         {stats.map(({ label, value, icon: Icon, coin }) => (
           <div key={label} className="rounded-3xl bg-surface p-4 ring-1 ring-line md:p-5">
             <div className="flex items-center gap-2 text-sm text-muted">
@@ -84,8 +85,8 @@ export default async function StudioPage() {
 
       <div className="mt-4 rounded-3xl bg-surface p-5 ring-1 ring-line">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold">{t.studio.stats.earnings} · 14d</p>
-          <p className="text-xs text-muted">{fmt(t.studio.earningsNote, { p: CREATOR_SHARE * 100 })}</p>
+          <p className="text-sm font-semibold">{t.studio.cashEarnings} · 14d</p>
+          <p className="max-w-xl text-xs text-muted">{fmt(t.studio.earningsSplit, { p: CREATOR_SHARE * 100 })}</p>
         </div>
         <div className="flex h-28 items-end gap-1.5" role="img" aria-label={`${t.studio.stats.earnings}: ${[...byDay.values()].join(", ")}`}>
           {days.map((d) => {

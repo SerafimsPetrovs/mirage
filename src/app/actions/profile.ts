@@ -7,7 +7,7 @@ import type { FormState } from "./auth";
 
 export async function updateProfileAction(_: FormState, form: FormData): Promise<FormState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "auth" };
+  if (!user || user.kidsMode) return { error: "auth" };
   const parsed = z
     .object({
       name: z.string().trim().min(1).max(40),
@@ -23,7 +23,7 @@ export async function updateProfileAction(_: FormState, form: FormData): Promise
 
 export async function applyCreatorAction(_: FormState, form: FormData): Promise<FormState> {
   const user = await getCurrentUser();
-  if (!user) return { error: "auth" };
+  if (!user || user.kidsMode) return { error: "auth" };
   if (user.role !== "VIEWER") return { ok: true };
   const parsed = z
     .object({ message: z.string().trim().min(10).max(1000), portfolio: z.string().trim().max(300) })

@@ -16,7 +16,7 @@ description: Use when starting, restarting, seeding, resetting or troubleshootin
 | Prod build | `npm run build` (works while dev server runs) |
 
 ## Demo accounts (seed, password `mirage123`)
-`viewer@mirage.tv` (VIEWER, 120 coins) · `creator@mirage.tv` / `lotus@mirage.tv` (CREATOR) · `admin@mirage.tv` (ADMIN).
+`viewer@mirage.tv` (VIEWER, 120 bonus + 330 paid coins; no kids PIN yet) · `creator@mirage.tv` / `lotus@mirage.tv` (CREATOR) · `admin@mirage.tv` (ADMIN).
 
 ## Resetting the DB as an agent
 `prisma migrate reset` / `db push --force-reset` are **blocked for AI agents** by Prisma's consent guard. Instead: stop the dev server, delete `prisma/dev.db`, run `npx prisma migrate dev` (applies migrations + seed). Tests use their own `prisma/test.db`, recreated by `vitest.setup.ts`.

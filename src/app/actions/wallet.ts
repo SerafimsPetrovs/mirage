@@ -12,6 +12,8 @@ export type UnlockResult =
 export async function unlockEpisodeAction(episodeId: string): Promise<UnlockResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "auth" };
+  // In kids mode purchases go through the parental gate (PIN) — see actions/kids.ts.
+  if (user.kidsMode) return { ok: false, error: "auth" };
   try {
     const res = await unlockEpisode(user.id, episodeId);
     revalidatePath("/me/wallet");
@@ -26,7 +28,7 @@ export async function unlockEpisodeAction(episodeId: string): Promise<UnlockResu
 
 export async function purchaseAction(sku: string): Promise<{ ok: boolean; redirectUrl?: string | null; error?: string }> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "auth" };
+  if (!user || user.kidsMode) return { ok: false, error: "auth" };
   try {
     const { redirectUrl } = await createOrder(user.id, sku, await getLocale());
     revalidatePath("/", "layout");
@@ -39,7 +41,7 @@ export async function purchaseAction(sku: string): Promise<{ ok: boolean; redire
 
 export async function checkInAction(): Promise<{ ok: boolean; reward?: number; streak?: number; error?: string }> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "auth" };
+  if (!user || user.kidsMode) return { ok: false, error: "auth" };
   const res = await dailyCheckIn(user.id);
   if (!res) return { ok: false, error: "already" };
   revalidatePath("/", "layout");

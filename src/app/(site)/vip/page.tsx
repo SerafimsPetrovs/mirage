@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import clsx from "clsx";
 import { Check, Crown, Info } from "lucide-react";
-import { getCurrentUser, isVip } from "@/lib/auth";
+import { forbidInKidsMode, getCurrentUser, isVip } from "@/lib/auth";
 import { VIP_PLANS } from "@/lib/payments/catalog";
 import { getI18n } from "@/i18n/server";
 import { fmt, formatDate, formatMoney } from "@/i18n/shared";
@@ -16,6 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function VipPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
+  await forbidInKidsMode();
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const vip = isVip(user);
   const names: Record<string, string> = { vip_week: t.vip.week, vip_month: t.vip.month, vip_year: t.vip.year };

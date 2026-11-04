@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Unbounded } from "next/font/google";
 import "./globals.css";
 import { getI18n } from "@/i18n/server";
+import { getKidsMode } from "@/lib/auth";
 import { I18nProvider } from "@/i18n/client";
 import { ToastProvider } from "@/components/ui/toast";
 import { CommandPalette } from "@/components/layout/command-palette";
@@ -28,14 +29,14 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const { locale } = await getI18n();
+  const [{ locale }, kids] = await Promise.all([getI18n(), getKidsMode()]);
   return (
-    <html lang={locale} className={`${inter.variable} ${unbounded.variable}`}>
+    <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} data-theme={kids ? "kids" : undefined}>
       <body className="min-h-dvh">
         <I18nProvider locale={locale}>
           <ToastProvider>
             {children}
-            <CommandPalette />
+            <CommandPalette kids={kids} />
             <PosterMorph />
           </ToastProvider>
         </I18nProvider>

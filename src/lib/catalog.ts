@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
+import { getKidsMode } from "./auth";
 import { posterUrl, backdropUrl } from "./poster";
 import { mediaUrl } from "./files";
 import { pick, type Locale } from "@/i18n/shared";
@@ -68,7 +69,10 @@ export function toCard(s: CardRow, locale: Locale): SeriesCard {
   };
 }
 
-const published = { status: "PUBLISHED" } as const;
+/** Series visible to the current viewer: published, and family-safe only in kids mode. */
+export async function visibleSeries(): Promise<Prisma.SeriesWhereInput> {
+  return (await getKidsMode()) ? { status: "PUBLISHED", isFamilySafe: true } : { status: "PUBLISHED" };
+}
 
 export async function listSeries(
   locale: Locale,
@@ -79,7 +83,7 @@ export async function listSeries(
   } = {},
 ) {
   const rows = await prisma.series.findMany({
-    where: { ...published, ...opts.where },
+    where: { ...(await visibleSeries()), ...opts.where },
     orderBy: opts.orderBy ?? { views: "desc" },
     take: opts.take ?? 20,
     select: seriesCardSelect,
@@ -121,7 +125,7 @@ export async function getHomeData(locale: Locale, userId: string | null) {
   if (userId) {
     continueWatching = await getContinueWatching(userId, locale, 12);
     const list = await prisma.listItem.findMany({
-      where: { userId, series: published },
+      where: { userId, series: await visibleSeries() },
       orderBy: { createdAt: "desc" },
       take: 16,
       select: { series: { select: seriesCardSelect } },
@@ -135,7 +139,7 @@ export type ContinueItem = SeriesCard & { episodeId: string; episodeNumber: numb
 
 export async function getContinueWatching(userId: string, locale: Locale, take = 12): Promise<ContinueItem[]> {
   const rows = await prisma.watchProgress.findMany({
-    where: { userId, series: published },
+    where: { userId, series: await visibleSeries() },
     orderBy: { updatedAt: "desc" },
     take: take * 4,
     include: { episode: { select: { id: true, number: true, durationSec: true } }, series: { select: seriesCardSelect } },

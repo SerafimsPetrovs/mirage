@@ -2,10 +2,15 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Check, Vote } from "lucide-react";
+import { Check, Coins, Rocket, Vote } from "lucide-react";
 import { useI18n } from "@/i18n/client";
 import { fmt, plural } from "@/i18n/shared";
 import { voteAction } from "@/app/actions/library";
+import { boostPollAction } from "@/app/actions/extras";
+import { POLL_VOTE_PRICE } from "@/lib/access";
+import { useToast } from "@/components/ui/toast";
+import { btn } from "@/components/ui/button";
+import { CoinAmount } from "@/components/ui/misc";
 
 type Poll = {
   id: string;
@@ -13,8 +18,11 @@ type Poll = {
   closesAt: string;
   closed: boolean;
   myOptionId: string | null;
+  myBoost: number;
   options: { id: string; label: string; votes: number }[];
 };
+
+const PACKS = [1, 5, 10];
 
 function timeLeft(iso: string, locale: string) {
   const ms = new Date(iso).getTime() - Date.now();
@@ -24,9 +32,15 @@ function timeLeft(iso: string, locale: string) {
   return d > 0 ? `${d} д ${h % 24} ч` : `${h} ч`;
 }
 
-export function PollCard({ poll, loggedIn }: { poll: Poll; loggedIn: boolean }) {
+export function PollCard({ poll, loggedIn, canBoost, balance: balance0 }: { poll: Poll; loggedIn: boolean; canBoost: boolean; balance: number }) {
   const { t, locale } = useI18n();
   const router = useRouter();
+  const toast = useToast();
+  const [boostOpt, setBoostOpt] = useState<string | null>(poll.myOptionId);
+  const [pack, setPack] = useState(5);
+  const [myBoost, setMyBoost] = useState(poll.myBoost);
+  const [balance, setBalance] = useState(balance0);
+  const [boosting, startBoost] = useTransition();
   const [mine, setMine] = useState(poll.myOptionId);
   const [options, setOptions] = useState(poll.options);
   const [pending, start] = useTransition();
@@ -39,6 +53,7 @@ export function PollCard({ poll, loggedIn }: { poll: Poll; loggedIn: boolean }) 
     const prev = mine;
     setOptions((os) => os.map((o) => ({ ...o, votes: o.votes + (o.id === id ? 1 : 0) - (o.id === prev ? 1 : 0) })));
     setMine(id);
+    if (!boostOpt) setBoostOpt(id);
     start(async () => {
       const r = await voteAction(poll.id, id);
       if (!r.ok) {
@@ -87,6 +102,62 @@ export function PollCard({ poll, loggedIn }: { poll: Poll; loggedIn: boolean }) 
           );
         })}
       </div>
+      {canBoost && !poll.closed && showResults && (
+        <div className="mt-4 rounded-2xl bg-black/20 p-4 ring-1 ring-white/10">
+          <div className="flex items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-coin">
+              <Rocket size={16} /> {t.boost.title}
+            </p>
+            <CoinAmount value={balance} size={13} className="text-xs" />
+          </div>
+          <p className="mt-1 text-xs text-muted">{fmt(t.boost.sub, { price: POLL_VOTE_PRICE })}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5" role="radiogroup" aria-label={t.boost.pick}>
+            {options.map((o) => (
+              <button
+                key={o.id}
+                role="radio"
+                aria-checked={boostOpt === o.id}
+                onClick={() => setBoostOpt(o.id)}
+                className={clsx("max-w-full truncate rounded-full px-3 py-1.5 text-xs font-medium ring-1 transition", boostOpt === o.id ? "bg-coin/15 text-coin ring-coin/50" : "ring-line hover:ring-white/25")}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-1.5">
+            {PACKS.map((n) => (
+              <button
+                key={n}
+                onClick={() => setPack(n)}
+                aria-pressed={pack === n}
+                className={clsx("h-9 flex-1 rounded-xl text-sm font-bold ring-1 transition", pack === n ? "bg-white text-black ring-white" : "ring-line hover:ring-white/25")}
+              >
+                +{n}
+              </button>
+            ))}
+          </div>
+          <button
+            disabled={!boostOpt || boosting}
+            onClick={() =>
+              startBoost(async () => {
+                const r = await boostPollAction(poll.id, boostOpt!, pack);
+                if (r.ok) {
+                  setBalance(r.balance);
+                  setMyBoost((b) => b + pack);
+                  setOptions((os) => os.map((o) => (o.id === boostOpt ? { ...o, votes: o.votes + pack } : o)));
+                  toast(fmt(t.boost.done, { n: pack }), "coin");
+                } else if (r.error === "insufficient") toast(t.spicy.notEnough, "error");
+                else if (r.error === "owner") toast(t.boost.owner, "error");
+                else toast(t.common.error, "error");
+              })
+            }
+            className={btn("coin", "md", "mt-3 w-full")}
+          >
+            <Coins size={17} /> {fmt(t.boost.buy, { n: pack, price: pack * POLL_VOTE_PRICE })}
+          </button>
+          {myBoost > 0 && <p className="mt-2 text-center text-xs text-muted">{fmt(t.boost.mine, { n: myBoost })}</p>}
+        </div>
+      )}
       <p className="mt-3 text-xs text-muted">
         {total} {plural(total, t.poll.votes, locale)} ·{" "}
         {poll.closed ? t.poll.closed : fmt(t.poll.closesIn, { t: timeLeft(poll.closesAt, locale) })}

@@ -34,3 +34,31 @@ export function decideAccess(user: AccessUser, ep: AccessEpisode, unlocked: bool
   if (unlocked) return { ok: true, reason: "unlocked" };
   return { ok: false, reason: "locked", price };
 }
+
+/** Extra votes in "What's next?" polls: price per vote. */
+export const POLL_VOTE_PRICE = 5;
+
+/**
+ * Splits a price between the buyer's bonus and paid coins. Bonus coins are spent first.
+ * Returns null when the total balance is not enough.
+ */
+export function splitCharge(price: number, balance: { paidCoins: number; bonusCoins: number }) {
+  if (price <= 0) return { bonus: 0, paid: 0 };
+  if (balance.paidCoins + balance.bonusCoins < price) return null;
+  const bonus = Math.min(balance.bonusCoins, price);
+  return { bonus, paid: price - bonus };
+}
+
+/**
+ * Creator's 50% share of a charge. Only the part paid with real-money coins is withdrawable;
+ * the share of bonus coins becomes generation credits (anti bot-farming).
+ */
+export function splitShare(charge: { paid: number; bonus: number }, share = CREATOR_SHARE) {
+  const total = Math.floor((charge.paid + charge.bonus) * share);
+  const coins = Math.floor(charge.paid * share);
+  return { coins, credits: total - coins };
+}
+
+export function totalCoins(u: { paidCoins: number; bonusCoins: number }) {
+  return u.paidCoins + u.bonusCoins;
+}
