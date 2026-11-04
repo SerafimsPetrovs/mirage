@@ -43,17 +43,30 @@ export function shouldSendPhoto(userText: string, repliesSinceLastPhoto: number,
 
 export type SpicyBlock = "auth" | "kids" | "age" | "family";
 
+type Viewer = { kidsMode: boolean; adultConfirmedAt: Date | null; showAdult: boolean } | null;
+
+/** The viewer confirmed 18+ AND switched 18+ content on, and is not in kids mode. */
+export function isAdultMode(user: Viewer): boolean {
+  return !!user && !user.kidsMode && user.showAdult && !!user.adultConfirmedAt;
+}
+
 /**
- * Who may see/buy 18+ add-ons: logged-in adults outside kids mode, never on family-safe series.
- * Returns null when allowed.
+ * Who may see/buy 18+ add-ons: logged-in adults with 18+ content enabled, outside kids mode,
+ * never on family-safe series. Returns null when allowed.
  */
-export function spicyBlock(
-  user: { kidsMode: boolean; adultConfirmedAt: Date | null } | null,
-  series: { isFamilySafe: boolean },
-): SpicyBlock | null {
+export function spicyBlock(user: Viewer, series: { isFamilySafe: boolean }): SpicyBlock | null {
   if (series.isFamilySafe) return "family";
   if (!user) return "auth";
   if (user.kidsMode) return "kids";
-  if (!user.adultConfirmedAt) return "age";
+  if (!isAdultMode(user)) return "age";
+  return null;
+}
+
+/** Can this viewer open an 18+ series at all? Non-adult series are always fine. Returns null when allowed. */
+export function adultSeriesBlock(user: Viewer, series: { isAdult: boolean }): Exclude<SpicyBlock, "family"> | null {
+  if (!series.isAdult) return null;
+  if (!user) return "auth";
+  if (user.kidsMode) return "kids";
+  if (!isAdultMode(user)) return "age";
   return null;
 }

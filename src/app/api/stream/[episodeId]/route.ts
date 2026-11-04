@@ -2,7 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getEpisodeAccess } from "@/lib/coins";
 import { prisma } from "@/lib/db";
 import { resolveMediaPath, serveFile } from "@/lib/files";
-import { spicyBlock } from "@/lib/spicy";
+import { adultSeriesBlock, spicyBlock } from "@/lib/spicy";
 
 function serveRef(ref: string, req: Request) {
   if (/^https?:\/\//.test(ref)) return Response.redirect(ref, 302);
@@ -21,6 +21,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ episodeId: stri
   const isOwner = !!user && (user.role === "ADMIN" || user.id === episode.series.creatorId);
   if (episode.series.status !== "PUBLISHED" && !isOwner) return new Response("Not found", { status: 404 });
   if (user?.kidsMode && !episode.series.isFamilySafe) return new Response("Not found", { status: 404 });
+  if (!isOwner && adultSeriesBlock(user, episode.series)) return new Response("Forbidden", { status: 403 });
   if (!access.ok) return new Response("Locked", { status: 403 });
 
   const skinId = new URL(req.url).searchParams.get("skin");

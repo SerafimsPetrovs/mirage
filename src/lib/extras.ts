@@ -278,17 +278,17 @@ export async function getSeriesCharacters(seriesId: string, locale: Locale) {
 
 /**
  * 18+ add-ons for the player. Null when they must not be shown at all (kids mode, family series).
- * Guests and not-yet-confirmed adults still see the offers; actions then ask to log in / confirm 18+.
+ * Hidden for everyone who has not switched 18+ content on (no accidental exposure); owners always see them.
  */
 export async function getSpicyForEpisode(
-  user: { id: string; role: string; kidsMode: boolean; adultConfirmedAt: Date | null } | null,
+  user: { id: string; role: string; kidsMode: boolean; adultConfirmedAt: Date | null; showAdult: boolean } | null,
   episode: { id: string; seriesId: string; creatorId: string },
   series: { isFamilySafe: boolean },
   locale: Locale,
 ) {
   const block = spicyBlock(user, series);
-  if (block === "kids" || block === "family") return null;
-  const owner = !!user && isOwner(user, episode.creatorId);
+  const owner = !!user && !user.kidsMode && isOwner(user, episode.creatorId);
+  if (block === "kids" || block === "family" || (block && !owner)) return null;
   const [skins, scene, characters] = await Promise.all([
     prisma.skin.findMany({
       where: { episodeId: episode.id },

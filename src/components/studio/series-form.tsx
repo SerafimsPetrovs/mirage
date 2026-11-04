@@ -26,6 +26,7 @@ export type SeriesFormValues = {
   promptNotesRu: string;
   promptNotesEn: string;
   ageRating: string;
+  isAdult: boolean;
   freeEpisodes: number;
   defaultCoinPrice: number;
   hue: number;
@@ -38,7 +39,7 @@ export type SeriesFormValues = {
 export const emptySeries: SeriesFormValues = {
   titleRu: "", titleEn: "", taglineRu: "", taglineEn: "", descriptionRu: "", descriptionEn: "",
   orientation: "VERTICAL", genres: [], moods: [], aiModels: "", promptNotesRu: "", promptNotesEn: "",
-  ageRating: "16+", freeEpisodes: 5, defaultCoinPrice: 30, hue: 330, posterUrl: "", backdropUrl: "",
+  ageRating: "16+", isAdult: false, freeEpisodes: 5, defaultCoinPrice: 30, hue: 330, posterUrl: "", backdropUrl: "",
   posterPreview: null, backdropPreview: null,
 };
 
@@ -128,6 +129,16 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
           <input id="defaultCoinPrice" name="defaultCoinPrice" type="number" min={1} max={500} defaultValue={initial.defaultCoinPrice} className={inputCls} />
         </div>
       </div>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-surface-2 p-4 ring-1 ring-line has-[:checked]:ring-accent/50">
+        <input type="checkbox" name="isAdult" defaultChecked={initial.isAdult} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+        <span>
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-xs font-bold text-accent">18+</span> {t.adult.studioLabel}
+          </span>
+          <span className="mt-1 block text-xs text-muted">{t.adult.studioHint}</span>
+        </span>
+      </label>
 
       <div>
         <p className={labelCls}>{f.genres}</p>

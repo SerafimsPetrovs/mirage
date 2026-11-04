@@ -1,7 +1,8 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./db";
-import { getKidsMode } from "./auth";
+import { getCurrentUser } from "./auth";
+import { isAdultMode } from "./spicy";
 import { posterUrl, backdropUrl } from "./poster";
 import { mediaUrl } from "./files";
 import { pick, type Locale } from "@/i18n/shared";
@@ -20,6 +21,7 @@ export const seriesCardSelect = {
   genres: true,
   aiModels: true,
   ageRating: true,
+  isAdult: true,
   views: true,
   freeEpisodes: true,
   createdAt: true,
@@ -40,6 +42,7 @@ export type SeriesCard = {
   genres: string[];
   aiModels: string[];
   ageRating: string;
+  isAdult: boolean;
   views: number;
   episodes: number;
   isNew: boolean;
@@ -63,15 +66,18 @@ export function toCard(s: CardRow, locale: Locale): SeriesCard {
     genres: splitList(s.genres),
     aiModels: splitList(s.aiModels),
     ageRating: s.ageRating,
+    isAdult: s.isAdult,
     views: s.views,
     episodes: s._count.episodes,
     isNew: Date.now() - s.createdAt.getTime() < 10 * 86400_000,
   };
 }
 
-/** Series visible to the current viewer: published, and family-safe only in kids mode. */
+/** Series the current viewer may browse: kids → family-safe only; 18+ series only with 18+ content enabled. */
 export async function visibleSeries(): Promise<Prisma.SeriesWhereInput> {
-  return (await getKidsMode()) ? { status: "PUBLISHED", isFamilySafe: true } : { status: "PUBLISHED" };
+  const user = await getCurrentUser();
+  if (user?.kidsMode) return { status: "PUBLISHED", isFamilySafe: true };
+  return isAdultMode(user) ? { status: "PUBLISHED" } : { status: "PUBLISHED", isAdult: false };
 }
 
 export async function listSeries(

@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "./db";
 import { decideAccess } from "./access";
 import { getKidsMode, type CurrentUser } from "./auth";
+import { adultSeriesBlock } from "./spicy";
 import { seriesCardSelect, toCard, splitList, visibleSeries } from "./catalog";
 import { posterUrl, backdropUrl } from "./poster";
 import { mediaUrl } from "./files";
@@ -97,6 +98,9 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
     rating: { avg: ratingAgg._avg.value ?? 0, count: ratingAgg._count },
     owner,
     isFamilySafe: s.isFamilySafe,
+    isAdult: s.isAdult,
+    /** Why an 18+ series is closed for this viewer (owners always pass). */
+    adultBlock: owner ? null : adultSeriesBlock(user, s),
     creatorId: s.creatorId,
     kids,
   };

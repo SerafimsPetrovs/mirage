@@ -497,6 +497,7 @@ async function main() {
         status: "PUBLISHED",
         featured: !!s.featured,
         isFamilySafe: !!s.familySafe,
+        isAdult: s.slug === "my-husband-is-a-ghost",
         freeEpisodes: vertical ? 6 : 2,
         defaultCoinPrice: vertical ? 30 : 60,
         views: s.views,

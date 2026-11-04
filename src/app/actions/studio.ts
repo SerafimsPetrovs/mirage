@@ -39,6 +39,7 @@ const seriesSchema = z.object({
   promptNotesRu: z.string().trim().max(3000),
   promptNotesEn: z.string().trim().max(3000),
   ageRating: z.enum(["0+", "6+", "12+", "16+", "18+"]),
+  isAdult: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
   freeEpisodes: z.coerce.number().int().min(0).max(50),
   defaultCoinPrice: z.coerce.number().int().min(1).max(500),
   hue: z.coerce.number().int().min(0).max(360),
@@ -86,6 +87,9 @@ export async function saveSeriesAction(_: FormState, form: FormData): Promise<Fo
     aiModels: d.aiModels.split(",").map((x) => x.trim()).filter(Boolean).join(","),
     posterUrl: d.posterUrl || null,
     backdropUrl: d.backdropUrl || null,
+    // 18+ (NSFW) series are always rated 18+ and can never be shown in kids mode.
+    ageRating: d.isAdult ? "18+" : d.ageRating,
+    ...(d.isAdult ? { isFamilySafe: false } : {}),
   };
   const id = form.get("id");
   if (typeof id === "string" && id) {

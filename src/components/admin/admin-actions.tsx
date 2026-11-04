@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Baby, Check, Coins, Eye, EyeOff, Star, X } from "lucide-react";
+import { Ban, Baby, Check, Coins, Eye, EyeOff, Star, X, Flame } from "lucide-react";
 import { btn, inputCls } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
@@ -53,7 +53,7 @@ export function ModerationButtons({ seriesId }: { seriesId: string }) {
   );
 }
 
-export function SeriesFlags({ seriesId, featured, status, familySafe }: { seriesId: string; featured: boolean; status: string; familySafe: boolean }) {
+export function SeriesFlags({ seriesId, featured, status, familySafe, adult }: { seriesId: string; featured: boolean; status: string; familySafe: boolean; adult: boolean }) {
   const { pending, run, t } = useAct();
   return (
     <div className="flex flex-wrap gap-2">
@@ -65,6 +65,15 @@ export function SeriesFlags({ seriesId, featured, status, familySafe }: { series
         title={t.admin.familySafeHint}
       >
         <Baby size={15} /> {familySafe ? t.admin.familySafeOn : t.admin.familySafeOff}
+      </button>
+      <button
+        disabled={pending}
+        aria-pressed={adult}
+        onClick={() => run(() => setSeriesFlagsAction(seriesId, { isAdult: !adult }))}
+        className={btn(adult ? "primary" : "glass", "sm")}
+        title={t.adult.flagHint}
+      >
+        <Flame size={15} /> {adult ? t.adult.flagOn : t.adult.flagOff}
       </button>
       <button disabled={pending} onClick={() => run(() => setSeriesFlagsAction(seriesId, { featured: !featured }))} className={btn(featured ? "coin" : "glass", "sm")}>
         <Star size={15} className={featured ? "fill-black" : ""} /> {featured ? t.admin.unfeature : t.admin.feature}

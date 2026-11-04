@@ -15,7 +15,7 @@ type Tx = Prisma.TransactionClient;
 export async function getEpisodeAccess(user: AccessUser, episodeId: string) {
   const ep = await prisma.episode.findUnique({
     where: { id: episodeId },
-    include: { series: { select: { freeEpisodes: true, defaultCoinPrice: true, creatorId: true, status: true, isFamilySafe: true } } },
+    include: { series: { select: { freeEpisodes: true, defaultCoinPrice: true, creatorId: true, status: true, isFamilySafe: true, isAdult: true } } },
   });
   if (!ep) return null;
   const unlocked = user

@@ -108,6 +108,14 @@ body {
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid var(--line);
 }
+/* Dense surface for menus/dropdowns: must stay readable over busy posters and video. */
+@utility popover {
+  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: 0 24px 60px -12px rgb(0 0 0 / .7);
+}
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }

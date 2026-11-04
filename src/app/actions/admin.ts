@@ -21,9 +21,16 @@ export async function moderateSeriesAction(seriesId: string, decision: "approve"
   revalidatePath("/");
 }
 
-export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
+export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; isAdult?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
   await requireAdmin();
-  const clean = { featured: patch.featured, isFamilySafe: patch.isFamilySafe, status: patch.status };
+  // "For kids" and "18+" are mutually exclusive: turning one on turns the other off.
+  const clean = {
+    featured: patch.featured,
+    status: patch.status,
+    isFamilySafe: patch.isAdult ? false : patch.isFamilySafe,
+    isAdult: patch.isFamilySafe ? false : patch.isAdult,
+    ...(patch.isAdult ? { ageRating: "18+" } : {}),
+  };
   await prisma.series.update({
     where: { id: seriesId },
     data: { ...clean, ...(patch.status === "PUBLISHED" ? { publishedAt: new Date() } : {}) },

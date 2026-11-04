@@ -5,6 +5,11 @@ import type { ContinueItem, SeriesCard } from "@/lib/catalog";
 import type { Dict } from "@/i18n/ru";
 import { formatNumber, plural, type Locale } from "@/i18n/shared";
 
+/** Marks 18+ (NSFW) series — they only appear for viewers who turned 18+ content on. */
+function AdultChip({ className }: { className?: string }) {
+  return <span className={clsx("rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] font-bold text-accent ring-1 ring-accent/60", className)}>18+</span>;
+}
+
 type CardProps = { s: SeriesCard; t: Dict; locale: Locale; className?: string; priority?: boolean };
 
 /** 9:16 poster card for short dramas. */
@@ -23,6 +28,7 @@ export function PosterCard({ s, t, locale, className, priority }: CardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent" />
         <div className="absolute left-2 top-2 flex gap-1">
           {s.isNew && <span className="rounded-md bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide">New</span>}
+          {s.isAdult && <AdultChip />}
         </div>
         <div className="absolute inset-x-0 bottom-0 p-3">
           <h3 className="line-clamp-2 font-display text-[13px] font-semibold leading-snug md:text-[15px]">{s.title}</h3>
@@ -48,6 +54,7 @@ export function WideCard({ s, t, locale, className }: CardProps) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={s.backdrop} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-500 md:group-hover:scale-[1.04]" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+        {s.isAdult && <AdultChip className="absolute left-2 top-2" />}
         <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
           <h3 className="line-clamp-1 font-display text-sm font-semibold md:text-base">{s.title}</h3>
           <p className="mt-0.5 line-clamp-1 text-xs text-white/60">

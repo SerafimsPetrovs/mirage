@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSeriesPage } from "@/lib/series";
@@ -30,6 +30,8 @@ export default async function WatchPage({ params }: Props) {
   if (!ep) notFound();
   const s = await getSeriesPage(ep.series.slug, user, locale);
   if (!s) notFound();
+  // 18+ series: the series page shows the age wall.
+  if (s.adultBlock) redirect(`/series/${s.slug}`);
 
   const unlocked = user ? !!(await prisma.unlock.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } })) : false;
   const access = decideAccess(user, ep, unlocked);

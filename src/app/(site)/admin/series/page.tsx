@@ -28,7 +28,7 @@ export default async function AdminSeriesPage() {
             </div>
             <StatusBadge status={s.status} label={t.studio.status[s.status]} />
           </div>
-          <SeriesFlags seriesId={s.id} featured={s.featured} status={s.status} familySafe={s.isFamilySafe} />
+          <SeriesFlags seriesId={s.id} featured={s.featured} status={s.status} familySafe={s.isFamilySafe} adult={s.isAdult} />
         </div>
       ))}
     </div>

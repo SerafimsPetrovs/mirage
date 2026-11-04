@@ -87,6 +87,8 @@ model User {
   kidsPinLockedUntil DateTime?
   /// Set when the user confirmed they are 18+ (needed for spicy add-ons).
   adultConfirmedAt   DateTime?
+  /// Viewer opted in to see 18+ series and fan-service add-ons (off by default; never in kids mode).
+  showAdult          Boolean   @default(false)
   bio                String?
   banned             Boolean   @default(false)
   createdAt          DateTime  @default(now())
@@ -161,6 +163,8 @@ model Series {
   featured         Boolean      @default(false)
   /// Set by moderators. Only these series are visible in kids mode.
   isFamilySafe     Boolean      @default(false)
+  /// 18+ series: hidden from catalog/search/feed unless the viewer enabled 18+ content.
+  isAdult          Boolean      @default(false)
   freeEpisodes     Int          @default(5)
   defaultCoinPrice Int          @default(30)
   views            Int          @default(0)

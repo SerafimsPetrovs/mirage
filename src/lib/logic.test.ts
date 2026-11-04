@@ -99,7 +99,7 @@ describe("safePath", () => {
 });
 
 import { splitCharge, splitShare } from "./access";
-import { chatMessagePrice, pickSkin, shouldSendPhoto, spicyBlock, CHAT_FREE_MESSAGES, CHAT_MESSAGE_PRICE } from "./spicy";
+import { chatMessagePrice, pickSkin, shouldSendPhoto, spicyBlock, isAdultMode, adultSeriesBlock, CHAT_FREE_MESSAGES, CHAT_MESSAGE_PRICE } from "./spicy";
 
 describe("coin split", () => {
   it("spends bonus first", () => {
@@ -135,11 +135,25 @@ describe("spicy rules", () => {
     expect(shouldSendPhoto("send me a selfie", 9, false)).toBe(false);
   });
   it("18+ add-ons are blocked in kids mode, on family series and until 18+ is confirmed", () => {
-    const adult = { kidsMode: false, adultConfirmedAt: new Date() };
+    const adult = { kidsMode: false, adultConfirmedAt: new Date(), showAdult: true };
     expect(spicyBlock(adult, { isFamilySafe: false })).toBeNull();
     expect(spicyBlock(adult, { isFamilySafe: true })).toBe("family");
     expect(spicyBlock({ ...adult, kidsMode: true }, { isFamilySafe: false })).toBe("kids");
-    expect(spicyBlock({ kidsMode: false, adultConfirmedAt: null }, { isFamilySafe: false })).toBe("age");
+    expect(spicyBlock({ kidsMode: false, adultConfirmedAt: null, showAdult: false }, { isFamilySafe: false })).toBe("age");
+    expect(spicyBlock({ ...adult, showAdult: false }, { isFamilySafe: false })).toBe("age");
     expect(spicyBlock(null, { isFamilySafe: false })).toBe("auth");
+  });
+  it("18+ series are hidden until the viewer turns 18+ content on", () => {
+    const adult = { kidsMode: false, adultConfirmedAt: new Date(), showAdult: true };
+    expect(isAdultMode(adult)).toBe(true);
+    expect(isAdultMode({ ...adult, showAdult: false })).toBe(false);
+    expect(isAdultMode({ ...adult, adultConfirmedAt: null })).toBe(false);
+    expect(isAdultMode({ ...adult, kidsMode: true })).toBe(false);
+    expect(isAdultMode(null)).toBe(false);
+    expect(adultSeriesBlock(null, { isAdult: false })).toBeNull();
+    expect(adultSeriesBlock(null, { isAdult: true })).toBe("auth");
+    expect(adultSeriesBlock({ ...adult, kidsMode: true }, { isAdult: true })).toBe("kids");
+    expect(adultSeriesBlock({ ...adult, showAdult: false }, { isAdult: true })).toBe("age");
+    expect(adultSeriesBlock(adult, { isAdult: true })).toBeNull();
   });
 });

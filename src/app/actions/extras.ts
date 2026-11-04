@@ -29,10 +29,19 @@ async function gate(user: CurrentUser | null, seriesId: string): Promise<SpicyBl
   return spicyBlock(user, s);
 }
 
+/** "I'm 18+": confirms age and switches 18+ content on. */
 export async function confirmAdultAction(): Promise<{ ok: boolean }> {
+  return setAdultContentAction(true);
+}
+
+/** Toggle 18+ series and fan-service visibility. Turning on records the 18+ self-declaration. */
+export async function setAdultContentAction(on: boolean): Promise<{ ok: boolean }> {
   const user = await getCurrentUser();
   if (!user || user.kidsMode) return { ok: false };
-  if (!user.adultConfirmedAt) await prisma.user.update({ where: { id: user.id }, data: { adultConfirmedAt: new Date() } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: on ? { showAdult: true, adultConfirmedAt: user.adultConfirmedAt ?? new Date() } : { showAdult: false },
+  });
   revalidatePath("/", "layout");
   return { ok: true };
 }

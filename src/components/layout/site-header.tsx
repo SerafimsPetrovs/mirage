@@ -5,6 +5,7 @@ import { getI18n } from "@/i18n/server";
 import { btn } from "@/components/ui/button";
 import { CoinAmount, Logo } from "@/components/ui/misc";
 import { HeaderShell, NavLinks } from "./header-client";
+import { isAdultMode } from "@/lib/spicy";
 import { UserMenu } from "./user-menu";
 import { SearchButton } from "./command-palette";
 import { KidsEnterButton, KidsExitButton } from "@/components/kids/kids-controls";
@@ -47,7 +48,7 @@ export async function SiteHeader() {
                 <CoinAmount value={user.coins} size={15} />
               </Link>
               <UserMenu
-                user={{ name: user.name, email: user.email, hue: user.avatarHue, role: user.role, vip }}
+                user={{ name: user.name, email: user.email, hue: user.avatarHue, role: user.role, vip, adult: isAdultMode(user) }}
               />
             </>
           ) : (

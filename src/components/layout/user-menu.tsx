@@ -1,18 +1,29 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Clapperboard, Crown, Languages, LogOut, Shield, User, Wallet } from "lucide-react";
+import clsx from "clsx";
+import { Clapperboard, Crown, Flame, Languages, LogOut, Shield, User, Wallet } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Modal } from "@/components/ui/modal";
+import { btn } from "@/components/ui/button";
 import { Avatar, VipBadge } from "@/components/ui/misc";
 import { useI18n } from "@/i18n/client";
 import { logoutAction, setLocaleAction } from "@/app/actions/auth";
+import { setAdultContentAction } from "@/app/actions/extras";
 
-type Props = { user: { name: string; email: string; hue: number; role: string; vip: boolean } };
+type Props = { user: { name: string; email: string; hue: number; role: string; vip: boolean; adult: boolean } };
 
 export function UserMenu({ user }: Props) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const [, start] = useTransition();
+  const router = useRouter();
+  const [ask18, setAsk18] = useState(false);
+  const setAdult = (on: boolean) =>
+    start(async () => {
+      if ((await setAdultContentAction(on)).ok) router.refresh();
+    });
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +50,7 @@ export function UserMenu({ user }: Props) {
         <Avatar name={user.name} hue={user.hue} size={36} />
       </button>
       {open && (
-        <div className="glass animate-pop absolute right-0 mt-2 w-64 origin-top-right rounded-2xl p-2 shadow-2xl">
+        <div className="popover animate-pop absolute right-0 mt-2 w-64 origin-top-right rounded-2xl p-2">
           <div className="flex items-center gap-3 px-3 py-2.5">
             <Avatar name={user.name} hue={user.hue} size={40} />
             <div className="min-w-0">
@@ -72,6 +83,25 @@ export function UserMenu({ user }: Props) {
           <button className={item} onClick={() => start(() => setLocaleAction(locale === "ru" ? "en" : "ru"))}>
             <Languages size={18} /> {locale === "ru" ? "English" : "Русский"}
           </button>
+          <button
+            className={item}
+            role="switch"
+            aria-checked={user.adult}
+            title={t.adult.toggleHint}
+            onClick={() => {
+              if (user.adult) setAdult(false);
+              else {
+                setOpen(false);
+                setAsk18(true);
+              }
+            }}
+          >
+            <Flame size={18} className={user.adult ? "text-accent" : "text-muted"} />
+            <span className="flex-1 text-left">{t.adult.toggle}</span>
+            <span className={clsx("relative h-5 w-9 rounded-full transition", user.adult ? "bg-accent" : "bg-white/15")} aria-hidden>
+              <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", user.adult ? "left-[18px]" : "left-0.5")} />
+            </span>
+          </button>
           <div className="my-1 h-px bg-line" />
           <form action={logoutAction}>
             <button className={item}>
@@ -80,6 +110,24 @@ export function UserMenu({ user }: Props) {
           </form>
         </div>
       )}
+      <Modal open={ask18} onClose={() => setAsk18(false)} label={t.spicy.ageTitle} className="max-w-sm text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent/15 font-display text-lg font-bold text-accent ring-1 ring-accent/40">18+</div>
+        <h2 className="font-display text-xl font-bold">{t.spicy.ageTitle}</h2>
+        <p className="mt-2 text-sm text-muted">{t.adult.wallText}</p>
+        <p className="mt-2 text-xs text-muted">{t.adult.declaration}</p>
+        <button
+          className={btn("primary", "lg", "mt-5 w-full")}
+          onClick={() => {
+            setAsk18(false);
+            setAdult(true);
+          }}
+        >
+          {t.adult.confirm}
+        </button>
+        <button className={btn("ghost", "md", "mt-2 w-full")} onClick={() => setAsk18(false)}>
+          {t.common.cancel}
+        </button>
+      </Modal>
     </div>
   );
 }

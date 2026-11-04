@@ -16,6 +16,7 @@ import { PollCard } from "@/components/series/poll-card";
 import { CharacterStrip } from "@/components/player/spicy";
 import { getSeriesCharacters } from "@/lib/extras";
 import { spicyBlock } from "@/lib/spicy";
+import { AdultWall } from "@/components/adult/adult-wall";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -24,6 +25,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [{ locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const s = await getSeriesPage(slug, user, locale);
   if (!s) return {};
+  // Never leak 18+ artwork into link previews; keep 18+ pages out of search engines.
+  if (s.isAdult) return { title: `${s.title} (18+)`, robots: { index: false, follow: false } };
   return { title: s.title, description: s.tagline || s.description.slice(0, 160), openGraph: { images: [s.backdrop] } };
 }
 
@@ -32,8 +35,9 @@ export default async function SeriesPage({ params }: Props) {
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const s = await getSeriesPage(slug, user, locale);
   if (!s) notFound();
+  if (s.adultBlock) return <AdultWall title={s.title} poster={s.backdrop} reason={s.adultBlock} next={`/series/${s.slug}`} />;
   const block = spicyBlock(user, s);
-  const showSpicy = block !== "kids" && block !== "family";
+  const showSpicy = block === null || (s.owner && !s.kids && !s.isFamilySafe);
   const [similar, poll, characters] = await Promise.all([
     getSimilar(s.id, s.genres, locale),
     getActivePoll(s.id, user?.id ?? null, locale),
