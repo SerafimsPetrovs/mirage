@@ -39,10 +39,10 @@ export async function generateReply(c: CharacterSpec, history: ChatTurn[]): Prom
   try {
     return await openAiCompatible(c, history);
   } catch (e) {
-    // Provider down / out of balance (e.g. HTTP 402): keep the chat alive with scripted replies.
-    if (process.env.LLM_FALLBACK === "0") throw e;
-    console.error("[llm] provider failed, using scripted reply:", e instanceof Error ? e.message : e);
-    return mockReply(c, history);
+    console.error("[llm] provider failed:", e instanceof Error ? e.message : e);
+    // Never pass a scripted line off as a paid reply. Opt-in only for offline demos.
+    if (process.env.LLM_FALLBACK === "1") return mockReply(c, history);
+    throw e;
   }
 }
 
