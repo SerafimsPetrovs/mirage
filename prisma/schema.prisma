@@ -105,6 +105,7 @@ model User {
   earnings         CreatorEarning[]
   payouts          Payout[]
   promoRedemptions PromoRedemption[]
+  adViews          AdView[]
   progress         WatchProgress[]
   listItems        ListItem[]
   likes            Like[]
@@ -625,4 +626,19 @@ model PromoRedemption {
 
   @@id([promoId, userId])
   @@index([userId])
+}
+
+/// Rewarded ad view: watching ADS_PER_EPISODE ads to the end unlocks a paid episode for free.
+model AdView {
+  id          String    @id @default(cuid())
+  userId      String
+  episodeId   String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  /// This view completed the set and created the Unlock.
+  unlocked    Boolean   @default(false)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, episodeId])
+  @@index([userId, startedAt])
 }

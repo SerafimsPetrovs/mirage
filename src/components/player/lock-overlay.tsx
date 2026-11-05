@@ -2,13 +2,15 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Crown, Lock, LogIn } from "lucide-react";
+import { Coins, Crown, Lock, LogIn, Tv } from "lucide-react";
 import { btn } from "@/components/ui/button";
 import { CoinAmount } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import { unlockEpisodeAction } from "@/app/actions/wallet";
+import type { AdState } from "@/lib/ads";
+import { RewardedAd } from "./rewarded-ad";
 
 type Props = {
   episodeId: string;
@@ -16,15 +18,17 @@ type Props = {
   reason: "login" | "locked";
   price: number;
   balance: number;
+  ads?: AdState | null;
 };
 
-export function LockOverlay({ episodeId, number, reason, price, balance }: Props) {
+export function LockOverlay({ episodeId, number, reason, price, balance, ads }: Props) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [short, setShort] = useState(balance < price);
   const back = encodeURIComponent(`/watch/${episodeId}`);
+  const [watching, setWatching] = useState(false);
 
   const unlock = () =>
     start(async () => {
@@ -77,10 +81,24 @@ export function LockOverlay({ episodeId, number, reason, price, balance }: Props
               <Link href={`/vip?next=${back}`} className={btn("vip", "lg", "w-full")}>
                 <Crown size={18} /> {t.player.getVip}
               </Link>
+              {ads && (
+                <div className="pt-1">
+                  <button
+                    onClick={() => setWatching(true)}
+                    disabled={ads.leftToday === 0}
+                    className={btn("glass", "lg", "w-full")}
+                    title={ads.leftToday === 0 ? t.ads.limit : fmt(t.ads.watchHint, { need: ads.needed })}
+                  >
+                    <Tv size={18} /> {fmt(t.ads.watch, { done: ads.watched, need: ads.needed })}
+                  </button>
+                  <p className="mt-1.5 text-xs text-muted">{ads.leftToday === 0 ? t.ads.limit : fmt(t.ads.watchHint, { need: ads.needed - ads.watched })}</p>
+                </div>
+              )}
             </div>
           </>
         )}
       </div>
+      {watching && ads && <RewardedAd episodeId={episodeId} watched={ads.watched} needed={ads.needed} onClose={() => { setWatching(false); router.refresh(); }} />}
     </div>
   );
 }

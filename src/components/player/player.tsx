@@ -19,6 +19,7 @@ import { LockOverlay } from "./lock-overlay";
 import { Ambient } from "./ambient";
 import { CharacterStrip, SceneOffer, SkinsSheet, useSpicyRunner, type SpicyData } from "./spicy";
 import { ParentGate } from "@/components/kids/parent-gate";
+import type { AdState } from "@/lib/ads";
 import { KidsToolButtons, SleepOverlay, useKidsTools } from "@/components/kids/kids-tools";
 
 export type PlayerProps = {
@@ -35,6 +36,8 @@ export type PlayerProps = {
   kidsAutoAllowed: boolean;
   /** 18+ add-ons (null in kids mode / on family series). */
   spicy: SpicyData | null;
+  /** Rewarded ads progress for a locked episode (null when not offered). */
+  ads: AdState | null;
 };
 
 function clock(s: number) {
@@ -360,7 +363,7 @@ export function Player(props: PlayerProps) {
     (props.kids && episode.reason === "locked" ? (
       <ParentGate episodeId={episode.id} price={episode.price} autoAllowed={props.kidsAutoAllowed} />
     ) : (
-      <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={balance} />
+      <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={balance} ads={props.ads} />
     ));
 
   const sceneOffer = scene && (

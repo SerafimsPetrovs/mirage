@@ -166,6 +166,11 @@ input, textarea, select {
   ::view-transition-new(*) { animation: none !important; }
 }
 
+/* slow zoom for house-ad posters */
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-8px); }
