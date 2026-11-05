@@ -54,6 +54,8 @@ export function useSpicyRunner(onBalance: (b: number) => void) {
           } else if (r.error === "auth") router.push(`/login?next=${encodeURIComponent(location.pathname)}`);
           else if (r.error === "insufficient") toast(t.spicy.notEnough, "error");
           else if (r.error === "nothing") toast(t.spicy.allOwned);
+          else if (r.error === "llm") toast(t.chat.errorLlm, "error");
+          else if (r.error === "rate") toast(t.chat.rateLimited, "error");
           else toast(t.spicy.blocked, "error");
         });
       go();

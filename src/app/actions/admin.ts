@@ -30,6 +30,8 @@ export async function setSeriesFlagsAction(seriesId: string, patch: { featured?:
     isFamilySafe: patch.isAdult ? false : patch.isFamilySafe,
     isAdult: patch.isFamilySafe ? false : patch.isAdult,
     ...(patch.isAdult ? { ageRating: "18+" } : {}),
+    // A moderator decision on 18+ is final for the creator (they can no longer switch it off).
+    ...(patch.isAdult !== undefined ? { adultLocked: patch.isAdult } : {}),
   };
   await prisma.series.update({
     where: { id: seriesId },

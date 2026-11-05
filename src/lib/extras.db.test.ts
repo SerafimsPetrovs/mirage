@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "./db";
 import { grantCoins, InsufficientCoinsError, unlockEpisode } from "./coins";
-import { boostPoll, buyScene, buySkin, sendChatMessage, spinSkin, unlockPhoto } from "./extras";
+import { boostPoll, buyScene, buySkin, ChatError, sendChatMessage, spinSkin, unlockPhoto } from "./extras";
 import { checkKidsPin, PIN_MAX_FAILS, setKidsPin } from "./kids";
-import { CHAT_FREE_MESSAGES, CHAT_MESSAGE_PRICE, ROULETTE_PRICE } from "./spicy";
+import { CHAT_FREE_MESSAGES, CHAT_MESSAGE_PRICE, CHAT_RATE_PER_MIN, ROULETTE_PRICE } from "./spicy";
 
 const tag = Date.now().toString(36);
 let creator: { id: string; role: string };
@@ -135,6 +135,19 @@ describe("scenes, photos and chat", () => {
     const poor = await prisma.user.create({ data: { email: `xq${tag}@t.t`, name: "Q", passwordHash: "x" } });
     await expect(buyScene({ id: poor.id, role: "VIEWER" }, sceneId)).rejects.toBeInstanceOf(InsufficientCoinsError);
     expect(await prisma.sceneUnlock.count({ where: { userId: poor.id } })).toBe(0);
+  });
+});
+
+describe("chat rate limit", () => {
+  it(`blocks the ${CHAT_RATE_PER_MIN + 1}th message within a minute, without charging`, async () => {
+    const u = await prisma.user.create({ data: { email: `xr${tag}@t.t`, name: "R", passwordHash: "x" } });
+    await grantCoins(u.id, 100, "BONUS");
+    const who = { id: u.id, role: u.role };
+    for (let i = 0; i < CHAT_RATE_PER_MIN; i++) await sendChatMessage(who, characterId, `msg ${i}`, "ru");
+    const before = await bal(u.id);
+    await expect(sendChatMessage(who, characterId, "ещё", "ru")).rejects.toBeInstanceOf(ChatError);
+    expect(await bal(u.id)).toEqual(before);
+    await prisma.user.delete({ where: { id: u.id } });
   });
 });
 

@@ -8,12 +8,12 @@ import { boostPoll, buyScene, buySkin, ChatError, sendChatMessage, spinSkin, unl
 import { CHAT_MAX_LEN, spicyBlock, type SpicyBlock } from "@/lib/spicy";
 import { getLocale } from "@/i18n/server";
 
-export type ExtraError = SpicyBlock | "insufficient" | "locked" | "nothing" | "closed" | "owner" | "invalid" | "llm" | "unknown";
+export type ExtraError = SpicyBlock | "insufficient" | "rate" | "locked" | "nothing" | "closed" | "owner" | "invalid" | "llm" | "unknown";
 export type ExtraResult<T = object> = ({ ok: true; balance: number } & T) | { ok: false; error: ExtraError };
 
 function fail(e: unknown): { ok: false; error: ExtraError } {
   if (e instanceof InsufficientCoinsError) return { ok: false, error: "insufficient" };
-  if (e instanceof ChatError) return { ok: false, error: e.message === "INSUFFICIENT" ? "insufficient" : "llm" };
+  if (e instanceof ChatError) return { ok: false, error: e.message === "INSUFFICIENT" ? "insufficient" : e.message === "RATE" ? "rate" : "llm" };
   if (e instanceof Error) {
     const map: Record<string, ExtraError> = { NOTHING_LEFT: "nothing", CLOSED: "closed", OWNER: "owner", INVALID: "invalid", NOT_SENT: "invalid" };
     if (map[e.message]) return { ok: false, error: map[e.message] };

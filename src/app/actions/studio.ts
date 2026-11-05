@@ -93,12 +93,15 @@ export async function saveSeriesAction(_: FormState, form: FormData): Promise<Fo
   };
   const id = form.get("id");
   if (typeof id === "string" && id) {
+    let existing;
     try {
-      await requireOwnSeries(id);
+      existing = (await requireOwnSeries(id)).series;
     } catch {
       return { error: "forbidden" };
     }
-    const s = await prisma.series.update({ where: { id }, data });
+    // 18+ set by a moderator stays on, whatever the form says.
+    const locked = existing.adultLocked && user.role !== "ADMIN" ? { isAdult: true, ageRating: "18+", isFamilySafe: false } : {};
+    const s = await prisma.series.update({ where: { id }, data: { ...data, ...locked } });
     revalidatePath(`/studio/series/${id}`);
     revalidatePath(`/series/${s.slug}`);
     return { ok: true };

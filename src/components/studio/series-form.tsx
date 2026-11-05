@@ -27,6 +27,7 @@ export type SeriesFormValues = {
   promptNotesEn: string;
   ageRating: string;
   isAdult: boolean;
+  adultLocked?: boolean;
   freeEpisodes: number;
   defaultCoinPrice: number;
   hue: number;
@@ -131,12 +132,13 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
       </div>
 
       <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-surface-2 p-4 ring-1 ring-line has-[:checked]:ring-accent/50">
-        <input type="checkbox" name="isAdult" defaultChecked={initial.isAdult} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+        <input type="checkbox" name="isAdult" defaultChecked={initial.isAdult || initial.adultLocked} disabled={initial.adultLocked} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+        {initial.adultLocked && <input type="hidden" name="isAdult" value="on" />}
         <span>
           <span className="flex items-center gap-2 text-sm font-semibold">
             <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-xs font-bold text-accent">18+</span> {t.adult.studioLabel}
           </span>
-          <span className="mt-1 block text-xs text-muted">{t.adult.studioHint}</span>
+          <span className="mt-1 block text-xs text-muted">{initial.adultLocked ? t.adult.lockedHint : t.adult.studioHint}</span>
         </span>
       </label>
 

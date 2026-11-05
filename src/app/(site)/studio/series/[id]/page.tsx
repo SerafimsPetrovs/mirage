@@ -81,6 +81,7 @@ export default async function EditSeriesPage({ params }: { params: Promise<{ id:
             promptNotesEn: s.promptNotesEn,
             ageRating: s.ageRating,
             isAdult: s.isAdult,
+            adultLocked: s.adultLocked,
             freeEpisodes: s.freeEpisodes,
             defaultCoinPrice: s.defaultCoinPrice,
             hue: s.hue,

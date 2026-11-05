@@ -171,6 +171,8 @@ model Series {
   isFamilySafe     Boolean      @default(false)
   /// 18+ series: hidden from catalog/search/feed unless the viewer enabled 18+ content.
   isAdult          Boolean      @default(false)
+  /// Set by a moderator: the creator can no longer turn 18+ off.
+  adultLocked      Boolean      @default(false)
   freeEpisodes     Int          @default(5)
   defaultCoinPrice Int          @default(30)
   views            Int          @default(0)

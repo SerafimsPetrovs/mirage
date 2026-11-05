@@ -603,6 +603,7 @@ export const en: Dict = {
     unlockPhoto: "Unlock for {price}",
     back: "Back",
     disclaimer: "This character is AI. All characters are 18+.",
+    rateLimited: "Too many messages in a row — take a breather for a minute 🙂",
     errorLlm: "The character couldn't reply. No coins were charged — try again.",
     loginTitle: "Sign in to send a message",
     empty: "Start the conversation",
@@ -622,6 +623,7 @@ export const en: Dict = {
     flagOff: "Mark 18+",
     flagHint: "18+ series: only visible to viewers who enabled 18+ content",
     studioLabel: "18+ series (explicit content)",
+    lockedHint: "A moderator marked this series 18+ — you can't turn it off. If this is a mistake, contact support.",
     studioHint: "Hidden from catalog, search and feed for anyone who hasn't enabled 18+ content. Can't be combined with “For kids”.",
   },
   payouts: {

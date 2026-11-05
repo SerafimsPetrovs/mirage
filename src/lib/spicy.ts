@@ -8,6 +8,9 @@ export const DEFAULT_PHOTO_PRICE = 25;
 export const CHAT_FREE_MESSAGES = 5;
 export const CHAT_MESSAGE_PRICE = 2;
 export const CHAT_MAX_LEN = 600;
+/** Anti-spam / LLM cost guard per viewer (all characters together). */
+export const CHAT_RATE_PER_MIN = 8;
+export const CHAT_DAILY_LIMIT = 300;
 /** The character sends an unsent photo after this many replies without one (or when asked). */
 export const PHOTO_EVERY_REPLIES = 4;
 

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { chargeForContent, getBalance } from "./coins";
 import { POLL_VOTE_PRICE } from "./access";
-import { chatMessagePrice, pickSkin, ROULETTE_PRICE, shouldSendPhoto, spicyBlock } from "./spicy";
+import { CHAT_DAILY_LIMIT, CHAT_RATE_PER_MIN, chatMessagePrice, pickSkin, ROULETTE_PRICE, shouldSendPhoto, spicyBlock } from "./spicy";
 import { mediaUrl } from "./files";
 import { generateReply, type ChatTurn } from "./llm";
 import { MINOR_RE } from "./generation";
@@ -203,6 +203,13 @@ export async function sendChatMessage(user: { id: string; role: string }, charac
     include: { series: { select: { id: true, creatorId: true, titleRu: true, titleEn: true } }, photos: { orderBy: { order: "asc" } } },
   });
   const owner = isOwner(user, character.series.creatorId);
+  // Rate limit: protects the LLM budget from spam and scripts.
+  const mine = { role: "user", thread: { userId: user.id } };
+  const [lastMinute, lastDay] = await Promise.all([
+    prisma.chatMessage.count({ where: { ...mine, createdAt: { gte: new Date(Date.now() - 60_000) } } }),
+    prisma.chatMessage.count({ where: { ...mine, createdAt: { gte: new Date(Date.now() - 86_400_000) } } }),
+  ]);
+  if (lastMinute >= CHAT_RATE_PER_MIN || lastDay >= CHAT_DAILY_LIMIT) throw new ChatError("RATE");
   const thread = await prisma.chatThread.upsert({
     where: { userId_characterId: { userId: user.id, characterId } },
     create: { userId: user.id, characterId },
