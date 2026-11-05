@@ -34,8 +34,15 @@ export function systemPrompt(c: CharacterSpec) {
 
 export async function generateReply(c: CharacterSpec, history: ChatTurn[]): Promise<string> {
   const provider = process.env.CHAT_PROVIDER ?? "mock";
-  if (provider === "openai") return openAiCompatible(c, history);
-  return mockReply(c, history);
+  if (provider !== "openai") return mockReply(c, history);
+  try {
+    return await openAiCompatible(c, history);
+  } catch (e) {
+    // Provider down / out of balance (e.g. HTTP 402): keep the chat alive with scripted replies.
+    if (process.env.LLM_FALLBACK === "0") throw e;
+    console.error("[llm] provider failed, using scripted reply:", e instanceof Error ? e.message : e);
+    return mockReply(c, history);
+  }
 }
 
 async function openAiCompatible(c: CharacterSpec, history: ChatTurn[]) {
