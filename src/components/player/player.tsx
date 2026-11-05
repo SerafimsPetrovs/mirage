@@ -38,6 +38,8 @@ export type PlayerProps = {
   spicy: SpicyData | null;
   /** Rewarded ads progress for a locked episode (null when not offered). */
   ads: AdState | null;
+  /** Viewer's invite code: shared links credit them (null for guests / kids mode). */
+  refCode: string | null;
 };
 
 function clock(s: number) {
@@ -233,7 +235,8 @@ export function Player(props: PlayerProps) {
   };
 
   const share = async () => {
-    const url = `${location.origin}/series/${series.slug}`;
+    const path = `/series/${series.slug}`;
+    const url = props.refCode ? `${location.origin}/r/${props.refCode}?to=${encodeURIComponent(path)}` : `${location.origin}${path}`;
     if (navigator.share) {
       try { await navigator.share({ title: series.title, url }); return; } catch { /* cancelled */ }
     }

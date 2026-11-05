@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Clapperboard, Crown, History, MessageCircleHeart, Shield, Wallet } from "lucide-react";
+import { Bookmark, Clapperboard, Crown, Gift, History, MessageCircleHeart, Shield, Wallet } from "lucide-react";
 import { isAdultMode } from "@/lib/spicy";
 import { prisma } from "@/lib/db";
 import { isVip, requireUser } from "@/lib/auth";
@@ -54,6 +54,9 @@ export default async function MePage() {
           <div className="flex flex-wrap gap-2">
             <Link href="/me/wallet" className={btn("glass", "md")}>
               <Wallet size={18} /> <CoinAmount value={user.coins} />
+            </Link>
+            <Link href="/me/invite" className={btn("glass", "md")}>
+              <Gift size={18} className="text-accent" /> {t.invite.nav}
             </Link>
             {isAdultMode(user) && (
               <Link href="/me/chats" className={btn("glass", "md")}>

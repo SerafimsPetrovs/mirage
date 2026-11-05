@@ -1,5 +1,6 @@
 "use server";
 import { promoProblem, redeemPromo } from "@/lib/promo";
+import { attachReferrer, REF_COOKIE } from "@/lib/referrals";
 import { headers } from "next/headers";
 import { createPasswordReset, resetPassword } from "@/lib/password-reset";
 import { mailIsReal, sendMail } from "@/lib/mail";
@@ -58,6 +59,12 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
   });
   await grantCoins(user.id, WELCOME_BONUS, "BONUS", { note: "welcome" });
   if (promo) await redeemPromo(user.id, promo).catch((e) => console.error("promo at sign-up", e));
+  const jar = await cookies();
+  const ref = String(form.get("ref") || jar.get(REF_COOKIE)?.value || "");
+  if (ref) {
+    await attachReferrer(user.id, ref).catch((e) => console.error("referral at sign-up", e));
+    jar.delete(REF_COOKIE);
+  }
   await createSession(user.id);
   redirect(safeNext(form.get("next")));
 }

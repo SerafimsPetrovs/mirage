@@ -92,6 +92,13 @@ model User {
   showAdult          Boolean   @default(false)
   /// Creator's withdrawable coins (cache of earnings.coins minus open/paid payouts).
   payoutCoins        Int       @default(0)
+  /// Personal invite code (created on first visit to /me/invite).
+  refCode            String?   @unique
+  /// Who invited this user; the inviter is rewarded once this user comes back on another day.
+  referredById       String?
+  refRewardedAt      DateTime?
+  referredBy         User?     @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals          User[]    @relation("Referrals")
   bio                String?
   banned             Boolean   @default(false)
   createdAt          DateTime  @default(now())

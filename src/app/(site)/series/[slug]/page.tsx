@@ -16,6 +16,7 @@ import { PollCard } from "@/components/series/poll-card";
 import { CharacterStrip } from "@/components/player/spicy";
 import { getSeriesCharacters } from "@/lib/extras";
 import { spicyBlock } from "@/lib/spicy";
+import { getOrCreateRefCode } from "@/lib/referrals";
 import { AdultWall } from "@/components/adult/adult-wall";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -44,6 +45,7 @@ export default async function SeriesPage({ params }: Props) {
     showSpicy ? getSeriesCharacters(s.id, locale) : [],
   ]);
   const vip = isVip(user);
+  const refCode = user && !user.kidsMode ? await getOrCreateRefCode(user.id) : null;
   const vertical = s.orientation === "VERTICAL";
 
   return (
@@ -102,7 +104,7 @@ export default async function SeriesPage({ params }: Props) {
                 </Link>
               )}
               <ListButton seriesId={s.id} initial={s.inList} />
-              <ShareButton title={s.title} />
+              <ShareButton title={s.title} refCode={refCode} />
             </div>
             <p className="mt-4 text-sm text-muted">
               {vip ? (

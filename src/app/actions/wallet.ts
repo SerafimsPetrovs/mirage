@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { dailyCheckIn, InsufficientCoinsError, unlockEpisode } from "@/lib/coins";
 import { createOrder } from "@/lib/payments";
+import { prisma } from "@/lib/db";
+import { rewardInviterOnReturn } from "@/lib/referrals";
 
 export type UnlockResult =
   | { ok: true; balance: number; charged: number }
@@ -43,6 +45,8 @@ export async function checkInAction(): Promise<{ ok: boolean; reward?: number; s
   if (!user || user.kidsMode) return { ok: false, error: "auth" };
   const res = await dailyCheckIn(user.id);
   if (!res) return { ok: false, error: "already" };
+  // An invited friend came back on another day → reward whoever invited them.
+  await prisma.$transaction((tx) => rewardInviterOnReturn(tx, user.id)).catch((e) => console.error("referral reward", e));
   revalidatePath("/", "layout");
   return { ok: true, ...res };
 }

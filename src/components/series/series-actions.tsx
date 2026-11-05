@@ -36,7 +36,8 @@ export function ListButton({ seriesId, initial, compact }: { seriesId: string; i
   );
 }
 
-export function ShareButton({ title }: { title: string }) {
+/** Shares the page; for signed-in viewers the link carries their invite code (/r/CODE?to=…). */
+export function ShareButton({ title, refCode }: { title: string; refCode?: string | null }) {
   const { t } = useI18n();
   const toast = useToast();
   return (
@@ -44,7 +45,8 @@ export function ShareButton({ title }: { title: string }) {
       className={btn("glass", "icon", "h-13 w-13")}
       aria-label={t.series.share}
       onClick={async () => {
-        const url = location.href.split("?")[0];
+        const path = location.pathname;
+        const url = refCode ? `${location.origin}/r/${refCode}?to=${encodeURIComponent(path)}` : `${location.origin}${path}`;
         if (navigator.share) {
           try {
             await navigator.share({ title, url });

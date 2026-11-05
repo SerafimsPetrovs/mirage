@@ -6,7 +6,7 @@ import { btn, inputCls, labelCls } from "@/components/ui/button";
 import { useI18n } from "@/i18n/client";
 import { loginAction, registerAction, type FormState } from "@/app/actions/auth";
 
-export function AuthForm({ mode, next, promo = "" }: { mode: "login" | "register"; next: string; promo?: string }) {
+export function AuthForm({ mode, next, promo = "", refCode = "" }: { mode: "login" | "register"; next: string; promo?: string; refCode?: string }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "login" ? loginAction : registerAction, undefined);
   const q = next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
@@ -21,6 +21,7 @@ export function AuthForm({ mode, next, promo = "" }: { mode: "login" | "register
 
       <form action={action} className="mt-6 space-y-4">
         <input type="hidden" name="next" value={next} />
+        {mode === "register" && refCode && <input type="hidden" name="ref" value={refCode} />}
         {mode === "register" && (
           <div>
             <label htmlFor="name" className={labelCls}>{t.auth.name}</label>

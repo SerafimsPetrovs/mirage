@@ -9,6 +9,7 @@ import { pick } from "@/i18n/shared";
 import { Player } from "@/components/player/player";
 import { getSpicyForEpisode } from "@/lib/extras";
 import { getAdState } from "@/lib/ads";
+import { getOrCreateRefCode } from "@/lib/referrals";
 import { hasKidsAllowance } from "@/lib/kids";
 
 type Props = { params: Promise<{ episodeId: string }> };
@@ -71,6 +72,7 @@ export default async function WatchPage({ params }: Props) {
       kidsAutoAllowed={kidsAutoAllowed}
       spicy={spicy}
       ads={ads}
+      refCode={user && !kids ? await getOrCreateRefCode(user.id) : null}
     />
   );
 }
