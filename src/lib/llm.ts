@@ -5,8 +5,9 @@ import "server-only";
  *
  * CHAT_PROVIDER=mock (default)  — offline scripted replies, good for demos and tests.
  * CHAT_PROVIDER=openai          — any OpenAI-compatible /chat/completions endpoint
- *                                 (OpenRouter, DeepSeek, Together, Groq, local Ollama…):
- *                                 LLM_BASE_URL, LLM_API_KEY, LLM_MODEL.
+ *                                 (Ollama Cloud, OpenRouter, DeepSeek, Groq, local Ollama…):
+ *                                 LLM_BASE_URL, LLM_API_KEY, LLM_MODEL,
+ *                                 optional LLM_REASONING_EFFORT, LLM_MAX_TOKENS.
  */
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -52,8 +53,11 @@ async function openAiCompatible(c: CharacterSpec, history: ChatTurn[]) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.LLM_API_KEY ?? ""}` },
     body: JSON.stringify({
       model: process.env.LLM_MODEL ?? "deepseek/deepseek-chat",
-      max_tokens: 300,
+      // Thinking models spend tokens on reasoning first — leave room for the reply.
+      max_tokens: Number(process.env.LLM_MAX_TOKENS ?? 600),
       temperature: 0.9,
+      // e.g. "low" for thinking models (Ollama Cloud "beam"); omitted when unset.
+      ...(process.env.LLM_REASONING_EFFORT ? { reasoning_effort: process.env.LLM_REASONING_EFFORT } : {}),
       messages: [{ role: "system", content: systemPrompt(c) }, ...history.slice(-20)],
     }),
     signal: AbortSignal.timeout(30_000),
