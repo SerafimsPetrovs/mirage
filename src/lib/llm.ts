@@ -7,7 +7,7 @@ import "server-only";
  * CHAT_PROVIDER=openai          — any OpenAI-compatible /chat/completions endpoint
  *                                 (Ollama Cloud, OpenRouter, DeepSeek, Groq, local Ollama…):
  *                                 LLM_BASE_URL, LLM_API_KEY, LLM_MODEL,
- *                                 optional LLM_REASONING_EFFORT, LLM_MAX_TOKENS.
+ *                                 optional LLM_REASONING_EFFORT, LLM_MAX_TOKENS, LLM_FALLBACK_MODELS (OpenRouter).
  */
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
@@ -37,7 +37,13 @@ export async function generateReply(c: CharacterSpec, history: ChatTurn[]): Prom
   const provider = process.env.CHAT_PROVIDER ?? "mock";
   if (provider !== "openai") return mockReply(c, history);
   try {
-    return await openAiCompatible(c, history);
+    try {
+      return await openAiCompatible(c, history);
+    } catch (e) {
+      // Free / thinking models sometimes return an empty message or a transient error — retry once.
+      if (!(e instanceof Error) || !/^LLM_(EMPTY|HTTP_(429|5\d\d))$/.test(e.message)) throw e;
+      return await openAiCompatible(c, history);
+    }
   } catch (e) {
     console.error("[llm] provider failed:", e instanceof Error ? e.message : e);
     // Never pass a scripted line off as a paid reply. Opt-in only for offline demos.
@@ -58,6 +64,8 @@ async function openAiCompatible(c: CharacterSpec, history: ChatTurn[]) {
       temperature: 0.9,
       // e.g. "low" for thinking models (Ollama Cloud "beam"); omitted when unset.
       ...(process.env.LLM_REASONING_EFFORT ? { reasoning_effort: process.env.LLM_REASONING_EFFORT } : {}),
+      // OpenRouter only: backup models tried in order when the main one is rate-limited / down.
+      ...(process.env.LLM_FALLBACK_MODELS ? { models: [process.env.LLM_MODEL, ...process.env.LLM_FALLBACK_MODELS.split(",").map((m) => m.trim())].filter(Boolean) } : {}),
       messages: [{ role: "system", content: systemPrompt(c) }, ...history.slice(-20)],
     }),
     signal: AbortSignal.timeout(30_000),
