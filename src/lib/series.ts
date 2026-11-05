@@ -99,6 +99,7 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
     owner,
     isFamilySafe: s.isFamilySafe,
     isAdult: s.isAdult,
+    interactive: s.interactive,
     /** Why an 18+ series is closed for this viewer (owners always pass). */
     adultBlock: owner ? null : adultSeriesBlock(user, s),
     creatorId: s.creatorId,

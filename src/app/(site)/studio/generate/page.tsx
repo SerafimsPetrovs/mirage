@@ -7,6 +7,7 @@ import { getI18n } from "@/i18n/server";
 import { pick } from "@/i18n/shared";
 import { listGenerationsAction } from "@/app/actions/generate";
 import { GenStudio } from "@/components/studio/gen-studio";
+import { genProvider } from "@/lib/video-gen";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -32,7 +33,7 @@ export default async function GeneratePage() {
         <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">{t.gen.title}</h1>
         <p className="mt-1.5 max-w-2xl text-muted">{t.gen.sub}</p>
       </div>
-      <GenStudio initialJobs={jobs} initialCredits={credits} series={series.map((s) => ({ id: s.id, title: pick(s, "title", locale) }))} />
+      <GenStudio initialJobs={jobs} initialCredits={credits} series={series.map((s) => ({ id: s.id, title: pick(s, "title", locale) }))} provider={genProvider()} />
     </div>
   );
 }

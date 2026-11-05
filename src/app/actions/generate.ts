@@ -3,7 +3,14 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { after } from "next/server";
 import { checkPrompt, costFor, GEN_DURATIONS, GEN_STYLES, mockResult, mockState } from "@/lib/generation";
+import { failJob, genProvider, runLtxJob } from "@/lib/video-gen";
+
+/** Real provider: rough progress estimate while the Space works (it reports no progress). */
+const LTX_EXPECTED_MS = 45_000;
+/** A real job still running after this is considered lost (server restart, Space hang). */
+const LTX_STALE_MS = 10 * 60_000;
 
 async function requireCreator() {
   const user = await getCurrentUser();
@@ -38,7 +45,9 @@ const startSchema = z.object({
 type JobRow = Awaited<ReturnType<typeof prisma.generationJob.findFirstOrThrow>>;
 
 function toDTO(j: JobRow, now: number): GenJobDTO {
-  const progress = j.status === "DONE" ? 1 : j.status === "FAILED" ? 0 : mockState(now - j.createdAt.getTime(), j.durationSec).progress;
+  const elapsed = now - j.createdAt.getTime();
+  const progress =
+    j.status === "DONE" ? 1 : j.status === "FAILED" ? 0 : j.provider === "mock" ? mockState(elapsed, j.durationSec).progress : Math.min(0.95, elapsed / LTX_EXPECTED_MS);
   return {
     id: j.id,
     prompt: j.prompt,
@@ -56,6 +65,11 @@ function toDTO(j: JobRow, now: number): GenJobDTO {
 
 /** Advances unfinished mock jobs according to elapsed time. */
 async function syncMockJobs(userId: string, now: number) {
+  const stale = await prisma.generationJob.findMany({
+    where: { userId, provider: { not: "mock" }, status: { in: ["QUEUED", "RUNNING"] }, createdAt: { lt: new Date(now - LTX_STALE_MS) } },
+    select: { id: true },
+  });
+  for (const j of stale) await failJob(j.id, "TIMEOUT");
   const open = await prisma.generationJob.findMany({ where: { userId, provider: "mock", status: { in: ["QUEUED", "RUNNING"] } } });
   for (const j of open) {
     const s = mockState(now - j.createdAt.getTime(), j.durationSec);
@@ -87,12 +101,18 @@ export async function startGenerationAction(input: unknown): Promise<StartResult
       // Atomic conditional decrement: never goes negative under concurrency.
       const dec = await tx.user.updateMany({ where: { id: user.id, genCredits: { gte: cost } }, data: { genCredits: { decrement: cost } } });
       if (dec.count === 0) throw new Error("NO_CREDITS");
+      const provider = genProvider();
       const job = await tx.generationJob.create({
-        data: { userId: user.id, prompt: d.prompt.trim(), style: d.style, orientation: d.orientation, durationSec: d.durationSec, seed, cost },
+        data: {
+          userId: user.id, prompt: d.prompt.trim(), style: d.style, orientation: d.orientation, durationSec: d.durationSec, seed, cost,
+          provider, ...(provider === "mock" ? {} : { status: "RUNNING" as const }),
+        },
       });
       const u = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: { genCredits: true } });
       return [job, u.genCredits] as const;
     });
+    // Real generation takes ~10–60 s: run it after the response, the studio polls the job list.
+    if (job.provider === "ltx") after(() => runLtxJob(job.id));
     return { ok: true, job: toDTO(job, Date.now()), credits };
   } catch (e) {
     if (e instanceof Error && e.message === "NO_CREDITS") return { ok: false, error: "no_credits" };

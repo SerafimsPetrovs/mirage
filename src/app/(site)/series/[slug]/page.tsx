@@ -13,6 +13,8 @@ import { PosterCard } from "@/components/media/cards";
 import { EpisodeList, EpisodeNumberGrid } from "@/components/series/episode-grid";
 import { ListButton, RatingStars, ShareButton } from "@/components/series/series-actions";
 import { PollCard } from "@/components/series/poll-card";
+import { CameoBlock } from "@/components/series/cameo-block";
+import { getShowBlock } from "@/lib/show";
 import { CharacterStrip } from "@/components/player/spicy";
 import { getSeriesCharacters } from "@/lib/extras";
 import { spicyBlock } from "@/lib/spicy";
@@ -39,10 +41,11 @@ export default async function SeriesPage({ params }: Props) {
   if (s.adultBlock) return <AdultWall title={s.title} poster={s.backdrop} reason={s.adultBlock} next={`/series/${s.slug}`} />;
   const block = spicyBlock(user, s);
   const showSpicy = block === null || (s.owner && !s.kids && !s.isFamilySafe);
-  const [similar, poll, characters] = await Promise.all([
+  const [similar, poll, characters, show] = await Promise.all([
     getSimilar(s.id, s.genres, locale),
     getActivePoll(s.id, user?.id ?? null, locale),
     showSpicy ? getSeriesCharacters(s.id, locale) : [],
+    s.interactive && !s.kids ? getShowBlock(s.id, user?.id ?? null) : null,
   ]);
   const vip = isVip(user);
   const refCode = user && !user.kidsMode ? await getOrCreateRefCode(user.id) : null;
@@ -141,6 +144,7 @@ export default async function SeriesPage({ params }: Props) {
             </div>
           )}
           {poll && <PollCard poll={poll} loggedIn={!!user} canBoost={!!user && !s.kids && !s.owner} balance={user?.coins ?? 0} />}
+          {show && <CameoBlock seriesId={s.id} loggedIn={!!user} defaultName={user?.name ?? ""} data={show} />}
 
           <div className="rounded-3xl bg-surface p-5 ring-1 ring-line md:p-6">
             <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-accent-2">

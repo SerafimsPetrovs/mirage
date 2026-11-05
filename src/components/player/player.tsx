@@ -4,8 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX,
-} from "lucide-react";
+  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX, Mic2 } from "lucide-react";
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
 import { fmt, formatNumber } from "@/i18n/shared";
@@ -40,6 +39,8 @@ export type PlayerProps = {
   ads: AdState | null;
   /** Viewer's invite code: shared links credit them (null for guests / kids mode). */
   refCode: string | null;
+  /** Interactive series: viewer names that appear in this episode. */
+  cameos: string[];
 };
 
 function clock(s: number) {
@@ -508,6 +509,12 @@ export function Player(props: PlayerProps) {
                 {t.common.episode} {episode.number}
                 {episode.title && <span className="font-sans font-normal text-white/75"> · {episode.title}</span>}
               </p>
+              {props.cameos.length > 0 && (
+                <p className="mt-0.5 truncate pr-16 text-xs text-white/70 md:pr-0">
+                  <Mic2 size={12} className="mr-1 inline -mt-0.5 text-accent" aria-hidden />
+                  {t.show.creditsTitle}: {props.cameos.join(", ")}
+                </p>
+              )}
               {!episode.locked && (
                 <>
                   {progressBar}
@@ -580,6 +587,12 @@ export function Player(props: PlayerProps) {
             <p className="text-xs text-muted">
               {t.common.episode} {episode.number} · {episode.title}
             </p>
+            {props.cameos.length > 0 && (
+              <p className="truncate text-xs text-white/60">
+                <Mic2 size={12} className="mr-1 inline -mt-0.5 text-accent" aria-hidden />
+                {t.show.creditsTitle}: {props.cameos.join(", ")}
+              </p>
+            )}
           </div>
         </div>
         <div className="relative mx-auto max-w-[calc(78vh*16/9)]">

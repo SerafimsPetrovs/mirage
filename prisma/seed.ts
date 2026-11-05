@@ -645,6 +645,7 @@ async function main() {
     ],
   });
 
+  await seedShow(admin.id, fans.map((f) => f.id), viewer.id);
   await seedFanService(created);
 
   // A pending series + creator application for the admin queues
@@ -709,6 +710,134 @@ async function writeArt(folder: "images" | "private", name: string, svg: string,
   fs.mkdirSync(dir, { recursive: true });
   await sharp(Buffer.from(svg)).resize({ width }).webp({ quality: 88 }).toFile(path.join(dir, name));
   return `storage:${folder}/${name}`;
+}
+
+// ---------------------------------------------------------------- "The series the internet writes"
+
+const SHOW_BIBLE = `ЖАНР: романтика + мистика, вертикальные серии 60–90 с, каждая заканчивается развилкой.
+ГЕРОИНЯ: Вера Ланская, 24 года, бариста в ночной кофейне «Полночь» на Патриарших. После аварии на мосту слышит в голове тысячу голосов — они спорят, советуют, шутят и голосуют. Голоса — это зрители. Вера не знает, кто они, но всегда делает то, что решило большинство.
+АРТЁМ ВОРОНЦОВ, 31 — холодный наследник строительной империи; был на мосту в ночь аварии и что-то скрывает.
+ЛЁВА, 27 — уличный музыкант, лучший друг Веры, единственный, кто верит в голоса.
+МАРИНА ВОРОНЦОВА, 29 — сестра Артёма, улыбается слишком широко.
+ТАЙНА СЕЗОНА: авария не была случайной. Голоса слышат то, чего не слышит Вера.
+ПРАВИЛА: имена зрителей-камео звучат как голоса в голове Веры («Голос Кати: не верь ему!») или появляются на вывесках, в телефоне, в списке гостей. Все персонажи взрослые, без откровенных сцен.`;
+
+const SHOW_SCRIPTS = [
+  {
+    title: "Тысяча голосов",
+    summary: "Вера приходит в себя после аварии и впервые слышит голоса. Наутро в кофейню заходит человек, которого она видела на мосту.",
+    scenes: [
+      ["Night bridge in the rain, wrecked car with blinking hazard lights, cinematic vertical shot, cold blue light", "Мост. Дождь. Вера открывает глаза — и слышит гул, будто стадион шепчет одновременно."],
+      ["Young woman barista behind a coffee bar at night, warm lamps, she freezes holding a cup, shallow depth of field", "Кофейня «Полночь». «Голос Ани: он идёт. Голос Макса: не смотри на дверь!»"],
+      ["Tall man in a dark wet coat stepping into a cozy cafe, neon sign reflections, dramatic slow motion", "Входит Артём Воронцов. Тот самый мужчина с моста."],
+    ],
+    q: "Сказать Артёму, что она его узнала?",
+    a: "Да, прямо в лицо",
+    b: "Сделать вид, что не узнала",
+    cameos: ["Аня", "Макс"],
+  },
+  {
+    title: "Двойной эспрессо",
+    summary: "Голоса решили: Вера говорит Артёму правду. Он бледнеет и оставляет на стойке визитку с чужим именем.",
+    scenes: [
+      ["Close-up of a woman's determined face across a coffee counter, warm backlight, cinematic", "«Я видела вас на мосту». Голоса взрываются: «Голос Сони: ДА!»"],
+      ["Man's hand placing a black business card on a wooden counter, shallow depth of field", "На визитке не его имя. «Если хотите жить — забудьте ту ночь»."],
+      ["Street musician with a guitar under a streetlight in the rain, looking at the cafe window", "Лёва видит всё через окно. И замечает чёрную машину без номеров."],
+    ],
+    q: "Позвонить по номеру на визитке?",
+    a: "Позвонить сегодня ночью",
+    b: "Отдать визитку Лёве",
+    cameos: ["Соня", "Dmitry_K"],
+  },
+  {
+    title: "Номер без имени",
+    summary: "Вера звонит ночью. Отвечает женский голос — и называет Веру по имени, которое знала только её мама.",
+    scenes: [
+      ["Woman alone in a dim apartment at night holding a phone to her ear, city lights through the window, tense mood", "Гудки. Голоса шепчут: «Голос Лизы: положи трубку…»"],
+      ["Elegant woman in a silk blouse smiling in a dark office, red light, mysterious", "«Здравствуй, Верочка». Так её звала только мама."],
+      ["Extreme close-up of eyes widening, reflection of a phone screen, cliffhanger", "«Приходи завтра в полночь на мост. Одна»."],
+    ],
+    q: "Идти на мост одной?",
+    a: "Идти одной, как просили",
+    b: "Взять с собой Лёву",
+    cameos: ["Лиза"],
+  },
+];
+
+async function seedShow(adminId: string, fanIds: string[], viewerId: string) {
+  const series = await prisma.series.create({
+    data: {
+      slug: "thousand-voices",
+      titleRu: "Тысяча голосов",
+      titleEn: "A Thousand Voices",
+      taglineRu: "Сериал, который пишет интернет. Каждый день — новая серия по вашему выбору.",
+      taglineEn: "The series the internet writes. A new episode every day — your choice.",
+      descriptionRu: "После аварии бариста Вера слышит в голове тысячу голосов. Они решают, что ей делать. Эти голоса — вы: голосуйте в конце каждой серии, и завтра Вера сделает то, что выбрало большинство. А ваше имя может прозвучать в следующей серии.",
+      descriptionEn: "After a crash, barista Vera hears a thousand voices in her head. They decide what she does. Those voices are you: vote at the end of each episode and tomorrow Vera does what the majority chose. Your name can be heard in the next episode.",
+      orientation: "VERTICAL",
+      hue: 275,
+      genres: "romance,mystery",
+      moods: "butterflies,thrill",
+      aiModels: "LTX-Video,Claude",
+      promptNotesRu: SHOW_BIBLE,
+      promptNotesEn: "Romance + mystery. Vera hears the audience as voices in her head; viewers' cameo names are voices, signs, phone contacts. All characters are adults.",
+      ageRating: "16+",
+      status: "PUBLISHED",
+      featured: true,
+      interactive: true,
+      freeEpisodes: 3,
+      defaultCoinPrice: 20,
+      views: 48210,
+      creatorId: adminId,
+      publishedAt: new Date(),
+    },
+  });
+  const videos = ["v-violet", "v-rose", "v-ice"];
+  for (const [i, sc] of SHOW_SCRIPTS.entries()) {
+    const ep = await prisma.episode.create({
+      data: { seriesId: series.id, number: i + 1, titleRu: sc.title, titleEn: sc.title, videoUrl: `demo:${videos[i]}.mp4`, durationSec: 75, views: 30000 - i * 6000 },
+    });
+    await prisma.showScript.create({
+      data: {
+        seriesId: series.id,
+        number: i + 1,
+        title: sc.title,
+        content: [sc.summary, "", ...sc.scenes.flatMap(([prompt, text], k) => [`СЦЕНА ${k + 1}`, `PROMPT: ${prompt}`, text, ""])].join("\n").trim(),
+        pollQuestion: sc.q,
+        optionA: sc.a,
+        optionB: sc.b,
+        caption: `${sc.title}. ${sc.q} Пишите в комментариях: 🔥 — «${sc.a}», ❄️ — «${sc.b}». Продолжение завтра, раньше всех — на MIRAGE.`,
+        episodeId: ep.id,
+      },
+    });
+    for (const name of sc.cameos) {
+      await prisma.cameo.create({ data: { seriesId: series.id, name, kind: "BOUGHT", coins: 150, status: "AIRED", episodeId: ep.id, userId: fanIds[(i * 3 + name.length) % fanIds.length] } });
+    }
+  }
+  // Open poll after episode 3 with some votes and a boost
+  const last = SHOW_SCRIPTS[SHOW_SCRIPTS.length - 1];
+  const poll = await prisma.poll.create({
+    data: {
+      seriesId: series.id,
+      questionRu: last.q,
+      questionEn: "Go to the bridge alone?",
+      closesAt: new Date(Date.now() + 20 * 3600_000),
+      options: { create: [{ labelRu: last.a, labelEn: "Go alone, as asked" }, { labelRu: last.b, labelEn: "Bring Lyova" }] },
+    },
+    include: { options: true },
+  });
+  for (const [k, uid] of fanIds.slice(0, 18).entries()) {
+    await prisma.pollVote.create({ data: { userId: uid, pollId: poll.id, optionId: poll.options[k % 3 === 0 ? 1 : 0].id } });
+  }
+  await prisma.pollBoost.create({ data: { userId: fanIds[0], pollId: poll.id, optionId: poll.options[1].id, votes: 10, coins: 50 } });
+  // Moderation queue for episode 4
+  await prisma.cameo.createMany({
+    data: [
+      { seriesId: series.id, userId: viewerId, name: "Алиса", kind: "BOUGHT", coins: 150, status: "PENDING" },
+      { seriesId: series.id, userId: fanIds[1], name: "Nightowl", kind: "BOUGHT", coins: 150, status: "PENDING" },
+      { seriesId: series.id, userId: fanIds[2], name: "Кира", kind: "BOUGHT", coins: 150, status: "APPROVED" },
+    ],
+  });
 }
 
 async function seedFanService(created: { id: string; slug: string }[]) {

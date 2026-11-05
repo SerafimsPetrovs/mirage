@@ -38,6 +38,7 @@ enum CoinReason {
   CHAT
   PHOTO
   PROMO
+  CAMEO
 }
 
 enum OrderKind {
@@ -114,6 +115,7 @@ model User {
   promoRedemptions PromoRedemption[]
   adViews          AdView[]
   passwordResets   PasswordReset[]
+  cameos           Cameo[]
   progress         WatchProgress[]
   listItems        ListItem[]
   likes            Like[]
@@ -181,6 +183,8 @@ model Series {
   isAdult          Boolean      @default(false)
   /// Set by a moderator: the creator can no longer turn 18+ off.
   adultLocked      Boolean      @default(false)
+  /// "The series the internet writes": daily episodes driven by polls, cameo names, show admin.
+  interactive      Boolean      @default(false)
   freeEpisodes     Int          @default(5)
   defaultCoinPrice Int          @default(30)
   views            Int          @default(0)
@@ -198,6 +202,8 @@ model Series {
   characters     Character[]
   kidsAllowances KidsAllowance[]
   earnings       CreatorEarning[]
+  cameos         Cameo[]
+  showScripts    ShowScript[]
 
   @@index([status, featured])
   @@index([creatorId])
@@ -225,6 +231,7 @@ model Episode {
   transactions CoinTransaction[]
   skins        Skin[]
   bonusScene   BonusScene?
+  cameos       Cameo[]
 
   @@unique([seriesId, number])
 }
@@ -664,4 +671,45 @@ model PasswordReset {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// A viewer's name that appears in an interactive series ("get into the series").
+model Cameo {
+  id        String   @id @default(cuid())
+  userId    String?
+  seriesId  String
+  /// Display name shown in the episode credits (and written into the script).
+  name      String
+  /// BOUGHT (paid with coins) | TOP (gift for top supporters) | GIFT (admin)
+  kind      String   @default("BOUGHT")
+  coins     Int      @default(0)
+  /// PENDING (moderation) | APPROVED (queued for the next episode) | AIRED | REJECTED
+  status    String   @default("PENDING")
+  episodeId String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([seriesId, status])
+  @@index([userId])
+}
+
+/// Writers' room draft for the next episode of an interactive series (written by the LLM, edited by the admin).
+model ShowScript {
+  id           String   @id @default(cuid())
+  seriesId     String
+  number       Int
+  title        String
+  content      String
+  pollQuestion String
+  optionA      String
+  optionB      String
+  caption      String   @default("")
+  episodeId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  series       Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@index([seriesId, number])
 }

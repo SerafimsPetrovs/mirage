@@ -73,6 +73,7 @@ export default async function WatchPage({ params }: Props) {
       spicy={spicy}
       ads={ads}
       refCode={user && !kids ? await getOrCreateRefCode(user.id) : null}
+      cameos={(await prisma.cameo.findMany({ where: { episodeId: ep.id, status: "AIRED" }, orderBy: { createdAt: "asc" }, select: { name: true } })).map((c) => c.name)}
     />
   );
 }

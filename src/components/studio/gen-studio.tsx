@@ -16,7 +16,7 @@ const STYLE_HUE: Record<GenStyle, number> = { cinematic: 20, anime: 320, noir: 2
 const isOpen = (j: GenJobDTO) => j.status === "QUEUED" || j.status === "RUNNING";
 const videoSrc = (id: string) => `/api/studio/generations/${id}/video`;
 
-export function GenStudio({ initialJobs, initialCredits, series }: { initialJobs: GenJobDTO[]; initialCredits: number; series: { id: string; title: string }[] }) {
+export function GenStudio({ initialJobs, initialCredits, series, provider = "mock" }: { initialJobs: GenJobDTO[]; initialCredits: number; series: { id: string; title: string }[]; provider?: "mock" | "ltx" }) {
   const { t } = useI18n();
   const toast = useToast();
   const [jobs, setJobs] = useState(initialJobs);
@@ -184,7 +184,7 @@ export function GenStudio({ initialJobs, initialCredits, series }: { initialJobs
         )}
 
         <p className="flex gap-2 rounded-2xl bg-surface-2/40 px-4 py-3 text-xs text-muted ring-1 ring-line">
-          <Info size={14} className="mt-0.5 shrink-0" /> {t.gen.mockNote}
+          <Info size={14} className="mt-0.5 shrink-0" /> {provider === "ltx" ? t.gen.ltxNote : t.gen.mockNote}
         </p>
 
         {jobs.length > 0 && (

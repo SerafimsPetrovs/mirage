@@ -33,6 +33,72 @@ export function systemPrompt(c: CharacterSpec) {
   ].join("\n\n");
 }
 
+/**
+ * Free "thinking" models on OpenRouter can spend the whole token budget on hidden reasoning and return an
+ * empty answer. Chat replies and scripts don't need it: turn reasoning off (OpenRouter-only parameter;
+ * set LLM_REASONING=on to keep it).
+ */
+function noThinking() {
+  const isOpenRouter = (process.env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").includes("openrouter.ai");
+  return isOpenRouter && process.env.LLM_REASONING !== "on" ? { reasoning: { enabled: false } } : {};
+}
+
+/** Generic completion with the configured provider (null when no real provider or on failure). */
+export async function complete(messages: { role: "system" | "user" | "assistant"; content: string }[], maxTokens = 1500): Promise<string | null> {
+  if (process.env.CHAT_PROVIDER !== "openai") return null;
+  const base = (process.env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").replace(/\/$/, "");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.LLM_API_KEY ?? ""}` },
+        body: JSON.stringify({
+          model: process.env.LLM_MODEL,
+          max_tokens: maxTokens,
+          temperature: 0.8,
+          ...noThinking(),
+          messages,
+          ...(process.env.LLM_FALLBACK_MODELS ? { models: [process.env.LLM_MODEL, ...process.env.LLM_FALLBACK_MODELS.split(",").map((m) => m.trim())] } : {}),
+        }),
+        signal: AbortSignal.timeout(90_000),
+      });
+      const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = json.choices?.[0]?.message?.content?.trim();
+      if (text) return text;
+    } catch (e) {
+      console.error("[llm complete]", e instanceof Error ? e.message : e);
+    }
+  }
+  return null;
+}
+
+/** Translates a short text to English for video models (they understand English best). Falls back to the input. */
+export async function toEnglish(text: string): Promise<string> {
+  if (!/[а-яё]/i.test(text) || process.env.CHAT_PROVIDER !== "openai") return text;
+  try {
+    const base = (process.env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").replace(/\/$/, "");
+    const res = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.LLM_API_KEY ?? ""}` },
+      body: JSON.stringify({
+        model: process.env.LLM_MODEL,
+        max_tokens: 400,
+        temperature: 0.2,
+        ...noThinking(),
+        messages: [
+          { role: "system", content: "Translate the user's video prompt to English. Output only the translation, no quotes or comments." },
+          { role: "user", content: text },
+        ],
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    return json.choices?.[0]?.message?.content?.trim() || text;
+  } catch {
+    return text;
+  }
+}
+
 export async function generateReply(c: CharacterSpec, history: ChatTurn[]): Promise<string> {
   const provider = process.env.CHAT_PROVIDER ?? "mock";
   if (provider !== "openai") return mockReply(c, history);
@@ -62,6 +128,7 @@ async function openAiCompatible(c: CharacterSpec, history: ChatTurn[]) {
       // Thinking models spend tokens on reasoning first — leave room for the reply.
       max_tokens: Number(process.env.LLM_MAX_TOKENS ?? 600),
       temperature: 0.9,
+      ...noThinking(),
       // e.g. "low" for thinking models (Ollama Cloud "beam"); omitted when unset.
       ...(process.env.LLM_REASONING_EFFORT ? { reasoning_effort: process.env.LLM_REASONING_EFFORT } : {}),
       // OpenRouter only: backup models tried in order when the main one is rate-limited / down.

@@ -3,6 +3,7 @@ import { decideAccess, type AccessEpisode } from "./access";
 import { nextCheckIn, previousUtcDay, CHECKIN_REWARDS } from "./rewards";
 import { fmt, plural, pick } from "../i18n/shared";
 import { findSku, priceFor } from "./payments/catalog";
+import { cameoNameProblem, parseScriptJson, promptsFromScript, scriptToText } from "./show-rules";
 import { canMovePayout, isValidIban, maskDetails, normalizeDetails, payoutCents, refundsCoins } from "./payout-rules";
 
 const series = { freeEpisodes: 5, defaultCoinPrice: 30, creatorId: "creator" };
@@ -179,5 +180,24 @@ describe("payout rules", () => {
     expect(refundsCoins("REJECTED")).toBe(true);
     expect(refundsCoins("PAID")).toBe(false);
     expect(payoutCents(1500)).toBe(900);
+  });
+});
+
+describe("show rules", () => {
+  it("validates cameo names", () => {
+    expect(cameoNameProblem("Аня")).toBeNull();
+    expect(cameoNameProblem("Dmitry_K")).toBeNull();
+    expect(cameoNameProblem("a")).toBe("format");
+    expect(cameoNameProblem("")).toBe("empty");
+    expect(cameoNameProblem("t.me/spam")).not.toBeNull();
+    expect(cameoNameProblem("nazi_fan")).toBe("banned");
+    expect(cameoNameProblem("x".repeat(30))).toBe("format");
+  });
+  it("parses LLM JSON wrapped in prose and round-trips prompts", () => {
+    const raw = 'Вот сценарий:\n```json\n{"title":"T","summary":"S","scenes":[{"prompt":"night street","text":"Она идёт"}],"question":"Q?","optionA":"A","optionB":"B","caption":"C"}\n```';
+    const d = parseScriptJson(raw);
+    expect(d?.title).toBe("T");
+    expect(promptsFromScript(scriptToText(d!))).toEqual(["night street"]);
+    expect(parseScriptJson("no json here")).toBeNull();
   });
 });
