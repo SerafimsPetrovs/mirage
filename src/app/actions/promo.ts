@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/coins";
 import { createPromo, PROMO_KINDS, PromoError, redeemPromo } from "@/lib/promo";
+import { logAdmin } from "@/lib/admin-log";
 
 export type RedeemResult =
   | { ok: true; kind: "COINS" | "VIP_DAYS"; value: number; balance: number }
@@ -46,8 +47,9 @@ const createSchema = z.object({
 });
 
 export async function createPromoAction(input: Record<string, unknown>): Promise<{ ok: true; code: string } | { ok: false; error: "duplicate" | "badCode" | "invalid" | "forbidden" }> {
+  let me;
   try {
-    await requireAdmin();
+    me = await requireAdmin();
   } catch {
     return { ok: false, error: "forbidden" };
   }
@@ -67,6 +69,7 @@ export async function createPromoAction(input: Record<string, unknown>): Promise
       note: d.note,
     });
     revalidatePath("/admin/promos");
+    await logAdmin(me.id, "promo.create", "promo", promo.id, { code: promo.code, kind: promo.kind, value: promo.value });
     return { ok: true, code: promo.code };
   } catch (e) {
     const m = e instanceof Error ? e.message : "";
@@ -77,7 +80,8 @@ export async function createPromoAction(input: Record<string, unknown>): Promise
 }
 
 export async function togglePromoAction(id: string, active: boolean) {
-  await requireAdmin();
+  const me = await requireAdmin();
+  await logAdmin(me.id, active ? "promo.enable" : "promo.disable", "promo", id);
   await prisma.promoCode.update({ where: { id }, data: { active } });
   revalidatePath("/admin/promos");
 }

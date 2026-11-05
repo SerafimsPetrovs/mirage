@@ -6,11 +6,14 @@ import { getI18n } from "@/i18n/server";
 import { formatNumber, pick } from "@/i18n/shared";
 import { StatusBadge } from "@/components/studio/status-badge";
 import { SeriesFlags } from "@/components/admin/admin-actions";
+import { ChartRankSelect } from "@/components/admin/admin-tools";
+import { SlidersHorizontal } from "lucide-react";
+import { btn } from "@/components/ui/button";
 
 export default async function AdminSeriesPage() {
   const { t, locale } = await getI18n();
   const series = await prisma.series.findMany({
-    orderBy: [{ featured: "desc" }, { views: "desc" }],
+    orderBy: [{ chartRank: { sort: "asc", nulls: "last" } }, { featured: "desc" }, { views: "desc" }],
     include: { creator: { select: { name: true } }, _count: { select: { episodes: true } } },
   });
   return (
@@ -21,12 +24,18 @@ export default async function AdminSeriesPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={posterUrl({ slug: s.slug, hue: s.hue, posterUrl: mediaUrl(s.posterUrl) })} alt="" className="aspect-[9/16] w-11 shrink-0 rounded-lg object-cover" />
             <div className="min-w-0">
-              <Link href={`/series/${s.slug}`} className="block truncate font-semibold hover:text-accent-2">{pick(s, "title", locale)}</Link>
+              <Link href={`/admin/series/${s.id}`} className="block truncate font-semibold hover:text-accent-2">{pick(s, "title", locale)}</Link>
               <p className="truncate text-xs text-muted">
                 {s.creator.name} · {s._count.episodes} · {formatNumber(s.views, locale)} {t.common.views}
               </p>
             </div>
             <StatusBadge status={s.status} label={t.studio.status[s.status]} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={`/admin/series/${s.id}`} className={btn("primary", "sm")}>
+              <SlidersHorizontal size={15} /> {t.adm.manage}
+            </Link>
+            <ChartRankSelect seriesId={s.id} rank={s.chartRank} />
           </div>
           <SeriesFlags seriesId={s.id} featured={s.featured} status={s.status} familySafe={s.isFamilySafe} adult={s.isAdult} interactive={s.interactive} />
         </div>

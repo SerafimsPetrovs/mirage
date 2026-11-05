@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { movePayout, PayoutError, requestPayout } from "@/lib/payouts";
 import { PAYOUT_METHODS } from "@/lib/payout-rules";
+import { logAdmin } from "@/lib/admin-log";
 
 export type PayoutResult = { ok: true } | { ok: false; error: PayoutError["code"] | "forbidden" | "invalid" | "unknown" };
 
@@ -62,6 +63,7 @@ export async function adminPayoutAction(payoutId: string, to: "APPROVED" | "PAID
   } catch (e) {
     return fail(e);
   }
+  await logAdmin(user.id, `payout.${to.toLowerCase()}`, "payout", payoutId, note ?? "");
   revalidatePath("/admin", "layout");
   revalidatePath("/studio/payouts");
   return { ok: true };

@@ -185,6 +185,8 @@ model Series {
   adultLocked      Boolean      @default(false)
   /// "The series the internet writes": daily episodes driven by polls, cameo names, show admin.
   interactive      Boolean      @default(false)
+  /// Admin-pinned place in the "Top 10" row (1 = first). Null = ranked by views.
+  chartRank        Int?
   freeEpisodes     Int          @default(5)
   defaultCoinPrice Int          @default(30)
   views            Int          @default(0)
@@ -712,4 +714,18 @@ model ShowScript {
   series       Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@index([seriesId, number])
+}
+
+/// Every admin action (who changed what), shown in /admin/log.
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  details    String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
 }

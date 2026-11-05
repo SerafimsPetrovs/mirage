@@ -1,4 +1,6 @@
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { btn } from "@/components/ui/button";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isVip } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
@@ -27,9 +29,9 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <Avatar name={u.name} hue={u.avatarHue} size={36} />
               <div className="min-w-0">
-                <p className="flex items-center gap-1.5 truncate font-semibold">
+                <Link href={`/admin/users/${u.id}`} className="flex items-center gap-1.5 truncate font-semibold hover:text-accent-2">
                   {u.name} {isVip(u) && <VipBadge />} {u.banned && <span className="rounded bg-red-500/20 px-1.5 text-[10px] font-bold text-red-300">BAN</span>}
-                </p>
+                </Link>
                 <p className="truncate text-xs text-muted">{u.email}</p>
               </div>
               <span className="ml-auto text-right" title={fmt(t.admin.coinsSplit, { paid: u.paidCoins, bonus: u.bonusCoins })}>
@@ -37,7 +39,12 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                 <span className="block text-[10px] text-muted">{fmt(t.admin.coinsSplit, { paid: u.paidCoins, bonus: u.bonusCoins })}</span>
               </span>
             </div>
-            <UserControls userId={u.id} role={u.role} banned={u.banned} self={u.id === me?.id} />
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href={`/admin/users/${u.id}`} className={btn("primary", "sm")}>
+                <SlidersHorizontal size={15} /> {t.adm.manage}
+              </Link>
+              <UserControls userId={u.id} role={u.role} banned={u.banned} self={u.id === me?.id} />
+            </div>
           </div>
         ))}
       </div>

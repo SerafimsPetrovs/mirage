@@ -26,6 +26,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           { href: "/admin/show", label: t.show.adminNav },
           { href: "/admin/promos", label: t.promo.adminNav },
           { href: "/admin/comments", label: t.admin.comments },
+          { href: "/admin/orders", label: t.adm.orders },
+          { href: "/admin/log", label: t.adm.log },
         ]}
       />
       <div className="mt-8">{children}</div>

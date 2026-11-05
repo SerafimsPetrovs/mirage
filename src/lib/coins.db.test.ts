@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "./db";
-import { InsufficientCoinsError, dailyCheckIn, grantCoins, unlockEpisode } from "./coins";
+import { InsufficientCoinsError, dailyCheckIn, grantCoins, unlockEpisode, adminAdjustCoins } from "./coins";
 import { fulfillOrder } from "./payments";
 
 let viewerId: string;
@@ -124,3 +124,20 @@ describe("dailyCheckIn", () => {
     expect(await ledgerMatches(viewerId)).toBe(true);
   });
 });
+
+describe("admin coin adjustments", () => {
+  it("adds and removes per bucket, never below zero, with ledger rows", async () => {
+    const u = await prisma.user.create({ data: { email: `adm${Date.now()}@t.t`, name: "A", passwordHash: "x" } });
+    await adminAdjustCoins(u.id, 100, "paid", "test");
+    await adminAdjustCoins(u.id, 30, "bonus", "gift");
+    await adminAdjustCoins(u.id, -40, "paid", "fix");
+    await expect(adminAdjustCoins(u.id, -31, "bonus", "too much")).rejects.toThrow("INSUFFICIENT");
+    const b = await prisma.user.findUniqueOrThrow({ where: { id: u.id }, select: { paidCoins: true, bonusCoins: true } });
+    expect(b).toEqual({ paidCoins: 60, bonusCoins: 30 });
+    const ledger = await prisma.coinTransaction.findMany({ where: { userId: u.id }, select: { amount: true, paid: true, bonus: true } });
+    expect(ledger.reduce((a, x) => a + x.amount, 0)).toBe(90);
+    expect(ledger.every((x) => x.amount === x.paid + x.bonus)).toBe(true);
+    await prisma.user.delete({ where: { id: u.id } });
+  });
+});
+

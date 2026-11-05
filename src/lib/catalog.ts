@@ -118,10 +118,39 @@ export async function searchSeries(raw: string, locale: Locale, genreLabels: Rec
   });
 }
 
+/**
+ * Places admin-pinned series at their chart rank (1-based) and fills the remaining slots by views.
+ * Pure, exported for tests.
+ */
+export function mergeChart<T extends { id: string }>(pinned: (T & { rank: number })[], byViews: T[], size = 10): T[] {
+  const out: (T | null)[] = Array(size).fill(null);
+  const used = new Set<string>();
+  for (const p of [...pinned].sort((a, b) => a.rank - b.rank)) {
+    let i = Math.min(Math.max(p.rank, 1), size) - 1;
+    while (i < size && out[i]) i++;
+    if (i < size) {
+      out[i] = p;
+      used.add(p.id);
+    }
+  }
+  const rest = byViews.filter((s) => !used.has(s.id));
+  for (let i = 0; i < size; i++) if (!out[i]) out[i] = rest.shift() ?? null;
+  return out.filter((x): x is T => !!x);
+}
+
+export async function getTop10(locale: Locale) {
+  const [pinnedRows, byViews] = await Promise.all([
+    prisma.series.findMany({ where: { ...(await visibleSeries()), chartRank: { not: null } }, orderBy: { chartRank: "asc" }, take: 10, select: { ...seriesCardSelect, chartRank: true } }),
+    listSeries(locale, { orderBy: { views: "desc" }, take: 20 }),
+  ]);
+  const pinned = pinnedRows.map((r) => ({ ...toCard(r, locale), rank: r.chartRank! }));
+  return mergeChart(pinned, byViews, 10);
+}
+
 export async function getHomeData(locale: Locale, userId: string | null) {
   const [featured, top, shorts, epics, fresh] = await Promise.all([
     listSeries(locale, { where: { featured: true }, orderBy: { views: "desc" }, take: 6 }),
-    listSeries(locale, { orderBy: { views: "desc" }, take: 10 }),
+    getTop10(locale),
     listSeries(locale, { where: { orientation: "VERTICAL" }, orderBy: { views: "desc" }, take: 16 }),
     listSeries(locale, { where: { orientation: "HORIZONTAL" }, orderBy: { views: "desc" }, take: 12 }),
     listSeries(locale, { orderBy: { publishedAt: "desc" }, take: 12 }),

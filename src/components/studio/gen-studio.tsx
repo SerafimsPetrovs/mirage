@@ -220,7 +220,10 @@ function Stage({ job, series, onRemix }: { job: GenJobDTO; series: { id: string;
           {job.status === "DONE" ? (
             <video key={job.id} src={videoSrc(job.id)} autoPlay loop muted playsInline controls className="h-full w-full object-cover" />
           ) : job.status === "FAILED" ? (
-            <div className="flex h-full items-center justify-center text-red-300">{t.gen.failed}</div>
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+              <span className="font-semibold text-red-300">{t.gen.failed}</span>
+              <span className="text-sm text-white/75">{/quota|TIMEOUT/i.test(job.error ?? "") ? t.gen.quotaError : t.gen.failedText}</span>
+            </div>
           ) : (
             <Generating job={job} hue={hue} />
           )}

@@ -148,6 +148,25 @@ export async function grantCoins(
   await tx.coinTransaction.create({ data: { userId, amount, paid, bonus, reason, ...extra } });
 }
 
+/**
+ * Admin correction of one balance bucket (paid = counts as bought with money, bonus = gift).
+ * Negative deltas never take the bucket below zero. Ledger row reason ADMIN.
+ */
+export async function adminAdjustCoins(userId: string, delta: number, bucket: "paid" | "bonus", note: string) {
+  if (!Number.isInteger(delta) || delta === 0) throw new Error("INVALID");
+  return prisma.$transaction(async (tx) => {
+    const field = bucket === "paid" ? "paidCoins" : "bonusCoins";
+    const r = await tx.user.updateMany({
+      where: { id: userId, ...(delta < 0 ? { [field]: { gte: -delta } } : {}) },
+      data: { [field]: { increment: delta } },
+    });
+    if (r.count !== 1) throw new Error("INSUFFICIENT");
+    await tx.coinTransaction.create({
+      data: { userId, amount: delta, paid: bucket === "paid" ? delta : 0, bonus: bucket === "bonus" ? delta : 0, reason: "ADMIN", note: note.slice(0, 200) || "admin" },
+    });
+  });
+}
+
 /** Admin correction downwards: takes bonus first, then paid. */
 export async function deductCoins(userId: string, amount: number, note = "admin") {
   return prisma.$transaction((tx) => spendCoins(tx, userId, amount, "ADMIN", { note }));

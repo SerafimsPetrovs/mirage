@@ -9,6 +9,7 @@ import { buyCameo, giftCameo, moderateCameo, publishScript, ShowError, writeNext
 import { promptsFromScript } from "@/lib/show-rules";
 import { genProvider, runLtxJob } from "@/lib/video-gen";
 import { mockResult } from "@/lib/generation";
+import { logAdmin } from "@/lib/admin-log";
 
 export type ShowResult<T = object> = ({ ok: true } & T) | { ok: false; error: ShowError["code"] | "insufficient" | "auth" | "kids" | "forbidden" | "invalid" | "unknown" };
 
@@ -62,7 +63,9 @@ export async function setInteractiveAction(seriesId: string, on: boolean): Promi
 }
 
 export async function moderateCameoAction(cameoId: string, decision: "approve" | "reject"): Promise<ShowResult> {
-  if (!(await admin())) return { ok: false, error: "forbidden" };
+  const me = await admin();
+  if (!me) return { ok: false, error: "forbidden" };
+  await logAdmin(me.id, `cameo.${decision}`, "cameo", cameoId);
   try {
     await moderateCameo(cameoId, decision === "approve" ? "approve" : "reject");
   } catch (e) {

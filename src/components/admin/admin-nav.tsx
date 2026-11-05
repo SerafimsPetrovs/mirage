@@ -6,7 +6,7 @@ import clsx from "clsx";
 export function AdminNav({ items }: { items: { href: string; label: string; badge?: number }[] }) {
   const path = usePathname();
   return (
-    <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0">
+    <nav className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
       {items.map((i) => {
         const active = i.href === "/admin" ? path === "/admin" : path.startsWith(i.href);
         return (

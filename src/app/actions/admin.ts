@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { deductCoins, grantCoins } from "@/lib/coins";
+import { logAdmin } from "@/lib/admin-log";
 
 async function requireAdmin() {
   const user = await getCurrentUser();
@@ -11,7 +12,8 @@ async function requireAdmin() {
 }
 
 export async function moderateSeriesAction(seriesId: string, decision: "approve" | "reject", reason?: string) {
-  await requireAdmin();
+  const me = await requireAdmin();
+  await logAdmin(me.id, `series.${decision}`, "series", seriesId, reason ?? "");
   if (decision === "approve") {
     await prisma.series.update({ where: { id: seriesId }, data: { status: "PUBLISHED", rejectReason: null, publishedAt: new Date() } });
   } else {
@@ -22,7 +24,8 @@ export async function moderateSeriesAction(seriesId: string, decision: "approve"
 }
 
 export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; isAdult?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
-  await requireAdmin();
+  const me = await requireAdmin();
+  await logAdmin(me.id, "series.flags", "series", seriesId, patch);
   // "For kids" and "18+" are mutually exclusive: turning one on turns the other off.
   const clean = {
     featured: patch.featured,
@@ -45,6 +48,7 @@ export async function setUserRoleAction(userId: string, role: "VIEWER" | "CREATO
   const me = await requireAdmin();
   if (me.id === userId) return; // never demote yourself
   await prisma.user.update({ where: { id: userId }, data: { role } });
+  await logAdmin(me.id, "user.role", "user", userId, { role });
   revalidatePath("/admin/users");
 }
 
@@ -55,11 +59,12 @@ export async function setUserBannedAction(userId: string, banned: boolean) {
     prisma.user.update({ where: { id: userId }, data: { banned } }),
     ...(banned ? [prisma.session.deleteMany({ where: { userId } })] : []),
   ]);
+  await logAdmin(me.id, banned ? "user.ban" : "user.unban", "user", userId);
   revalidatePath("/admin/users");
 }
 
 export async function grantCoinsAction(userId: string, amount: number) {
-  await requireAdmin();
+  const me = await requireAdmin();
   const n = Math.trunc(amount);
   if (!n || Math.abs(n) > 100000) return;
   if (n < 0) {
@@ -69,11 +74,13 @@ export async function grantCoinsAction(userId: string, amount: number) {
       return; // not enough coins — never go negative
     }
   } else await grantCoins(userId, n, "ADMIN");
+  await logAdmin(me.id, n > 0 ? "coins.add" : "coins.remove", "user", userId, { amount: n, bucket: "bonus" });
   revalidatePath("/admin/users");
 }
 
 export async function reviewApplicationAction(appId: string, approve: boolean) {
-  await requireAdmin();
+  const me = await requireAdmin();
+  await logAdmin(me.id, approve ? "application.approve" : "application.reject", "application", appId);
   const app = await prisma.creatorApplication.findUniqueOrThrow({ where: { id: appId } });
   await prisma.$transaction([
     prisma.creatorApplication.update({ where: { id: appId }, data: { status: approve ? "APPROVED" : "REJECTED" } }),
@@ -83,7 +90,8 @@ export async function reviewApplicationAction(appId: string, approve: boolean) {
 }
 
 export async function setCommentHiddenAction(commentId: string, hidden: boolean) {
-  await requireAdmin();
+  const me = await requireAdmin();
+  await logAdmin(me.id, hidden ? "comment.hide" : "comment.show", "comment", commentId);
   await prisma.comment.update({ where: { id: commentId }, data: { hidden } });
   revalidatePath("/admin/comments");
 }
