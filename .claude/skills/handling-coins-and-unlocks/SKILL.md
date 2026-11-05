@@ -13,10 +13,15 @@ Watchable if ANY: `episode.number <= series.freeEpisodes` · user is ADMIN or th
 DB wrapper: `getEpisodeAccess(user, episodeId)` in `src/lib/coins.ts`. `/api/stream/[episodeId]` re-checks it on every request (and hides unpublished series from non-owners). Never send a locked episode's video URL to the client.
 
 ## Balance invariants
-- Balance is split: `User.paidCoins` (bought with money, only `PURCHASE`) and `User.bonusCoins` (welcome, check-in, admin). `getCurrentUser()` adds `coins` = total. Both are caches; truth is `CoinTransaction` (signed `amount` = `paid` + `bonus`; reasons PURCHASE | UNLOCK | CHECKIN | BONUS | REFUND | ADMIN | POLL_BOOST | SKIN | SCENE | CHAT | PHOTO).
+- Balance is split: `User.paidCoins` (bought with money, only `PURCHASE`) and `User.bonusCoins` (welcome, check-in, admin). `getCurrentUser()` adds `coins` = total. Both are caches; truth is `CoinTransaction` (signed `amount` = `paid` + `bonus`; reasons PURCHASE | UNLOCK | CHECKIN | BONUS | REFUND | ADMIN | POLL_BOOST | SKIN | SCENE | CHAT | PHOTO | PROMO).
 - Every change = ledger row + balance update in ONE transaction. Credits: `grantCoins(userId, amount, reason, extra, tx)` (picks the bucket by reason).
 - Debits: `spendCoins(tx, …)` (bonus first, conditional `updateMany` on both buckets, retries a lost race) — or for anything a creator sells, `chargeForContent(tx, {…})`, which also writes `CreatorEarning`: `coins` (withdrawable) = 50% of the **paid** part only, `credits` (= `genCredits` for AI generation) = the rest of the 50% share. Pure math: `splitCharge` / `splitShare` in `access.ts`.
 - `unlockEpisode` creates the unique `Unlock` first (P2002 → whole tx rolls back), then `chargeForContent`. Add-ons (skins, roulette, scenes, poll boosts, chat messages, photos) live in `src/lib/extras.ts` and follow the same pattern; owners get them free.
+- Creator payouts: `chargeForContent` also increments `User.payoutCoins` (withdrawable cache). `requestPayout` reserves coins with a conditional decrement; `movePayout` changes status exactly once and refunds on REJECTED/CANCELED (`src/lib/payouts.ts`, pure rules incl. IBAN check in `payout-rules.ts`).
+- Promo codes (`src/lib/promo.ts`): PK (promo, user) blocks reuse, `usesCount` bumped conditionally; COINS → `grantCoins(…, "PROMO")` (bonus bucket), VIP_DAYS → `extendVip()`.
+- Rewarded ads (`src/lib/ads.ts`): server-timed `AdView` start/complete; 2 completed → free `Unlock` (no ledger row), 3 per UTC day.
+- Prices are EUR only (`CURRENCY`, `eur` field in `payments/catalog.ts`).
+- 18+: `isAdultMode(user)` (confirmed + `showAdult` + not kids). `adultSeriesBlock()` gates `Series.isAdult` pages/stream; `visibleSeries()` hides them from lists.
 - Kids mode: no one-tap spending — `unlockEpisodeAction` refuses; the parental gate (`actions/kids.ts`) needs the PIN. 18+ add-ons are gated by `spicyBlock()` (kids mode / family series / 18+ not confirmed).
 - Already unlocked / free / own content → `{ charged: 0 }`, never a second charge.
 - Price = `episode.coinPrice ?? series.defaultCoinPrice`, read on the server.
