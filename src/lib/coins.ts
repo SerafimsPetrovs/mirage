@@ -138,7 +138,7 @@ const PAID_REASONS = new Set<CoinReason>(["PURCHASE"]);
 export async function grantCoins(
   userId: string,
   amount: number,
-  reason: "PURCHASE" | "CHECKIN" | "BONUS" | "REFUND" | "ADMIN",
+  reason: "PURCHASE" | "CHECKIN" | "BONUS" | "REFUND" | "ADMIN" | "PROMO",
   extra: { note?: string; orderId?: string } = {},
   tx: Tx = prisma,
 ) {

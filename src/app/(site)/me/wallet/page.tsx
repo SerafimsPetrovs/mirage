@@ -10,14 +10,15 @@ import { fmt, formatMoney, pick } from "@/i18n/shared";
 import { CoinAmount, EmptyState } from "@/components/ui/misc";
 import { BuyButton } from "@/components/wallet/buy-button";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
+import { PromoForm } from "@/components/wallet/promo-form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
   return { title: t.wallet.title };
 }
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ next?: string; promo?: string }> }) {
+  const { next, promo } = await searchParams;
   const user = await requireUser("/me/wallet");
   const { t, locale } = await getI18n();
   const [txs, checkIn] = await Promise.all([
@@ -55,8 +56,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-4">
         <CheckInWidget state={checkIn} compact />
+        <PromoForm initial={promo?.slice(0, 32) ?? ""} />
       </div>
 
       <h2 className="mb-4 mt-10 font-display text-xl font-semibold">{t.wallet.buy}</h2>

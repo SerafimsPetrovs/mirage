@@ -437,6 +437,7 @@ async function main() {
     prisma.creatorApplication.deleteMany(),
     prisma.subscription.deleteMany(),
     prisma.session.deleteMany(),
+    prisma.promoCode.deleteMany(),
     prisma.user.deleteMany(),
   ]);
 
@@ -631,6 +632,15 @@ async function main() {
     ]);
     await prisma.user.update({ where: { id: c.id }, data: { payoutCoins: (earned._sum.coins ?? 0) - (out._sum.coins ?? 0) } });
   }
+
+  // Promo codes for demos
+  await prisma.promoCode.createMany({
+    data: [
+      { code: "WELCOME100", kind: "COINS", value: 100, note: "Демо: 100 бонусных монет" },
+      { code: "VIPWEEK", kind: "VIP_DAYS", value: 7, maxUses: 500, expiresAt: new Date(Date.now() + 30 * 86400_000), note: "Демо: неделя VIP" },
+      { code: "BLOGGER-ANNA", kind: "COINS", value: 50, maxUses: 1000, usesCount: 312, note: "Интеграция у блогера" },
+    ],
+  });
 
   await seedFanService(created);
 
