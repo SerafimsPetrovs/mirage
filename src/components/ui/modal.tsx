@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import clsx from "clsx";
+
+const noopSubscribe = () => () => {};
 
 /** Centered dialog (bottom sheet on small phones). Closes on Escape and backdrop click. */
 export function Modal({
@@ -21,6 +23,7 @@ export function Modal({
   dismissible?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   // Keep the latest callbacks without re-running the open effect (which moves focus) on every render.
   const closeRef = useRef(onClose);
   const dismissRef = useRef(dismissible);
@@ -29,7 +32,7 @@ export function Modal({
     dismissRef.current = dismissible;
   });
   useEffect(() => {
-    if (!open) return;
+    if (!open || !hydrated) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && dismissRef.current && closeRef.current();
     document.addEventListener("keydown", esc);
     const prev = document.body.style.overflow;
@@ -39,8 +42,9 @@ export function Modal({
       document.removeEventListener("keydown", esc);
       document.body.style.overflow = prev;
     };
-  }, [open]);
-  if (!open || typeof document === "undefined") return null;
+  }, [open, hydrated]);
+  // Portals only after hydration: a modal open on first render (e.g. ?kids=on) must not differ from the server HTML.
+  if (!open || !hydrated) return null;
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center p-3 sm:items-center sm:p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => dismissible && onClose()} aria-hidden />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Clapperboard, Crown, History, Shield, Wallet } from "lucide-react";
+import { Bookmark, Clapperboard, Crown, History, MessageCircleHeart, Shield, Wallet } from "lucide-react";
+import { isAdultMode } from "@/lib/spicy";
 import { prisma } from "@/lib/db";
 import { isVip, requireUser } from "@/lib/auth";
 import { getCheckInState } from "@/lib/coins";
@@ -54,6 +55,11 @@ export default async function MePage() {
             <Link href="/me/wallet" className={btn("glass", "md")}>
               <Wallet size={18} /> <CoinAmount value={user.coins} />
             </Link>
+            {isAdultMode(user) && (
+              <Link href="/me/chats" className={btn("glass", "md")}>
+                <MessageCircleHeart size={18} /> {t.me.myChats}
+              </Link>
+            )}
             {!vip && (
               <Link href="/vip" className={btn("vip", "md")}>
                 <Crown size={18} /> VIP

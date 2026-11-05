@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import clsx from "clsx";
-import { Clapperboard, Crown, Flame, Languages, LogOut, Shield, User, Wallet } from "lucide-react";
+import { Clapperboard, Crown, Flame, Languages, LogOut, MessageCircleHeart, Shield, User, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { btn } from "@/components/ui/button";
@@ -67,6 +67,11 @@ export function UserMenu({ user }: Props) {
           <Link href="/me/wallet" className={item} onClick={() => setOpen(false)}>
             <Wallet size={18} /> {t.nav.wallet}
           </Link>
+          {user.adult && (
+            <Link href="/me/chats" className={item} onClick={() => setOpen(false)}>
+              <MessageCircleHeart size={18} /> {t.me.myChats}
+            </Link>
+          )}
           <Link href="/vip" className={item} onClick={() => setOpen(false)}>
             <Crown size={18} className="text-vip" /> {t.nav.vip}
           </Link>

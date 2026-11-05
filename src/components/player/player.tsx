@@ -58,6 +58,11 @@ export function Player(props: PlayerProps) {
   const [muted, setMuted] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  // The video may load metadata before hydration attaches onLoadedMetadata — pick the duration up on mount.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && v.readyState >= 1 && isFinite(v.duration)) setDuration(v.duration);
+  }, []);
   const [buffering, setBuffering] = useState(true);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [sheet, setSheet] = useState<"episodes" | "comments" | "skins" | "characters" | null>(null);

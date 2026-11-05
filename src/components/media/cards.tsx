@@ -85,7 +85,10 @@ export function Top10Card({ s, rank, t, locale }: CardProps & { rank: number }) 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={s.poster} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent" />
-          <h3 className="absolute inset-x-0 bottom-0 line-clamp-2 p-2.5 font-display text-[12px] font-semibold leading-snug">{s.title}</h3>
+          <h3 className="absolute inset-x-0 bottom-0 p-2.5 font-display text-[12px] font-semibold leading-snug">
+            {/* clamp on an inner box: line-clamp on a padded element leaks the 3rd line into the padding */}
+            <span className="line-clamp-2">{s.title}</span>
+          </h3>
         </div>
         <span className="sr-only">
           #{rank} · {formatNumber(s.views, locale)} {t.common.views}

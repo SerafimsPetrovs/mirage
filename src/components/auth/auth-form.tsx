@@ -6,7 +6,7 @@ import { btn, inputCls, labelCls } from "@/components/ui/button";
 import { useI18n } from "@/i18n/client";
 import { loginAction, registerAction, type FormState } from "@/app/actions/auth";
 
-export function AuthForm({ mode, next }: { mode: "login" | "register"; next: string }) {
+export function AuthForm({ mode, next, promo = "" }: { mode: "login" | "register"; next: string; promo?: string }) {
   const { t } = useI18n();
   const [state, action, pending] = useActionState<FormState, FormData>(mode === "login" ? loginAction : registerAction, undefined);
   const q = next && next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
@@ -24,12 +24,12 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next: str
         {mode === "register" && (
           <div>
             <label htmlFor="name" className={labelCls}>{t.auth.name}</label>
-            <input id="name" name="name" required maxLength={40} autoComplete="name" className={inputCls} />
+            <input id="name" name="name" required maxLength={40} autoComplete="name" defaultValue={state?.values?.name} className={inputCls} />
           </div>
         )}
         <div>
           <label htmlFor="email" className={labelCls}>{t.auth.email}</label>
-          <input id="email" name="email" type="email" required autoComplete="email" className={inputCls} />
+          <input id="email" name="email" type="email" required autoComplete="email" defaultValue={state?.values?.email} className={inputCls} />
         </div>
         <div>
           <label htmlFor="password" className={labelCls}>{t.auth.password}</label>
@@ -43,6 +43,21 @@ export function AuthForm({ mode, next }: { mode: "login" | "register"; next: str
             className={inputCls}
           />
         </div>
+        {mode === "register" && (
+          <details open={!!promo} className="group rounded-2xl bg-surface-2/60 px-4 py-3 ring-1 ring-line">
+            <summary className="cursor-pointer select-none text-sm font-medium text-muted marker:text-muted group-open:text-text">{t.promo.title}</summary>
+            <input
+              name="promo"
+              defaultValue={state?.values?.promo ?? promo}
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={t.promo.placeholder}
+              aria-label={t.promo.placeholder}
+              className={inputCls + " mt-3 font-mono uppercase placeholder:font-sans placeholder:normal-case"}
+            />
+          </details>
+        )}
         {state?.error && (
           <p role="alert" className="flex items-center gap-2 rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
             <AlertCircle size={16} /> {state.error}

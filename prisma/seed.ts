@@ -393,6 +393,9 @@ const SERIES: SeedSeries[] = [
 
 const EP_TITLES_RU = ["Пробуждение", "Чужое лицо", "Первая ложь", "Ночь у реки", "Письмо без подписи", "Ловушка", "Свидетель", "Маски сброшены", "Цена правды", "Ответный ход", "Кровь и шёлк", "Последний танец", "Тайная комната", "Признание", "Буря", "Возвращение"];
 const EP_TITLES_EN = ["Awakening", "A Stranger's Face", "The First Lie", "Night by the River", "An Unsigned Letter", "The Trap", "The Witness", "Masks Off", "The Price of Truth", "Counter Move", "Blood and Silk", "The Last Dance", "The Secret Room", "Confession", "The Storm", "The Return"];
+// Family-safe series get gentle titles
+const KIDS_TITLES_RU = ["Новый друг", "Тайна старого дуба", "Звёздное письмо", "Дождик-путешественник", "Праздник фонариков", "Потерянный ключик", "Песня ветра", "Облачный мост", "Подарок для мамы", "Ночные светлячки", "Большое приключение", "Сладкие сны"];
+const KIDS_TITLES_EN = ["A New Friend", "The Old Oak's Secret", "A Letter from the Stars", "The Travelling Raindrop", "The Lantern Festival", "The Lost Little Key", "The Song of the Wind", "The Cloud Bridge", "A Gift for Mom", "Night Fireflies", "The Big Adventure", "Sweet Dreams"];
 
 const COMMENTS = [
   "Я не могу остановиться, уже 3 часа ночи 😭",
@@ -511,8 +514,8 @@ async function main() {
       data: Array.from({ length: s.episodes }, (_, i) => ({
         seriesId: series.id,
         number: i + 1,
-        titleRu: pickOne(EP_TITLES_RU, i + idx),
-        titleEn: pickOne(EP_TITLES_EN, i + idx),
+        titleRu: s.familySafe ? pickOne(KIDS_TITLES_RU, i) : pickOne(EP_TITLES_RU, i + idx),
+        titleEn: s.familySafe ? pickOne(KIDS_TITLES_EN, i) : pickOne(EP_TITLES_EN, i + idx),
         durationSec: vertical ? 70 + ((i * 37 + idx * 11) % 80) : 1260 + ((i * 173 + idx) % 900),
         videoUrl: `demo:${vertical ? pickOne(VIDEOS_V, i + idx) : pickOne(VIDEOS_H, i + idx)}.mp4`,
         views: Math.max(1000, Math.floor(s.views / (1 + i * 0.35))),

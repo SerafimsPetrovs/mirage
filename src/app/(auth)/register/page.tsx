@@ -10,8 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t.auth.registerTitle };
 }
 
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next = "/" } = await searchParams;
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string; promo?: string }> }) {
+  const { next = "/", promo = "" } = await searchParams;
   if (await getCurrentUser()) redirect(safePath(next));
-  return <AuthForm next={safePath(next)} mode="register" />;
+  return <AuthForm next={safePath(next)} mode="register" promo={promo.slice(0, 40)} />;
 }

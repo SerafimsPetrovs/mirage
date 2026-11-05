@@ -131,7 +131,7 @@ export function KidsToolButtons({ tools, tone = "overlay" }: { tools: KidsTools;
           {tools.left !== null && <span className="tabular-nums">{mmss(tools.left)}</span>}
         </button>
         {menu && (
-          <div className="popover animate-pop absolute right-0 top-12 z-40 w-48 rounded-2xl p-1.5">
+          <div className={clsx("popover animate-pop absolute right-0 z-40 w-48 rounded-2xl p-1.5", tone === "bar" ? "bottom-12 origin-bottom-right" : "top-12")}>
             <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted">{t.kids.sleep}</p>
             {OPTIONS.map((m) => (
               <button key={m} onClick={() => { tools.setSleep(m); setMenu(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-white/10">

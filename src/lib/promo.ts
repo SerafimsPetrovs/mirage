@@ -62,6 +62,17 @@ export async function redeemPromo(userId: string, raw: string) {
   }
 }
 
+/** Read-only check before sign-up, so a typo doesn't silently lose the bonus. Null when the code can be used. */
+export async function promoProblem(raw: string): Promise<PromoError["code"] | null> {
+  const code = normalizeCode(raw);
+  if (!PROMO_CODE_RE.test(code)) return "NOT_FOUND";
+  const p = await prisma.promoCode.findUnique({ where: { code } });
+  if (!p || !p.active) return "NOT_FOUND";
+  if (p.expiresAt && p.expiresAt < new Date()) return "EXPIRED";
+  if (p.maxUses !== null && p.usesCount >= p.maxUses) return "EXHAUSTED";
+  return null;
+}
+
 export async function createPromo(input: {
   code?: string;
   kind: PromoKind;
