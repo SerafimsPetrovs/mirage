@@ -10,6 +10,7 @@ import { promptsFromScript } from "@/lib/show-rules";
 import { genProvider, runLtxJob } from "@/lib/video-gen";
 import { mockResult } from "@/lib/generation";
 import { logAdmin } from "@/lib/admin-log";
+import { getLocale } from "@/i18n/server";
 
 export type ShowResult<T = object> = ({ ok: true } & T) | { ok: false; error: ShowError["code"] | "insufficient" | "auth" | "kids" | "forbidden" | "invalid" | "unknown" };
 
@@ -96,7 +97,7 @@ export async function closePollAction(pollId: string): Promise<ShowResult> {
 export async function writeScriptAction(seriesId: string): Promise<ShowResult<{ id: string }>> {
   if (!(await admin())) return { ok: false, error: "forbidden" };
   try {
-    const sc = await writeNextScript(seriesId);
+    const sc = await writeNextScript(seriesId, await getLocale());
     await done();
     return { ok: true, id: sc.id };
   } catch (e) {

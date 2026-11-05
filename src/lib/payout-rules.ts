@@ -49,7 +49,8 @@ export function isValidIban(raw: string) {
   return rem === 1;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Strict on purpose: only characters real addresses use (no <, >, quotes, brackets…).
+const EMAIL_RE = /^[A-Za-z0-9._%+-]{1,64}@(?:[A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,24}$/;
 
 /** Normalised payout details, or null when invalid. */
 export function normalizeDetails(method: PayoutMethod, raw: string): string | null {

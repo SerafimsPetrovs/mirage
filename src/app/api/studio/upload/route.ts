@@ -5,6 +5,8 @@ const LIMITS = { video: 500 * 1024 * 1024, image: 8 * 1024 * 1024, private: 8 * 
 
 /** Multipart upload for creators. Returns a storage ref to save on Series/Episode. */
 export async function POST(req: Request) {
+  // CSRF defence in depth (cookies are SameSite=Lax already): only same-origin browser requests.
+  if (!sameOrigin(req)) return Response.json({ error: "forbidden" }, { status: 403 });
   const user = await getCurrentUser();
   if (!user || user.kidsMode || (user.role !== "CREATOR" && user.role !== "ADMIN")) return Response.json({ error: "forbidden" }, { status: 403 });
   const form = await req.formData();
@@ -16,6 +18,20 @@ export async function POST(req: Request) {
     const ref = await saveUpload(file, kind, LIMITS[kind]);
     return Response.json({ ref });
   } catch (e) {
-    return Response.json({ error: e instanceof Error ? e.message : "upload_failed" }, { status: 400 });
+    const code = e instanceof Error && ["BAD_FILE_TYPE", "FILE_TOO_LARGE"].includes(e.message) ? e.message : "upload_failed";
+    if (code === "upload_failed") console.error("upload", e);
+    return Response.json({ error: code }, { status: 400 });
+  }
+}
+
+/** Origin (or Referer) must match the Host the request was sent to. */
+function sameOrigin(req: Request) {
+  const host = req.headers.get("host");
+  const from = req.headers.get("origin") ?? req.headers.get("referer");
+  if (!host || !from) return false;
+  try {
+    return new URL(from).host === host;
+  } catch {
+    return false;
   }
 }

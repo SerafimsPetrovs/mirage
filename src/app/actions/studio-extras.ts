@@ -42,8 +42,20 @@ async function wrap(fn: () => Promise<string | void>): Promise<Res> {
     return { ok: true };
   } catch (e) {
     if (e instanceof z.ZodError) return { ok: false, error: e.issues[0]?.message ?? "invalid" };
-    return { ok: false, error: e instanceof Error ? e.message : "error" };
+    // Only known codes go back to the browser — never raw internal errors (DB messages etc.).
+    const code = e instanceof Error ? e.message : "";
+    if (KNOWN_ERRORS.has(code)) return { ok: false, error: code };
+    console.error("studio-extras", e);
+    return { ok: false, error: "error" };
   }
+}
+
+const KNOWN_ERRORS = new Set(["forbidden", "family", "age_18", "limit", "invalid", "max_8", "name"]);
+
+/** Either language is enough (English is the main one); the empty one copies the other. */
+function both(ru: string, en: string) {
+  if (!ru && !en) throw new Error("name");
+  return { ru: ru || en, en: en || ru };
 }
 
 export async function addSkinAction(episodeId: string, input: Record<string, string>) {
@@ -51,7 +63,7 @@ export async function addSkinAction(episodeId: string, input: Record<string, str
     const ep = await ownEpisode(episodeId);
     const d = z
       .object({
-        nameRu: z.string().trim().min(1).max(40),
+        nameRu: z.string().trim().max(40),
         nameEn: z.string().trim().max(40),
         emoji: z.string().trim().min(1).max(8),
         rarity: z.enum(RARITIES),
@@ -59,7 +71,8 @@ export async function addSkinAction(episodeId: string, input: Record<string, str
         price: z.coerce.number().int().min(1).max(500),
       })
       .parse(input);
-    await prisma.skin.create({ data: { ...d, nameEn: d.nameEn || d.nameRu, episodeId } });
+    const n = both(d.nameRu, d.nameEn);
+    await prisma.skin.create({ data: { ...d, nameRu: n.ru, nameEn: n.en, episodeId } });
     return `/studio/series/${ep.seriesId}`;
   });
 }
@@ -78,7 +91,7 @@ export async function saveSceneAction(episodeId: string, input: Record<string, s
     const ep = await ownEpisode(episodeId);
     const d = z
       .object({
-        titleRu: z.string().trim().min(1).max(80),
+        titleRu: z.string().trim().max(80),
         titleEn: z.string().trim().max(80),
         videoUrl: videoRef,
         durationSec: z.coerce.number().int().min(5).max(600),
@@ -86,7 +99,8 @@ export async function saveSceneAction(episodeId: string, input: Record<string, s
         triggerAtSec: z.union([z.literal(""), z.coerce.number().int().min(0).max(4 * 3600)]),
       })
       .parse(input);
-    const data = { ...d, titleEn: d.titleEn || d.titleRu, triggerAtSec: d.triggerAtSec === "" ? null : d.triggerAtSec };
+    const title = both(d.titleRu, d.titleEn);
+    const data = { ...d, titleRu: title.ru, titleEn: title.en, triggerAtSec: d.triggerAtSec === "" ? null : d.triggerAtSec };
     await prisma.bonusScene.upsert({ where: { episodeId }, create: { ...data, episodeId }, update: data });
     return `/studio/series/${ep.seriesId}`;
   });
@@ -106,7 +120,7 @@ export async function saveCharacterAction(seriesId: string, input: Record<string
     const d = z
       .object({
         id: z.string().optional(),
-        nameRu: z.string().trim().min(1).max(40),
+        nameRu: z.string().trim().max(40),
         nameEn: z.string().trim().max(40),
         taglineRu: z.string().trim().max(120),
         taglineEn: z.string().trim().max(120),
@@ -120,7 +134,17 @@ export async function saveCharacterAction(seriesId: string, input: Record<string
       })
       .parse(input);
     const { id, ...rest } = d;
-    const data = { ...rest, nameEn: d.nameEn || d.nameRu, avatarUrl: d.avatarUrl || null };
+    const n = both(d.nameRu, d.nameEn);
+    const data = {
+      ...rest,
+      nameRu: n.ru,
+      nameEn: n.en,
+      taglineRu: d.taglineRu || d.taglineEn,
+      taglineEn: d.taglineEn || d.taglineRu,
+      greetingRu: d.greetingRu || d.greetingEn,
+      greetingEn: d.greetingEn || d.greetingRu,
+      avatarUrl: d.avatarUrl || null,
+    };
     if (id) {
       const c = await ownCharacter(id);
       if (c.seriesId !== seriesId) throw new Error("forbidden");
@@ -151,7 +175,7 @@ export async function addPhotoAction(characterId: string, input: Record<string, 
       .parse(input);
     const count = await prisma.characterPhoto.count({ where: { characterId } });
     if (count >= 8) throw new Error("max_8");
-    await prisma.characterPhoto.create({ data: { ...d, captionEn: d.captionEn || d.captionRu, characterId, order: count } });
+    await prisma.characterPhoto.create({ data: { ...d, captionRu: d.captionRu || d.captionEn, captionEn: d.captionEn || d.captionRu, characterId, order: count } });
     return `/studio/series/${c.seriesId}`;
   });
 }

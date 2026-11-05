@@ -80,29 +80,30 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
           <p className="text-xs text-muted">{f.posterHint}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelCls} htmlFor="titleRu">{f.titleRu}</label>
-            <input id="titleRu" name="titleRu" defaultValue={initial.titleRu} required maxLength={120} className={inputCls} />
-          </div>
+          {/* English is the main language (required); Russian is optional */}
           <div>
             <label className={labelCls} htmlFor="titleEn">{f.titleEn}</label>
-            <input id="titleEn" name="titleEn" defaultValue={initial.titleEn} maxLength={120} className={inputCls} />
+            <input id="titleEn" name="titleEn" defaultValue={initial.titleEn} required maxLength={120} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls} htmlFor="taglineRu">{f.taglineRu}</label>
-            <input id="taglineRu" name="taglineRu" defaultValue={initial.taglineRu} maxLength={200} className={inputCls} />
+            <label className={labelCls} htmlFor="titleRu">{f.titleRu}</label>
+            <input id="titleRu" name="titleRu" defaultValue={initial.titleRu} maxLength={120} className={inputCls} />
           </div>
           <div>
             <label className={labelCls} htmlFor="taglineEn">{f.taglineEn}</label>
             <input id="taglineEn" name="taglineEn" defaultValue={initial.taglineEn} maxLength={200} className={inputCls} />
           </div>
-          <div className="sm:col-span-2">
-            <label className={labelCls} htmlFor="descriptionRu">{f.descriptionRu}</label>
-            <textarea id="descriptionRu" name="descriptionRu" defaultValue={initial.descriptionRu} required rows={4} maxLength={4000} className={textareaCls} />
+          <div>
+            <label className={labelCls} htmlFor="taglineRu">{f.taglineRu}</label>
+            <input id="taglineRu" name="taglineRu" defaultValue={initial.taglineRu} maxLength={200} className={inputCls} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls} htmlFor="descriptionEn">{f.descriptionEn}</label>
-            <textarea id="descriptionEn" name="descriptionEn" defaultValue={initial.descriptionEn} rows={4} maxLength={4000} className={textareaCls} />
+            <textarea id="descriptionEn" name="descriptionEn" defaultValue={initial.descriptionEn} required rows={4} maxLength={4000} className={textareaCls} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls} htmlFor="descriptionRu">{f.descriptionRu}</label>
+            <textarea id="descriptionRu" name="descriptionRu" defaultValue={initial.descriptionRu} rows={4} maxLength={4000} className={textareaCls} />
           </div>
         </div>
       </div>

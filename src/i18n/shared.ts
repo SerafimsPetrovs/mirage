@@ -4,6 +4,8 @@ import { en } from "./en";
 export const LOCALES = ["ru", "en"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const LOCALE_COOKIE = "locale";
+/** English is the main language of the platform. */
+export const DEFAULT_LOCALE: Locale = "en";
 
 export const dictionaries: Record<Locale, Dict> = { ru, en };
 
@@ -29,11 +31,11 @@ export function plural(n: number, forms: readonly string[], locale: Locale = "ru
 
 type Localized<K extends string> = { [P in `${K}Ru` | `${K}En`]: string };
 
-/** Pick a localized DB field, falling back to RU. */
+/** Pick a localized DB field in the viewer's language, falling back to the other one when empty. */
 export function pick<K extends string>(obj: Localized<K>, key: K, locale: Locale): string {
-  const en = (obj as Record<string, string>)[`${key}En`];
-  const ru = (obj as Record<string, string>)[`${key}Ru`];
-  return locale === "en" && en ? en : ru;
+  const en = (obj as Record<string, string>)[`${key}En`] ?? "";
+  const ru = (obj as Record<string, string>)[`${key}Ru`] ?? "";
+  return locale === "en" ? en || ru : ru || en;
 }
 
 export function formatNumber(n: number, locale: Locale) {

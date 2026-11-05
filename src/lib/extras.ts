@@ -6,7 +6,7 @@ import { POLL_VOTE_PRICE } from "./access";
 import { CHAT_DAILY_LIMIT, CHAT_RATE_PER_MIN, chatMessagePrice, pickSkin, ROULETTE_PRICE, shouldSendPhoto, spicyBlock } from "./spicy";
 import { mediaUrl } from "./files";
 import { generateReply, type ChatTurn } from "./llm";
-import { MINOR_RE } from "./generation";
+import { isUnsafeReply, MINOR_RE } from "./generation";
 import { pick, type Locale } from "@/i18n/shared";
 
 const isUnique = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
@@ -232,14 +232,15 @@ export async function sendChatMessage(user: { id: string; role: string }, charac
     seriesTitle: pick(character.series, "title", locale),
     locale,
   };
-  const reply = MINOR_RE.test(text)
-    ? locale === "ru"
-      ? "Давай не будем об этом. Поговорим лучше о нас? 🙂"
-      : "Let's not go there. How about we talk about us instead? 🙂"
+  const deflect = locale === "ru" ? "Давай не будем об этом. Поговорим лучше о нас? 🙂" : "Let's not go there. How about we talk about us instead? 🙂";
+  const raw = MINOR_RE.test(text)
+    ? deflect
     : await generateReply(spec, history).catch((e) => {
         console.error("chat llm", e);
         throw new ChatError("LLM");
       });
+  // Output guard: whatever a prompt injection managed, unsafe or leaking replies never reach the viewer.
+  const reply = isUnsafeReply(raw) ? deflect : raw;
 
   // Photo drop: when asked, or every few replies, attach the next photo not sent yet.
   const sentPhotoIds = new Set(

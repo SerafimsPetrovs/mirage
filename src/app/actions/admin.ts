@@ -1,4 +1,5 @@
 "use server";
+import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -25,6 +26,13 @@ export async function moderateSeriesAction(seriesId: string, decision: "approve"
 
 export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; isAdult?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
   const me = await requireAdmin();
+  // Server actions accept any JSON from the network — validate shapes, not just types.
+  const p = z
+    .object({ featured: z.boolean().optional(), isFamilySafe: z.boolean().optional(), isAdult: z.boolean().optional(), status: z.enum(["PUBLISHED", "DRAFT"]).optional() })
+    .strict()
+    .safeParse(patch);
+  if (!p.success) return;
+  patch = p.data;
   await logAdmin(me.id, "series.flags", "series", seriesId, patch);
   // "For kids" and "18+" are mutually exclusive: turning one on turns the other off.
   const clean = {
@@ -47,6 +55,7 @@ export async function setSeriesFlagsAction(seriesId: string, patch: { featured?:
 export async function setUserRoleAction(userId: string, role: "VIEWER" | "CREATOR" | "ADMIN") {
   const me = await requireAdmin();
   if (me.id === userId) return; // never demote yourself
+  if (!["VIEWER", "CREATOR", "ADMIN"].includes(role)) return;
   await prisma.user.update({ where: { id: userId }, data: { role } });
   await logAdmin(me.id, "user.role", "user", userId, { role });
   revalidatePath("/admin/users");

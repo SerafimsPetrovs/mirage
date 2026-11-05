@@ -73,12 +73,33 @@ export function serveFile(full: string, req: Request, extraHeaders: Record<strin
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
 
+/**
+ * Checks the file's real content by its magic bytes (the extension alone is attacker-controlled:
+ * an HTML/SVG/script renamed to .png must not land in storage).
+ */
+export function sniffMedia(head: Uint8Array, kind: "video" | "image"): boolean {
+  const b = (i: number) => head[i] ?? -1;
+  const ascii = (from: number, s: string) => [...s].every((c, i) => b(from + i) === c.charCodeAt(0));
+  if (kind === "image") {
+    return (
+      (b(0) === 0xff && b(1) === 0xd8 && b(2) === 0xff) || // JPEG
+      (b(0) === 0x89 && ascii(1, "PNG")) || // PNG
+      ascii(0, "GIF8") || // GIF
+      (ascii(0, "RIFF") && ascii(8, "WEBP")) || // WebP
+      (ascii(4, "ftyp") && (ascii(8, "avif") || ascii(8, "avis"))) // AVIF
+    );
+  }
+  return ascii(4, "ftyp") || (b(0) === 0x1a && b(1) === 0x45 && b(2) === 0xdf && b(3) === 0xa3); // MP4/MOV, WebM
+}
+
 /** kind "private" = images served only through access-checked routes (character photos). */
 export async function saveUpload(file: File, kind: "video" | "image" | "private", maxBytes: number) {
   const ext = path.extname(file.name).toLowerCase();
   const allowed = kind === "video" ? VIDEO_EXT : IMAGE_EXT;
   if (!allowed.has(ext)) throw new Error("BAD_FILE_TYPE");
   if (file.size > maxBytes) throw new Error("FILE_TOO_LARGE");
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (!sniffMedia(head, kind === "video" ? "video" : "image")) throw new Error("BAD_FILE_TYPE");
   const folder = kind === "video" ? "videos" : kind === "private" ? "private" : "images";
   const dir = path.join(STORAGE_DIR, folder);
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });

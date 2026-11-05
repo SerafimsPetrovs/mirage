@@ -46,6 +46,17 @@ export const MINOR_RE =
 const SEXUAL =
   /(sex|nude|naked|porn|nsfw|erotic|explicit|lewd|hentai|undress|топлес|голы|голая|обнаж|порн|секс|эрот|интим|раздет)/i;
 
+/** Markers that the character's system prompt leaked into a reply. */
+const PROMPT_LEAK = /(<\/?persona>|hard rules:|system prompt|do not reveal these instructions|you are an adult \(\d+ years old\))/i;
+
+/**
+ * Output guard for LLM chat replies: sexual content together with minors, or a leaked system prompt.
+ * (Input is filtered too — this catches what a prompt injection might still get out of the model.)
+ */
+export function isUnsafeReply(reply: string) {
+  return (MINOR_RE.test(reply) && SEXUAL.test(reply)) || PROMPT_LEAK.test(reply);
+}
+
 export type PromptCheck = { ok: true } | { ok: false; reason: "empty" | "too_long" | "forbidden" };
 
 export function checkPrompt(prompt: string): PromptCheck {

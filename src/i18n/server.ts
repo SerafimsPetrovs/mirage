@@ -1,14 +1,13 @@
 import "server-only";
 import { cache } from "react";
-import { cookies, headers } from "next/headers";
-import { dictionaries, isLocale, LOCALE_COOKIE, type Locale } from "./shared";
+import { cookies } from "next/headers";
+import { DEFAULT_LOCALE, dictionaries, isLocale, LOCALE_COOKIE, type Locale } from "./shared";
 
+/** English is the platform's main language; Russian only when the viewer picks it (cookie set by the switcher). */
 export const getLocale = cache(async (): Promise<Locale> => {
   const jar = await cookies();
   const c = jar.get(LOCALE_COOKIE)?.value;
-  if (isLocale(c)) return c;
-  const accept = (await headers()).get("accept-language") ?? "";
-  return /^en/i.test(accept) ? "en" : "ru";
+  return isLocale(c) ? c : DEFAULT_LOCALE;
 });
 
 export async function getI18n() {

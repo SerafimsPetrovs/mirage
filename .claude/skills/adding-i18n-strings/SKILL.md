@@ -6,15 +6,15 @@ description: Use when adding or changing any user-visible text, labels, buttons,
 # Adding i18n Strings
 
 ## Overview
-MIRAGE ships Russian (default) and English. No user-visible literal strings in components.
+MIRAGE ships English (default, main language) and Russian. No user-visible literal strings in components.
 
 ## Where things live
 - Dictionaries: `src/i18n/ru.ts` (source of truth, exports `Dict = typeof ru`) and `src/i18n/en.ts` (typed `Dict`, so a missing key is a type error).
 - Server components / actions: `const { t, locale } = await getI18n()` from `src/i18n/server.ts`.
 - Client components: `const { t, locale } = useI18n()` from `src/i18n/client.tsx`.
 - Helpers in `src/i18n/shared.ts`: `fmt(template, vars)`, `plural(n, forms, locale)`, `pick(obj, "title", locale)`, `formatNumber`, `formatMoney`, `formatDate`.
-- Locale = cookie `locale` (`ru` | `en`), else `Accept-Language`. Switch via `setLocaleAction` (`LangSwitch` component).
-- DB content is bilingual: `titleRu/titleEn`, `descriptionRu/En`, `taglineRu/En`, `promptNotesRu/En`, poll `questionRu/En`, option `labelRu/En`. Read with `pick()` (falls back to RU when EN empty).
+- Locale = cookie `locale` (`ru` | `en`), else `DEFAULT_LOCALE` = `en` (browser language is not used). Switch via `setLocaleAction` (`LangSwitch` component).
+- DB content is bilingual: `titleRu/titleEn`, `descriptionRu/En`, `taglineRu/En`, `promptNotesRu/En`, poll `questionRu/En`, option `labelRu/En`. Read with `pick()` (falls back to the other language when empty). In creator forms English is required, Russian optional.
 
 ## Pattern
 ```ts

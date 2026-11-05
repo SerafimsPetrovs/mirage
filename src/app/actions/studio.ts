@@ -26,12 +26,13 @@ const mediaRef = z
   .refine((v) => v === "" || v.startsWith("storage:images/") || /^https:\/\//.test(v), "Invalid media");
 
 const seriesSchema = z.object({
-  titleRu: z.string().trim().min(1).max(120),
-  titleEn: z.string().trim().max(120),
+  // English is the platform's main language: required. Russian is optional and falls back to English.
+  titleRu: z.string().trim().max(120),
+  titleEn: z.string().trim().min(1).max(120),
   taglineRu: z.string().trim().max(200),
   taglineEn: z.string().trim().max(200),
-  descriptionRu: z.string().trim().min(1).max(4000),
-  descriptionEn: z.string().trim().max(4000),
+  descriptionRu: z.string().trim().max(4000),
+  descriptionEn: z.string().trim().min(1).max(4000),
   orientation: z.enum(["VERTICAL", "HORIZONTAL"]),
   genres: z.array(z.string().max(30)).max(6),
   moods: z.array(z.string().max(30)).max(6),
@@ -80,8 +81,10 @@ export async function saveSeriesAction(_: FormState, form: FormData): Promise<Fo
   const d = parsed.data;
   const data = {
     ...d,
-    titleEn: d.titleEn || d.titleRu,
-    descriptionEn: d.descriptionEn || d.descriptionRu,
+    titleRu: d.titleRu || d.titleEn,
+    descriptionRu: d.descriptionRu || d.descriptionEn,
+    taglineRu: d.taglineRu || d.taglineEn,
+    promptNotesRu: d.promptNotesRu || d.promptNotesEn,
     genres: d.genres.join(","),
     moods: d.moods.join(","),
     aiModels: d.aiModels.split(",").map((x) => x.trim()).filter(Boolean).join(","),
@@ -134,7 +137,7 @@ export async function addEpisodeAction(seriesId: string, input: Record<string, s
     data: {
       seriesId,
       number,
-      titleRu: parsed.data.titleRu,
+      titleRu: parsed.data.titleRu || parsed.data.titleEn,
       titleEn: parsed.data.titleEn || parsed.data.titleRu,
       videoUrl: parsed.data.videoUrl,
       durationSec: parsed.data.durationSec,
@@ -183,18 +186,23 @@ export async function createPollAction(seriesId: string, _: FormState, form: For
   } catch {
     return { error: "forbidden" };
   }
-  const questionRu = String(form.get("questionRu") ?? "").trim();
-  const questionEn = String(form.get("questionEn") ?? "").trim() || questionRu;
+  // Either language is enough; lengths are capped (untrusted input).
+  const qRu = String(form.get("questionRu") ?? "").trim().slice(0, 200);
+  const qEn = String(form.get("questionEn") ?? "").trim().slice(0, 200);
+  const questionRu = qRu || qEn;
+  const questionEn = qEn || qRu;
   const days = Math.min(30, Math.max(1, Number(form.get("days")) || 3));
   const options = String(form.get("options") ?? "")
+    .slice(0, 3000)
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
     .slice(0, 6)
     .map((l) => {
-      const [ru, en] = l.split("|").map((x) => x.trim());
-      return { labelRu: ru, labelEn: en || ru };
-    });
+      const [ru = "", en = ""] = l.split("|").map((x) => x.trim().slice(0, 80));
+      return { labelRu: ru || en, labelEn: en || ru };
+    })
+    .filter((o) => o.labelRu);
   if (!questionRu || options.length < 2) return { error: "2+" };
   await prisma.poll.create({
     data: { seriesId, questionRu, questionEn, closesAt: new Date(Date.now() + days * 86400_000), options: { create: options } },

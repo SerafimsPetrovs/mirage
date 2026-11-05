@@ -99,7 +99,8 @@ export async function listSeries(
 
 /** Text search over published series (titles, taglines, descriptions, AI models, genres). */
 export async function searchSeries(raw: string, locale: Locale, genreLabels: Record<string, string>, take = 48) {
-  const q = raw.trim().slice(0, 80);
+  // SQL LIKE wildcards are stripped: "%" or "_" must not match the whole catalog.
+  const q = raw.replace(/[%_\\]/g, " ").trim().replace(/\s+/g, " ").slice(0, 80);
   if (!q) return [];
   // SQLite `contains` is case-sensitive for non-ASCII; search a few case variants.
   const variants = Array.from(new Set([q, q.toLowerCase(), q.charAt(0).toUpperCase() + q.slice(1).toLowerCase()]));

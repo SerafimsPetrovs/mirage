@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { prisma } from "./db";
 import { STORAGE_DIR } from "./files";
-import { toEnglish } from "./llm";
 
 /**
  * Real (free) video generation through the public Hugging Face Space "Lightricks/ltx-video-distilled"
@@ -41,6 +40,7 @@ async function callLtx(prompt: string, orientation: "VERTICAL" | "HORIZONTAL", s
   const start = await fetch(`${SPACE}/gradio_api/call/text_to_video`, { method: "POST", headers: headers(), body: JSON.stringify({ data }), signal: AbortSignal.timeout(30_000) });
   if (!start.ok) throw new Error(`LTX_HTTP_${start.status}`);
   const { event_id } = (await start.json()) as { event_id: string };
+  if (typeof event_id !== "string" || !/^[\w-]{1,100}$/.test(event_id)) throw new Error("LTX_BAD_EVENT");
   const stream = await fetch(`${SPACE}/gradio_api/call/text_to_video/${event_id}`, { headers: headers(), signal: AbortSignal.timeout(5 * 60_000) });
   const text = await stream.text();
   // Server-sent events: the last "event: complete" carries the result, "event: error" the failure.
@@ -50,7 +50,21 @@ async function callLtx(prompt: string, orientation: "VERTICAL" | "HORIZONTAL", s
     throw new Error(err && err !== "null" ? `LTX_ERROR ${err.slice(0, 200)}` : "LTX_ERROR (GPU quota or queue — try later)");
   }
   const json = JSON.parse(text.slice(complete).split("\ndata: ")[1].split("\n")[0]) as [{ video: { url: string } }];
-  return json[0].video.url;
+  return safeResultUrl(json[0]?.video?.url);
+}
+
+/** Max size of a downloaded clip. */
+const MAX_CLIP_BYTES = 60 * 1024 * 1024;
+
+/**
+ * SSRF guard: we only download files served by the Space itself (https, same origin),
+ * never an arbitrary URL from the response (could point at internal hosts).
+ */
+export function safeResultUrl(raw: unknown, space = SPACE) {
+  if (typeof raw !== "string") throw new Error("LTX_BAD_URL");
+  const u = new URL(raw);
+  if (u.protocol !== "https:" || u.origin !== new URL(space).origin) throw new Error("LTX_BAD_URL");
+  return u.toString();
 }
 
 /** Runs one job to the end: generate → download into storage → DONE; on failure FAILED + credits back. */
@@ -58,13 +72,17 @@ export async function runLtxJob(jobId: string) {
   const job = await prisma.generationJob.findUnique({ where: { id: jobId } });
   if (!job || job.status !== "RUNNING") return;
   try {
-    const prompt = `${await toEnglish(job.prompt.trim())}. ${STYLE_HINT[job.style] ?? ""}`.slice(0, 1200);
+    // English is the platform language: prompts go to the model as written.
+    const prompt = `${job.prompt.trim()}. ${STYLE_HINT[job.style] ?? ""}`.slice(0, 1200);
     const url = await callLtx(prompt, job.orientation, job.durationSec, job.seed);
-    const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(120_000), redirect: "error" });
     if (!res.ok) throw new Error(`LTX_DOWNLOAD_${res.status}`);
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_CLIP_BYTES) throw new Error("LTX_TOO_BIG");
     const dir = path.join(STORAGE_DIR, "videos", "gen");
     fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
-    await fs.promises.writeFile(/*turbopackIgnore: true*/ path.join(dir, `${job.id}.mp4`), Buffer.from(await res.arrayBuffer()));
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > MAX_CLIP_BYTES) throw new Error("LTX_TOO_BIG");
+    await fs.promises.writeFile(/*turbopackIgnore: true*/ path.join(dir, `${job.id}.mp4`), buf);
     await prisma.generationJob.update({
       where: { id: job.id },
       data: { status: "DONE", resultUrl: `storage:videos/gen/${job.id}.mp4`, finishedAt: new Date(), durationSec: Math.min(job.durationSec, LTX_MAX_SECONDS) },

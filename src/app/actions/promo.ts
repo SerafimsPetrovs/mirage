@@ -6,22 +6,29 @@ import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/coins";
 import { createPromo, PROMO_KINDS, PromoError, redeemPromo } from "@/lib/promo";
 import { logAdmin } from "@/lib/admin-log";
+import { hit, LIMITS, rateLimit } from "@/lib/rate-limit";
 
 export type RedeemResult =
   | { ok: true; kind: "COINS" | "VIP_DAYS"; value: number; balance: number }
-  | { ok: false; error: PromoError["code"] | "kids" | "auth" | "unknown" };
+  | { ok: false; error: PromoError["code"] | "kids" | "auth" | "tooMany" | "unknown" };
 
 export async function redeemPromoAction(code: string): Promise<RedeemResult> {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "auth" };
   if (user.kidsMode) return { ok: false, error: "kids" };
   if (typeof code !== "string" || code.length > 64) return { ok: false, error: "NOT_FOUND" };
+  // Guessing guard: only failed attempts count.
+  const key = `promo:${user.id}`;
+  if (!rateLimit(key, LIMITS.promo.limit, LIMITS.promo.windowMs, { peek: true }).allowed) return { ok: false, error: "tooMany" };
   try {
     const r = await redeemPromo(user.id, code);
     revalidatePath("/", "layout");
     return { ok: true, kind: r.kind, value: r.value, balance: await getBalance(user.id) };
   } catch (e) {
-    if (e instanceof PromoError) return { ok: false, error: e.code };
+    if (e instanceof PromoError) {
+      if (e.code === "NOT_FOUND") hit(key);
+      return { ok: false, error: e.code };
+    }
     console.error(e);
     return { ok: false, error: "unknown" };
   }

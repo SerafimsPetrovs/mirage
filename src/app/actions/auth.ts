@@ -13,7 +13,8 @@ import { prisma } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { grantCoins } from "@/lib/coins";
 import { getI18n } from "@/i18n/server";
-import { safePath } from "@/lib/url";
+import { mailOrigin, safePath } from "@/lib/url";
+import { clientIp, hit, LIMITS, rateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/shared";
 
 /** `values` echoes what the user typed (never passwords) so the form is not wiped after an error. */
@@ -27,15 +28,39 @@ function echo(form: FormData, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, String(form.get(k) ?? "").slice(0, 200)]));
 }
 
+// A real bcrypt hash of a random string, compared against when the email doesn't exist,
+// so the response time doesn't reveal which emails are registered.
+let dummyHash: Promise<string> | null = null;
+const getDummyHash = () => (dummyHash ??= hashPassword(crypto.randomUUID()));
+
 export async function loginAction(_: FormState, form: FormData): Promise<FormState> {
   const { t } = await getI18n();
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const password = String(form.get("password") ?? "");
+  const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 200);
+  const password = String(form.get("password") ?? "").slice(0, 200);
+  const ip = clientIp(await headers());
+  // Brute-force guard: failed attempts per account and per IP.
+  const byEmail = rateLimit(`login:e:${email}`, LIMITS.login.limit, LIMITS.login.windowMs, { peek: true });
+  const byIp = rateLimit(`login:ip:${ip}`, LIMITS.login.limit * 4, LIMITS.login.windowMs, { peek: true });
+  if (!byEmail.allowed || !byIp.allowed) return { error: t.auth.tooMany, values: echo(form, ["email"]) };
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !(await verifyPassword(password, user.passwordHash))) return { error: t.auth.invalid, values: echo(form, ["email"]) };
+  const valid = await verifyPassword(password, user?.passwordHash ?? (await getDummyHash()));
+  if (!user || !valid) {
+    hit(`login:e:${email}`);
+    hit(`login:ip:${ip}`);
+    return { error: t.auth.invalid, values: echo(form, ["email"]) };
+  }
   if (user.banned) return { error: t.auth.banned, values: echo(form, ["email"]) };
+  resetRateLimit(`login:e:${email}`);
   await createSession(user.id);
   redirect(safeNext(form.get("next")));
+}
+
+/**
+ * Origin for links in emails. Never trust the Host header (an attacker could make reset emails point to
+ * their domain and steal the token): APP_URL in production, localhost in development.
+ */
+async function appOrigin() {
+  return mailOrigin(process.env.APP_URL, process.env.NODE_ENV, (await headers()).get("host"));
 }
 
 export async function registerAction(_: FormState, form: FormData): Promise<FormState> {
@@ -47,6 +72,9 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
   });
   const parsed = schema.safeParse({ name: form.get("name"), email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0].message, values: echo(form, ["name", "email", "promo"]) };
+  if (!rateLimit(`register:${clientIp(await headers())}`, LIMITS.register.limit, LIMITS.register.windowMs).allowed) {
+    return { error: t.auth.tooMany, values: echo(form, ["name", "email", "promo"]) };
+  }
   const { name, email, password } = parsed.data;
   if (await prisma.user.findUnique({ where: { email } })) return { error: t.auth.emailTaken, values: echo(form, ["name", "email", "promo"]) };
   const promo = String(form.get("promo") ?? "").trim().slice(0, 40);
@@ -74,11 +102,12 @@ export async function forgotPasswordAction(_: FormState, form: FormData): Promis
   const { t } = await getI18n();
   const email = z.string().trim().toLowerCase().email().max(200).safeParse(form.get("email"));
   if (!email.success) return { error: t.auth.badEmail, values: echo(form, ["email"]) };
+  if (!rateLimit(`forgot:${clientIp(await headers())}`, LIMITS.forgot.limit, LIMITS.forgot.windowMs).allowed) {
+    return { error: t.auth.tooMany, values: echo(form, ["email"]) };
+  }
   const r = await createPasswordReset(email.data);
   if (r) {
-    const h = await headers();
-    const origin = process.env.APP_URL ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-    const link = `${origin}/reset-password?token=${r.token}`;
+    const link = `${await appOrigin()}/reset-password?token=${r.token}`;
     await sendMail({ to: r.user.email, subject: t.auth.mailSubject, text: fmt(t.auth.mailText, { name: r.user.name, link }) }).catch((e) =>
       console.error("reset mail", e),
     );
