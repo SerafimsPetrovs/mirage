@@ -106,6 +106,7 @@ model User {
   payouts          Payout[]
   promoRedemptions PromoRedemption[]
   adViews          AdView[]
+  passwordResets   PasswordReset[]
   progress         WatchProgress[]
   listItems        ListItem[]
   likes            Like[]
@@ -643,4 +644,17 @@ model AdView {
 
   @@index([userId, episodeId])
   @@index([userId, startedAt])
+}
+
+/// One-time password reset link. Only the SHA-256 of the token is stored.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

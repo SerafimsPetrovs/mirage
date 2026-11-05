@@ -1,5 +1,9 @@
 "use server";
 import { promoProblem, redeemPromo } from "@/lib/promo";
+import { headers } from "next/headers";
+import { createPasswordReset, resetPassword } from "@/lib/password-reset";
+import { mailIsReal, sendMail } from "@/lib/mail";
+import { fmt } from "@/i18n/shared";
 import { z } from "zod";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -56,6 +60,35 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
   if (promo) await redeemPromo(user.id, promo).catch((e) => console.error("promo at sign-up", e));
   await createSession(user.id);
   redirect(safeNext(form.get("next")));
+}
+
+/** Always answers the same way, whether or not the email exists. */
+export async function forgotPasswordAction(_: FormState, form: FormData): Promise<FormState> {
+  const { t } = await getI18n();
+  const email = z.string().trim().toLowerCase().email().max(200).safeParse(form.get("email"));
+  if (!email.success) return { error: t.auth.badEmail, values: echo(form, ["email"]) };
+  const r = await createPasswordReset(email.data);
+  if (r) {
+    const h = await headers();
+    const origin = process.env.APP_URL ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+    const link = `${origin}/reset-password?token=${r.token}`;
+    await sendMail({ to: r.user.email, subject: t.auth.mailSubject, text: fmt(t.auth.mailText, { name: r.user.name, link }) }).catch((e) =>
+      console.error("reset mail", e),
+    );
+  }
+  return { ok: true, message: mailIsReal() ? t.auth.linkSent : `${t.auth.linkSent} ${t.auth.devMailHint}` };
+}
+
+export async function resetPasswordAction(_: FormState, form: FormData): Promise<FormState> {
+  const { t } = await getI18n();
+  const token = String(form.get("token") ?? "");
+  const password = String(form.get("password") ?? "");
+  if (password.length < 6 || password.length > 200) return { error: t.auth.weakPassword };
+  if (password !== String(form.get("password2") ?? "")) return { error: t.auth.mismatch };
+  const userId = await resetPassword(token, password);
+  if (!userId) return { error: t.auth.badLink };
+  await createSession(userId);
+  redirect("/");
 }
 
 export async function logoutAction() {

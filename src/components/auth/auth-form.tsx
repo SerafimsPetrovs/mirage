@@ -43,6 +43,11 @@ export function AuthForm({ mode, next, promo = "" }: { mode: "login" | "register
             className={inputCls}
           />
         </div>
+        {mode === "login" && (
+          <p className="-mt-2 text-right text-sm">
+            <Link href="/forgot-password" className="text-muted hover:text-text">{t.auth.forgot}</Link>
+          </p>
+        )}
         {mode === "register" && (
           <details open={!!promo} className="group rounded-2xl bg-surface-2/60 px-4 py-3 ring-1 ring-line">
             <summary className="cursor-pointer select-none text-sm font-medium text-muted marker:text-muted group-open:text-text">{t.promo.title}</summary>
