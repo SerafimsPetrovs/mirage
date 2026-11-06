@@ -3,6 +3,7 @@ import { promoProblem, redeemPromo } from "@/lib/promo";
 import { attachReferrer, REF_COOKIE } from "@/lib/referrals";
 import { headers } from "next/headers";
 import { createPasswordReset, resetPassword } from "@/lib/password-reset";
+import { createEmailVerification } from "@/lib/email-verify";
 import { mailIsReal, sendMail } from "@/lib/mail";
 import { fmt } from "@/i18n/shared";
 import { z } from "zod";
@@ -10,7 +11,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { grantCoins } from "@/lib/coins";
 import { getI18n } from "@/i18n/server";
 import { mailOrigin, safePath } from "@/lib/url";
@@ -60,7 +61,30 @@ export async function loginAction(_: FormState, form: FormData): Promise<FormSta
  * their domain and steal the token): APP_URL in production, localhost in development.
  */
 async function appOrigin() {
-  return mailOrigin(process.env.APP_URL, process.env.NODE_ENV, (await headers()).get("host"));
+  return mailOrigin(process.env.APP_URL, process.env.NODE_ENV, (await headers()).get("host"), !mailIsReal());
+}
+
+/** Sends the "confirm your email" link. Never throws: a mail problem must not break sign-up. */
+async function sendVerification(userId: string) {
+  try {
+    const v = await createEmailVerification(userId);
+    if (!v) return false;
+    const { t } = await getI18n();
+    const link = `${await appOrigin()}/verify-email?token=${v.token}`;
+    await sendMail({ to: v.user.email, subject: t.auth.verifySubject, text: fmt(t.auth.verifyText, { name: v.user.name, link }) });
+    return true;
+  } catch (e) {
+    console.error("verification mail", e);
+    return false;
+  }
+}
+
+/** "Send again" from the profile banner. */
+export async function resendVerificationAction(): Promise<{ ok: boolean; error?: "auth" | "limit" }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "auth" };
+  if (user.emailVerifiedAt) return { ok: true };
+  return (await sendVerification(user.id)) ? { ok: true } : { ok: false, error: "limit" };
 }
 
 export async function registerAction(_: FormState, form: FormData): Promise<FormState> {
@@ -93,6 +117,7 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
     await attachReferrer(user.id, ref).catch((e) => console.error("referral at sign-up", e));
     jar.delete(REF_COOKIE);
   }
+  await sendVerification(user.id);
   await createSession(user.id);
   redirect(safeNext(form.get("next")));
 }

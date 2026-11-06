@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Banknote, CheckCircle2, Coins, Wallet } from "lucide-react";
 import { requireRole } from "@/lib/auth";
+import { VerifyEmailBanner } from "@/components/auth/verify-banner";
 import { getPayoutOverview } from "@/lib/payouts";
 import { maskDetails, PAYOUT_CURRENCY, PAYOUT_MIN_COINS, payoutCents } from "@/lib/payout-rules";
 import { getI18n } from "@/i18n/server";
@@ -33,6 +34,7 @@ export default async function PayoutsPage() {
       </Link>
       <h1 className="font-display text-3xl font-bold">{t.payouts.title}</h1>
       <p className="mt-1 max-w-2xl text-muted">{t.payouts.sub}</p>
+      {!user.emailVerifiedAt && <VerifyEmailBanner email={user.email} className="mt-4" />}
 
       <div className="mt-8 grid gap-3 sm:grid-cols-3 md:gap-4">
         {stats.map(({ label, value, sub, icon: Icon, coin }) => (

@@ -50,8 +50,9 @@ export async function attachReferrer(newUserId: string, rawCode: string | undefi
  * the inviter gets REF_BONUS_INVITER bonus coins (once per invitee, capped per month).
  */
 export async function rewardInviterOnReturn(tx: Tx, userId: string) {
-  const u = await tx.user.findUnique({ where: { id: userId }, select: { referredById: true, refRewardedAt: true, createdAt: true } });
-  if (!u?.referredById || u.refRewardedAt) return false;
+  const u = await tx.user.findUnique({ where: { id: userId }, select: { referredById: true, refRewardedAt: true, createdAt: true, emailVerifiedAt: true } });
+  // only real people count: the invitee must have confirmed their email
+  if (!u?.referredById || u.refRewardedAt || !u.emailVerifiedAt) return false;
   if (utcDay(u.createdAt) === utcDay()) return false;
   const recent = await tx.user.count({
     where: { referredById: u.referredById, refRewardedAt: { gte: new Date(Date.now() - 30 * 86400_000) } },

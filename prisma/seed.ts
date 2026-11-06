@@ -476,6 +476,8 @@ async function main() {
     ),
   );
   void admin;
+  // demo accounts count as confirmed (the sign-up flow sends a confirmation email for new ones)
+  await prisma.user.updateMany({ data: { emailVerifiedAt: new Date() } });
 
   const creators = [creatorA, creatorB];
   const created = [];

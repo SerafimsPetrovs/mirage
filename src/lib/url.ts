@@ -13,8 +13,10 @@ export function safePath(next: unknown, fallback = "/") {
  * Origin used for links in emails. Never derived from the request's Host header in production
  * (Host-header injection would let an attacker point password-reset links to their own domain).
  */
-export function mailOrigin(appUrl: string | undefined, nodeEnv: string | undefined, host: string | null) {
+export function mailOrigin(appUrl: string | undefined, nodeEnv: string | undefined, host: string | null, consoleMail = false) {
   if (appUrl) return appUrl.replace(/\/$/, "");
-  if (nodeEnv === "production") throw new Error("APP_URL is not set");
+  // Real mail in production without APP_URL is refused. Console mail (local `npm start`) never leaves
+  // the machine, so a localhost link is safe there.
+  if (nodeEnv === "production" && !consoleMail) throw new Error("APP_URL is not set");
   return host && /^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(host) ? `http://${host}` : "http://localhost:3000";
 }

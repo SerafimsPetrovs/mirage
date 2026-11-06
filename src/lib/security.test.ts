@@ -47,6 +47,9 @@ describe("Host-header injection in email links", () => {
   });
   it("refuses to build links from Host in production", () => {
     expect(() => mailOrigin(undefined, "production", "evil.com")).toThrow();
+    // console mail (local npm start): only localhost links, never the attacker's host
+    expect(mailOrigin(undefined, "production", "evil.com", true)).toBe("http://localhost:3000");
+    expect(mailOrigin(undefined, "production", "localhost:3001", true)).toBe("http://localhost:3001");
   });
   it("in development only trusts localhost", () => {
     expect(mailOrigin(undefined, "development", "evil.com")).toBe("http://localhost:3000");

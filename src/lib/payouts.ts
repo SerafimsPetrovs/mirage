@@ -13,7 +13,7 @@ import {
 } from "./payout-rules";
 
 export class PayoutError extends Error {
-  constructor(public code: "MIN" | "INSUFFICIENT" | "OPEN_EXISTS" | "DETAILS" | "NAME" | "STATE" | "NOT_FOUND") {
+  constructor(public code: "MIN" | "INSUFFICIENT" | "OPEN_EXISTS" | "DETAILS" | "NAME" | "STATE" | "NOT_FOUND" | "UNVERIFIED") {
     super(code);
   }
 }
@@ -28,6 +28,9 @@ export async function requestPayout(userId: string, input: { coins: number; meth
   if (!details) throw new PayoutError("DETAILS");
   const holderName = input.holderName.trim().replace(/\s+/g, " ");
   if (holderName.length < 3 || holderName.length > 100) throw new PayoutError("NAME");
+  // money goes out only to accounts with a confirmed email (we must be able to reach the creator)
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { emailVerifiedAt: true } });
+  if (!u?.emailVerifiedAt) throw new PayoutError("UNVERIFIED");
 
   return prisma.$transaction(async (tx) => {
     const open = await tx.payout.count({ where: { userId, status: { in: OPEN_PAYOUT } } });

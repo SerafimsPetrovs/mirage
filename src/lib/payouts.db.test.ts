@@ -24,7 +24,7 @@ const code = async (p: Promise<unknown>) => {
 };
 
 beforeAll(async () => {
-  const c = await prisma.user.create({ data: { email: `pc${tag}@t.t`, name: "C", passwordHash: "x", role: "CREATOR" } });
+  const c = await prisma.user.create({ data: { email: `pc${tag}@t.t`, name: "C", passwordHash: "x", role: "CREATOR", emailVerifiedAt: new Date() } });
   const v = await prisma.user.create({ data: { email: `pv${tag}@t.t`, name: "V", passwordHash: "x" } });
   creatorId = c.id;
   viewerId = v.id;

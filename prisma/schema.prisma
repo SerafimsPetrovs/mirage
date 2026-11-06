@@ -74,6 +74,8 @@ enum AppStatus {
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
+  /// Set when the user clicked the link in the confirmation email (needed for payouts and referral rewards).
+  emailVerifiedAt    DateTime?
   passwordHash       String
   name               String
   avatarHue          Int       @default(330)
@@ -115,6 +117,7 @@ model User {
   promoRedemptions PromoRedemption[]
   adViews          AdView[]
   passwordResets   PasswordReset[]
+  emailTokens      EmailVerification[]
   cameos           Cameo[]
   reports          Report[]
   progress         WatchProgress[]
@@ -754,4 +757,17 @@ model Report {
   @@unique([reporterId, targetType, targetId])
   @@index([status, createdAt])
   @@index([targetType, targetId])
+}
+
+/// One-time link from the "confirm your email" message (only the SHA-256 of the token is stored).
+model EmailVerification {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

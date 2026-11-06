@@ -6,7 +6,7 @@ const tag = Date.now().toString(36);
 const ids: string[] = [];
 let seq = 0;
 const mk = async (createdAt?: Date) => {
-  const u = await prisma.user.create({ data: { email: `rf${tag}${seq++}@t.t`, name: "U", passwordHash: "x", ...(createdAt ? { createdAt } : {}) } });
+  const u = await prisma.user.create({ data: { email: `rf${tag}${seq++}@t.t`, name: "U", passwordHash: "x", emailVerifiedAt: new Date(), ...(createdAt ? { createdAt } : {}) } });
   ids.push(u.id);
   return u.id;
 };

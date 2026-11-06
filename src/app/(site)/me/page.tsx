@@ -4,6 +4,7 @@ import { Bookmark, Clapperboard, Crown, Gift, History, MessageCircleHeart, Shiel
 import { isAdultMode } from "@/lib/spicy";
 import { prisma } from "@/lib/db";
 import { isVip, requireUser } from "@/lib/auth";
+import { VerifyEmailBanner } from "@/components/auth/verify-banner";
 import { getCheckInState } from "@/lib/coins";
 import { getContinueWatching, seriesCardSelect, toCard } from "@/lib/catalog";
 import { getI18n } from "@/i18n/server";
@@ -40,6 +41,7 @@ export default async function MePage() {
   return (
     <div className="pb-10 pt-[calc(var(--header-h)+24px)]">
       <div className="px-4 md:px-10">
+        {!user.emailVerifiedAt && !user.kidsMode && <VerifyEmailBanner email={user.email} className="mb-4" />}
         <div className="flex flex-col gap-5 rounded-[28px] bg-surface p-5 ring-1 ring-line md:flex-row md:items-center md:p-7">
           <Avatar name={user.name} hue={user.avatarHue} size={76} />
           <div className="min-w-0 flex-1">
