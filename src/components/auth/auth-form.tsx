@@ -72,6 +72,13 @@ export function AuthForm({ mode, next, promo = "", refCode = "" }: { mode: "logi
         <button disabled={pending} className={btn("primary", "lg", "w-full")}>
           {pending ? t.common.loading : mode === "login" ? t.auth.submitLogin : t.auth.submitRegister}
         </button>
+        {mode === "register" && (
+          <p className="text-center text-xs leading-relaxed text-muted">
+            {t.legal.agree}{" "}
+            <Link href="/legal/terms" className="text-text underline">{t.legal.termsLink}</Link> {t.legal.and}{" "}
+            <Link href="/legal/privacy" className="text-text underline">{t.legal.privacyLink}</Link>.
+          </p>
+        )}
       </form>
 
       <p className="mt-6 text-center text-sm text-muted">

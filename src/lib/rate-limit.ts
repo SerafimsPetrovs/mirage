@@ -50,4 +50,10 @@ export const LIMITS = {
   forgot: { limit: 5, windowMs: 3600_000 },
   /** Failed promo-code attempts per user per hour (stops guessing codes). */
   promo: { limit: 10, windowMs: 3600_000 },
+  /** Content reports per user per hour. */
+  report: { limit: 20, windowMs: 3600_000 },
+  /** Public copyright notices per IP per hour. */
+  copyright: { limit: 5, windowMs: 3600_000 },
+  /** Comments per user per minute (anti-spam). */
+  comment: { limit: 6, windowMs: 60_000 },
 } as const;

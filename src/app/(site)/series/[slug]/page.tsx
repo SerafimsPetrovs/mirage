@@ -12,6 +12,7 @@ import { Row, RowItem } from "@/components/media/row";
 import { PosterCard } from "@/components/media/cards";
 import { EpisodeList, EpisodeNumberGrid } from "@/components/series/episode-grid";
 import { ListButton, RatingStars, ShareButton } from "@/components/series/series-actions";
+import { ReportButton } from "@/components/report/report-button";
 import { PollCard } from "@/components/series/poll-card";
 import { CameoBlock } from "@/components/series/cameo-block";
 import { getShowBlock } from "@/lib/show";
@@ -108,6 +109,7 @@ export default async function SeriesPage({ params }: Props) {
               )}
               <ListButton seriesId={s.id} initial={s.inList} />
               <ShareButton title={s.title} refCode={refCode} />
+              {!user?.kidsMode && user?.id !== s.creatorId && <ReportButton targetType="SERIES" targetId={s.id} loggedIn={!!user} />}
             </div>
             <p className="mt-4 text-sm text-muted">
               {vip ? (

@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getEpisodeAccess } from "@/lib/coins";
+import { LIMITS, rateLimit } from "@/lib/rate-limit";
 
-type Result<T = unknown> = { ok: true; data?: T } | { ok: false; error: "auth" | "invalid" | "locked" | "closed" };
+type Result<T = unknown> = { ok: true; data?: T } | { ok: false; error: "auth" | "invalid" | "locked" | "closed" | "tooMany" };
 
 export async function toggleListAction(seriesId: string): Promise<Result<{ inList: boolean }>> {
   const user = await getCurrentUser();
@@ -47,12 +48,14 @@ export async function addCommentAction(episodeId: string, body: string): Promise
   if (!user || user.kidsMode) return { ok: false, error: "auth" };
   const text = z.string().trim().min(1).max(500).safeParse(body);
   if (!text.success) return { ok: false, error: "invalid" };
+  if (!rateLimit(`comment:${user.id}`, LIMITS.comment.limit, LIMITS.comment.windowMs).allowed) return { ok: false, error: "tooMany" };
   const c = await prisma.comment.create({ data: { userId: user.id, episodeId, body: text.data } });
   return { ok: true, data: { id: c.id } };
 }
 
 export async function getCommentsAction(episodeId: string) {
-  if ((await getCurrentUser())?.kidsMode) return [];
+  const me = await getCurrentUser();
+  if (me?.kidsMode) return [];
   const comments = await prisma.comment.findMany({
     where: { episodeId, hidden: false },
     orderBy: { createdAt: "desc" },
@@ -64,6 +67,7 @@ export async function getCommentsAction(episodeId: string) {
     id: c.id,
     body: c.body,
     createdAt: c.createdAt.toISOString(),
+    mine: !!me && c.userId === me.id,
     user: {
       name: c.user.name,
       hue: c.user.avatarHue,

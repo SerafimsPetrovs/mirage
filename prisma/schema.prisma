@@ -116,6 +116,7 @@ model User {
   adViews          AdView[]
   passwordResets   PasswordReset[]
   cameos           Cameo[]
+  reports          Report[]
   progress         WatchProgress[]
   listItems        ListItem[]
   likes            Like[]
@@ -727,5 +728,30 @@ model AdminLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
+  @@index([targetType, targetId])
+}
+
+/// Viewer complaint about a series, comment or character (or a copyright notice from anyone).
+model Report {
+  id           String    @id @default(cuid())
+  /// null = anonymous copyright notice from the public form
+  reporterId   String?
+  /// SERIES | COMMENT | CHARACTER | URL
+  targetType   String
+  targetId     String
+  /// spam | abuse | sexual | minors | violence | copyright | other
+  reason       String
+  details      String    @default("")
+  contactEmail String?
+  /// OPEN | RESOLVED | DISMISSED
+  status       String    @default("OPEN")
+  resolution   String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  reporter     User?     @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([status, createdAt])
   @@index([targetType, targetId])
 }

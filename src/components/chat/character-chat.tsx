@@ -13,6 +13,7 @@ import { confirmAdultAction, sendChatAction, unlockPhotoAction } from "@/app/act
 import { CHAT_FREE_MESSAGES, CHAT_MAX_LEN, CHAT_MESSAGE_PRICE } from "@/lib/spicy";
 import type { ChatMsg } from "@/lib/extras";
 import { CharacterAvatar, useSpicyRunner } from "@/components/player/spicy";
+import { ReportButton } from "@/components/report/report-button";
 
 type Props = {
   character: { id: string; name: string; tagline: string; greeting: string; avatar: string | null; hue: number };
@@ -106,6 +107,7 @@ export function CharacterChat({ character, series, initial, sent: sent0, balance
         <Link href="/me/wallet" className={btn("glass", "sm", "px-3")} aria-label={t.nav.wallet}>
           <CoinAmount value={balance} size={14} />
         </Link>
+        <ReportButton targetType="CHARACTER" targetId={character.id} loggedIn variant="iconSm" />
       </header>
 
       {/* Messages */}

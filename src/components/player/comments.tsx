@@ -5,6 +5,8 @@ import { Send, MessageCircle } from "lucide-react";
 import { Avatar, VipBadge } from "@/components/ui/misc";
 import { useI18n } from "@/i18n/client";
 import { addCommentAction, getCommentsAction } from "@/app/actions/library";
+import { useToast } from "@/components/ui/toast";
+import { ReportButton } from "@/components/report/report-button";
 
 type C = Awaited<ReturnType<typeof getCommentsAction>>[number];
 
@@ -22,6 +24,7 @@ export function Comments({ episodeId, loggedIn, me, active }: { episodeId: strin
   const [items, setItems] = useState<C[] | null>(null);
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
+  const toast = useToast();
 
   useEffect(() => {
     if (!active) return;
@@ -40,11 +43,11 @@ export function Comments({ episodeId, loggedIn, me, active }: { episodeId: strin
       const r = await addCommentAction(episodeId, body);
       if (r.ok) {
         setItems((xs) => [
-          { id: r.data!.id, body, createdAt: new Date().toISOString(), user: { name: me.name, hue: me.hue, creator: false, vip: false } },
+          { id: r.data!.id, body, createdAt: new Date().toISOString(), mine: true, user: { name: me.name, hue: me.hue, creator: false, vip: false } },
           ...(xs ?? []),
         ]);
         setText("");
-      }
+      } else if (r.error === "tooMany") toast(t.report.commentTooMany);
     });
   };
 
@@ -77,6 +80,7 @@ export function Comments({ episodeId, loggedIn, me, active }: { episodeId: strin
                 <span className="text-xs text-muted">{ago(c.createdAt, locale)}</span>
               </p>
               <p className="mt-0.5 break-words text-[15px] text-white/85">{c.body}</p>
+              {!c.mine && <ReportButton targetType="COMMENT" targetId={c.id} loggedIn={loggedIn} variant="text" className="mt-1" />}
             </div>
           </div>
         ))}

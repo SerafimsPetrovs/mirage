@@ -46,3 +46,5 @@ next-env.d.ts
 /prisma/*.db-journal
 !.env.example
 .playwright-mcp
+/.next-*/
+shadow.db*

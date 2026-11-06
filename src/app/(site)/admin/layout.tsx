@@ -7,10 +7,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await forbidInKidsMode();
   await requireRole(["ADMIN"], "/admin");
   const { t } = await getI18n();
-  const [pending, apps, payouts] = await Promise.all([
+  const [pending, apps, payouts, reports] = await Promise.all([
     prisma.series.count({ where: { status: "PENDING" } }),
     prisma.creatorApplication.count({ where: { status: "PENDING" } }),
     prisma.payout.count({ where: { status: { in: ["PENDING", "APPROVED"] } } }),
+    prisma.report.groupBy({ by: ["targetType", "targetId"], where: { status: "OPEN" } }).then((g) => g.length),
   ]);
   return (
     <div className="mx-auto max-w-6xl px-4 pb-10 pt-[calc(var(--header-h)+24px)] md:px-10">
@@ -19,6 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         items={[
           { href: "/admin", label: t.admin.overview },
           { href: "/admin/moderation", label: t.admin.moderation, badge: pending },
+          { href: "/admin/reports", label: t.report.admin.nav, badge: reports },
           { href: "/admin/series", label: t.admin.series },
           { href: "/admin/users", label: t.admin.users },
           { href: "/admin/applications", label: t.admin.applications, badge: apps },

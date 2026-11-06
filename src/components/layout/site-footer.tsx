@@ -16,7 +16,9 @@ export async function SiteFooter() {
           <Link href="/about" className="hover:text-text">{t.footer.about}</Link>
           <Link href="/creators" className="hover:text-text">{t.footer.creators}</Link>
           <Link href="/vip" className="hover:text-text">VIP</Link>
-          <Link href="/about#terms" className="hover:text-text">{t.footer.terms}</Link>
+          <Link href="/legal/terms" className="hover:text-text">{t.footer.terms}</Link>
+          <Link href="/legal/privacy" className="hover:text-text">{t.legal.privacy}</Link>
+          <Link href="/legal/copyright" className="hover:text-text">{t.legal.copyright}</Link>
         </div>
         <LangSwitch />
       </div>
