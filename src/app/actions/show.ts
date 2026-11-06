@@ -11,8 +11,9 @@ import { genProvider, runLtxJob } from "@/lib/video-gen";
 import { mockResult } from "@/lib/generation";
 import { logAdmin } from "@/lib/admin-log";
 import { getLocale } from "@/i18n/server";
+import { STITCH_MAX_CLIPS, StitchError, stitchClips } from "@/lib/video-stitch";
 
-export type ShowResult<T = object> = ({ ok: true } & T) | { ok: false; error: ShowError["code"] | "insufficient" | "auth" | "kids" | "forbidden" | "invalid" | "unknown" };
+export type ShowResult<T = object> = ({ ok: true } & T) | { ok: false; error: ShowError["code"] | "insufficient" | "auth" | "kids" | "forbidden" | "invalid" | "stitch" | "unknown" };
 
 function fail(e: unknown): { ok: false; error: ShowError["code"] | "insufficient" | "unknown" } {
   if (e instanceof ShowError) return { ok: false, error: e.code };
@@ -155,13 +156,34 @@ export async function generateClipsAction(scriptId: string): Promise<ShowResult<
   return { ok: true, count: jobs.length };
 }
 
-export async function publishScriptAction(scriptId: string, jobId: string): Promise<ShowResult<{ episodeId: string }>> {
+/**
+ * Publishes the draft as the next episode. One clip is used as is; several clips are joined
+ * (in the order of the script's PROMPT: lines) into one video with ffmpeg.
+ */
+export async function publishScriptAction(scriptId: string, jobIds: string[] | string): Promise<ShowResult<{ episodeId: string }>> {
   const user = await admin();
   if (!user) return { ok: false, error: "forbidden" };
-  const job = await prisma.generationJob.findFirst({ where: { id: jobId, userId: user.id, status: "DONE" } });
-  if (!job?.resultUrl) return { ok: false, error: "invalid" };
+  const ids = [...new Set(Array.isArray(jobIds) ? jobIds : [jobIds])].filter((x) => typeof x === "string");
+  if (!ids.length || ids.length > STITCH_MAX_CLIPS) return { ok: false, error: "invalid" };
+  const sc = await prisma.showScript.findUnique({ where: { id: scriptId }, select: { content: true, episodeId: true, series: { select: { orientation: true } } } });
+  if (!sc || sc.episodeId) return { ok: false, error: "invalid" };
+  const jobs = await prisma.generationJob.findMany({ where: { id: { in: ids }, userId: user.id, status: "DONE" }, orderBy: { createdAt: "asc" } });
+  if (jobs.length !== ids.length || jobs.some((j) => !j.resultUrl)) return { ok: false, error: "invalid" };
+  const order = promptsFromScript(sc.content);
+  const rank = (p: string) => (order.indexOf(p) < 0 ? order.length : order.indexOf(p));
+  jobs.sort((a, b) => rank(a.prompt) - rank(b.prompt));
+  let videoUrl = jobs[0].resultUrl!;
+  if (jobs.length > 1) {
+    try {
+      videoUrl = await stitchClips(jobs.map((j) => j.resultUrl!), sc.series.orientation, `ep-${scriptId}-${Date.now().toString(36)}`);
+    } catch (e) {
+      if (e instanceof StitchError) return { ok: false, error: "stitch" };
+      throw e;
+    }
+  }
+  const durationSec = jobs.reduce((a, j) => a + j.durationSec, 0);
   try {
-    const ep = await publishScript(scriptId, job.resultUrl, job.durationSec);
+    const ep = await publishScript(scriptId, videoUrl, durationSec);
     await done(ep.seriesId);
     return { ok: true, episodeId: ep.id };
   } catch (e) {

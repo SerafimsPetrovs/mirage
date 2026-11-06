@@ -153,7 +153,7 @@ export default async function AdminShowPage({ searchParams }: { searchParams: Pr
           <ScriptEditor
             seriesId={sel.id}
             script={{ id: draft.id, number: draft.number, title: draft.title, content: draft.content, pollQuestion: draft.pollQuestion, optionA: draft.optionA, optionB: draft.optionB, caption: draft.caption }}
-            jobs={jobs.map((j) => ({ id: j.id, prompt: j.prompt, status: j.status, provider: j.provider, error: j.error, createdAt: j.createdAt.toISOString() }))}
+            jobs={jobs.map((j) => ({ id: j.id, prompt: j.prompt, status: j.status, provider: j.provider, error: j.error, createdAt: j.createdAt.toISOString(), durationSec: j.durationSec }))}
           />
         ) : (
           <div className="flex flex-col items-start gap-3">

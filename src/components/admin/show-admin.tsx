@@ -96,14 +96,17 @@ export function WriteScriptButton({ seriesId, number }: { seriesId: string; numb
 }
 
 type Script = { id: string; number: number; title: string; content: string; pollQuestion: string; optionA: string; optionB: string; caption: string };
-type Job = { id: string; prompt: string; status: string; provider: string; error: string | null; createdAt: string };
+type Job = { id: string; prompt: string; status: string; provider: string; error: string | null; createdAt: string; durationSec: number };
 
 /** Edit the AI draft → generate clips from its PROMPT: lines → pick a clip → publish (opens the next poll). */
 export function ScriptEditor({ script, jobs, seriesId }: { script: Script; jobs: Job[]; seriesId: string }) {
   const { pending, run, t, toast, router } = useRun();
   const [s, setS] = useState(script);
-  const [jobId, setJobId] = useState(jobs.find((j) => j.status === "DONE")?.id ?? "");
   const prompts = promptsFromScript(s.content);
+  // by default: every finished clip generated from this script's prompts
+  const [picked, setPicked] = useState<string[]>(() => jobs.filter((j) => j.status === "DONE" && prompts.includes(j.prompt)).map((j) => j.id));
+  const toggle = (id: string) => setPicked((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  const pickedSec = jobs.filter((j) => picked.includes(j.id)).reduce((a, j) => a + j.durationSec, 0);
   const set = (k: keyof Script) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setS((x) => ({ ...x, [k]: e.target.value }));
   const fields = { title: s.title, content: s.content, pollQuestion: s.pollQuestion, optionA: s.optionA, optionB: s.optionB, caption: s.caption };
 
@@ -175,7 +178,10 @@ export function ScriptEditor({ script, jobs, seriesId }: { script: Script; jobs:
             </button>
           </div>
         </div>
-        <p className="mb-2 mt-3 text-xs text-muted">{t.show.pickVideo}</p>
+        <p className="mb-2 mt-3 flex flex-wrap justify-between gap-2 text-xs text-muted">
+          <span>{t.show.pickVideo}</span>
+          {picked.length > 0 && <span className="text-text">{fmt(t.show.clipsPicked, { n: picked.length, s: pickedSec })}</span>}
+        </p>
         <ul className="space-y-1.5">
           {jobs.map((j) => (
             <li key={j.id}>
@@ -183,10 +189,10 @@ export function ScriptEditor({ script, jobs, seriesId }: { script: Script; jobs:
                 className={clsx(
                   "flex items-center gap-3 rounded-xl px-3 py-2 text-sm ring-1",
                   j.status === "DONE" ? "cursor-pointer ring-line hover:ring-white/25" : "opacity-60 ring-transparent",
-                  jobId === j.id && "bg-accent/10 ring-accent/60",
+                  picked.includes(j.id) && "bg-accent/10 ring-accent/60",
                 )}
               >
-                <input type="radio" name="clip" disabled={j.status !== "DONE"} checked={jobId === j.id} onChange={() => setJobId(j.id)} className="accent-[var(--accent)]" />
+                <input type="checkbox" disabled={j.status !== "DONE"} checked={picked.includes(j.id)} onChange={() => toggle(j.id)} className="accent-[var(--accent)]" />
                 {j.status === "DONE" ? (
                   <video src={`/api/studio/generations/${j.id}/video`} muted playsInline preload="metadata" className="h-14 w-9 shrink-0 rounded-md bg-black object-cover" />
                 ) : (
@@ -206,12 +212,12 @@ export function ScriptEditor({ script, jobs, seriesId }: { script: Script; jobs:
       </div>
 
       <button
-        disabled={pending || !jobId}
+        disabled={pending || !picked.length}
         onClick={() =>
           run(async () => {
             const saved = await saveScriptAction(s.id, fields);
             if (!saved.ok) return saved;
-            return publishScriptAction(s.id, jobId);
+            return publishScriptAction(s.id, picked);
           }, t.show.published)
         }
         className={btn("primary", "lg", "w-full")}

@@ -40,6 +40,8 @@ const nextConfig: NextConfig = {
   // NEXT_DIST_DIR lets a verification build run next to a live `npm start` without replacing its files.
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   poweredByHeader: false,
+  // ffmpeg-static ships a native binary next to its module; it must not be bundled.
+  serverExternalPackages: ["ffmpeg-static"],
   turbopack: {
     rules: {
       "*.css": {
