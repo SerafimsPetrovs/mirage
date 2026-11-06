@@ -57,6 +57,8 @@ export const ru = {
     shortsSub: "Серии по 1–3 минуты. Залипнуть гарантированно.",
     series: "Большие сериалы",
     fresh: "Новинки",
+    becauseWatched: "Потому что вы смотрели «{title}»",
+    forYou: "Подобрали для вас",
     trending: "В тренде",
     myList: "Моя полка",
     moodTitle: "Какое настроение?",

@@ -12,12 +12,17 @@ import { KidsEnterButton } from "@/components/kids/kids-controls";
 import { btn } from "@/components/ui/button";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
 import { getCheckInState } from "@/lib/coins";
+import { getRecommendations } from "@/lib/recommend";
+import { fmt } from "@/i18n/shared";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ kids?: string }> }) {
   const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   const kids = !!user?.kidsMode;
   const data = await getHomeData(locale, user?.id ?? null);
-  const checkIn = user && !kids ? await getCheckInState(user.id) : null;
+  const [checkIn, recs] = await Promise.all([
+    user && !kids ? getCheckInState(user.id) : null,
+    user ? getRecommendations(user.id, locale) : null,
+  ]);
   const nothing = !data.top.length;
   const seeAll = (href: string) => (
     <Link href={href} className="flex shrink-0 items-center gap-1 text-sm font-medium text-muted hover:text-text">
@@ -96,6 +101,19 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             ))}
           </Row>
         </section>}
+
+        {recs && (
+          <section>
+            <SectionTitle title={recs.anchor ? fmt(t.home.becauseWatched, { title: recs.anchor }) : t.home.forYou} />
+            <Row>
+              {recs.items.map((s) => (
+                <RowItem key={s.id}>
+                  <PosterCard s={s} t={t} locale={locale} className="w-[140px] md:w-[188px]" />
+                </RowItem>
+              ))}
+            </Row>
+          </section>
+        )}
 
         {data.shorts.length > 0 && <section>
           <SectionTitle title={t.home.shorts} sub={t.home.shortsSub} action={seeAll("/browse?format=vertical")} />

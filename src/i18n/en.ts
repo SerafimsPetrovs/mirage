@@ -59,6 +59,8 @@ export const en: Dict = {
     shortsSub: "1–3 minute episodes. Dangerously bingeable.",
     series: "Epic series",
     fresh: "New arrivals",
+    becauseWatched: "Because you watched {title}",
+    forYou: "Picked for you",
     trending: "Trending",
     myList: "My List",
     moodTitle: "What's your mood?",
