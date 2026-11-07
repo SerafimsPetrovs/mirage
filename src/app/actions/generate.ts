@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { after } from "next/server";
-import { checkPrompt, costFor, GEN_DURATIONS, GEN_STYLES, mockResult, mockState } from "@/lib/generation";
+import { checkPrompt, costFor, GEN_DURATIONS, GEN_STYLES, MAX_SHOTS, mockResult, mockState } from "@/lib/generation";
 import { failJob, genProvider, runLtxJob } from "@/lib/video-gen";
+import { STITCH_MAX_CLIPS, StitchError, stitchClips } from "@/lib/video-stitch";
 
 /** Real provider: rough progress estimate while the Space works (it reports no progress). */
 const LTX_EXPECTED_MS = 45_000;
@@ -32,10 +33,13 @@ export type GenJobDTO = {
   createdAt: string;
 };
 
-export type StartResult = { ok: true; job: GenJobDTO; credits: number } | { ok: false; error: "forbidden" | "invalid" | "empty" | "too_long" | "forbidden_content" | "no_credits" };
+export type StartResult = { ok: true; jobs: GenJobDTO[]; credits: number } | { ok: false; error: "forbidden" | "invalid" | "empty" | "too_long" | "forbidden_content" | "no_credits" };
 
 const startSchema = z.object({
+  /** Single clip: the prompt. Storyboard: the shared scene description (place, characters), may be empty. */
   prompt: z.string(),
+  /** Storyboard: one line per shot. Each becomes its own clip with the same style, format and seed. */
+  shots: z.array(z.string().max(400)).min(1).max(MAX_SHOTS).optional(),
   style: z.enum(GEN_STYLES),
   orientation: z.enum(["VERTICAL", "HORIZONTAL"]),
   durationSec: z.union([z.literal(5), z.literal(10)]).refine((d) => (GEN_DURATIONS as readonly number[]).includes(d)),
@@ -91,29 +95,44 @@ export async function startGenerationAction(input: unknown): Promise<StartResult
   const parsed = startSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const d = parsed.data;
-  const check = checkPrompt(d.prompt);
-  if (!check.ok) return { ok: false, error: check.reason === "forbidden" ? "forbidden_content" : check.reason };
+  const scene = d.prompt.trim();
+  const shots = d.shots?.map((x) => x.trim()).filter(Boolean);
+  if (d.shots && !shots?.length) return { ok: false, error: "empty" };
+  // Storyboard: every shot is generated with the scene description in front, so the clips stay consistent.
+  const prompts = shots ? shots.map((x) => (scene ? `${scene}. ${x}` : x)) : [scene];
+  for (const p of prompts) {
+    const check = checkPrompt(p);
+    if (!check.ok) return { ok: false, error: check.reason === "forbidden" ? "forbidden_content" : check.reason };
+  }
 
-  const cost = costFor(d.durationSec);
+  const cost = costFor(d.durationSec) * prompts.length;
   const seed = d.seed ?? Math.floor(Math.random() * 2 ** 31);
   try {
-    const [job, credits] = await prisma.$transaction(async (tx) => {
+    const [jobs, credits] = await prisma.$transaction(async (tx) => {
       // Atomic conditional decrement: never goes negative under concurrency.
       const dec = await tx.user.updateMany({ where: { id: user.id, genCredits: { gte: cost } }, data: { genCredits: { decrement: cost } } });
       if (dec.count === 0) throw new Error("NO_CREDITS");
       const provider = genProvider();
-      const job = await tx.generationJob.create({
-        data: {
-          userId: user.id, prompt: d.prompt.trim(), style: d.style, orientation: d.orientation, durationSec: d.durationSec, seed, cost,
-          provider, ...(provider === "mock" ? {} : { status: "RUNNING" as const }),
-        },
-      });
+      const jobs = [];
+      for (const p of prompts) {
+        jobs.push(
+          await tx.generationJob.create({
+            data: {
+              userId: user.id, prompt: p, style: d.style, orientation: d.orientation, durationSec: d.durationSec, seed, cost: costFor(d.durationSec),
+              provider, ...(provider === "mock" ? {} : { status: "RUNNING" as const }),
+            },
+          }),
+        );
+      }
       const u = await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: { genCredits: true } });
-      return [job, u.genCredits] as const;
+      return [jobs, u.genCredits] as const;
     });
-    // Real generation takes ~10–60 s: run it after the response, the studio polls the job list.
-    if (job.provider === "ltx") after(() => runLtxJob(job.id));
-    return { ok: true, job: toDTO(job, Date.now()), credits };
+    // Real generation takes ~10–60 s per clip: run after the response, one after another (free GPU quota), the studio polls.
+    const real = jobs.filter((j) => j.provider === "ltx");
+    if (real.length) after(async () => { for (const j of real) await runLtxJob(j.id); });
+    const now = Date.now();
+    // Newest first, like the history list.
+    return { ok: true, jobs: jobs.map((j) => toDTO(j, now)).reverse(), credits };
   } catch (e) {
     if (e instanceof Error && e.message === "NO_CREDITS") return { ok: false, error: "no_credits" };
     throw e;
@@ -136,19 +155,72 @@ export async function deleteGenerationAction(jobId: string) {
   await prisma.generationJob.deleteMany({ where: { id: jobId, userId: user.id, status: { in: ["DONE", "FAILED"] } } });
 }
 
-export async function addGenerationToSeriesAction(jobId: string, seriesId: string, title: string): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireCreator();
-  const [job, series] = await Promise.all([
-    prisma.generationJob.findFirst({ where: { id: jobId, userId: user.id, status: "DONE" } }),
-    prisma.series.findUnique({ where: { id: seriesId } }),
-  ]);
-  if (!job?.resultUrl) return { ok: false, error: "not_ready" };
+export type AssembleResult = { ok: true; episodeId: string; number: number; durationSec: number } | { ok: false; error: "forbidden" | "invalid" | "not_ready" | "too_many" | "external" | "stitch" };
+
+const assembleSchema = z.object({
+  jobIds: z.array(z.string().min(1).max(40)).min(1).max(STITCH_MAX_CLIPS),
+  seriesId: z.string().min(1).max(40),
+  /** new = a new episode at the end of the series; append = clips go after the existing video of an episode. */
+  mode: z.enum(["new", "append"]),
+  episodeId: z.string().max(40).optional(),
+  title: z.string().max(120).default(""),
+});
+
+/**
+ * Editing table → episode: joins the chosen clips (in the given order) with ffmpeg into one video and
+ * either creates the next episode or appends them to the end of an existing one (its sound is kept).
+ */
+export async function assembleClipsAction(input: unknown): Promise<AssembleResult> {
+  let user;
+  try {
+    user = await requireCreator();
+  } catch {
+    return { ok: false, error: "forbidden" };
+  }
+  const parsed = assembleSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const d = parsed.data;
+  const series = await prisma.series.findUnique({ where: { id: d.seriesId } });
   if (!series || (series.creatorId !== user.id && user.role !== "ADMIN")) return { ok: false, error: "forbidden" };
-  const t = title.trim().slice(0, 120);
-  const last = await prisma.episode.findFirst({ where: { seriesId }, orderBy: { number: "desc" } });
-  await prisma.episode.create({
-    data: { seriesId, number: (last?.number ?? 0) + 1, titleRu: t, titleEn: t, videoUrl: job.resultUrl, durationSec: job.durationSec },
-  });
-  revalidatePath(`/studio/series/${seriesId}`);
-  return { ok: true };
+
+  const rows = await prisma.generationJob.findMany({ where: { id: { in: d.jobIds }, userId: user.id } });
+  const byId = new Map(rows.map((j) => [j.id, j]));
+  const jobs = d.jobIds.map((id) => byId.get(id));
+  if (jobs.some((j) => !j || j.status !== "DONE" || !j.resultUrl)) return { ok: false, error: "not_ready" };
+  const clips = jobs as NonNullable<(typeof jobs)[number]>[];
+  const clipSeconds = clips.reduce((a, j) => a + j.durationSec, 0);
+
+  const target = d.mode === "append" ? await prisma.episode.findFirst({ where: { id: d.episodeId ?? "", seriesId: series.id } }) : null;
+  if (d.mode === "append" && !target) return { ok: false, error: "invalid" };
+  const refs = [...(target ? [target.videoUrl] : []), ...clips.map((j) => j.resultUrl!)];
+  if (refs.length > STITCH_MAX_CLIPS) return { ok: false, error: "too_many" };
+  if (target && !/^(storage|demo):/.test(target.videoUrl) && !target.videoUrl.startsWith("/")) return { ok: false, error: "external" };
+
+  let videoUrl: string;
+  try {
+    videoUrl =
+      refs.length === 1
+        ? refs[0]
+        : await stitchClips(refs, series.orientation, `ep-${series.id.slice(-8)}-${Date.now().toString(36)}`, "studio");
+  } catch (e) {
+    if (e instanceof StitchError && e.code === "BAD_CLIP") return { ok: false, error: target ? "external" : "stitch" };
+    return { ok: false, error: "stitch" };
+  }
+
+  const title = d.title.trim();
+  let ep;
+  if (target) {
+    ep = await prisma.episode.update({
+      where: { id: target.id },
+      data: { videoUrl, durationSec: target.durationSec + clipSeconds, ...(title ? { titleRu: title, titleEn: title } : {}) },
+    });
+  } else {
+    const last = await prisma.episode.findFirst({ where: { seriesId: series.id }, orderBy: { number: "desc" } });
+    ep = await prisma.episode.create({
+      data: { seriesId: series.id, number: (last?.number ?? 0) + 1, titleRu: title, titleEn: title, videoUrl, durationSec: clipSeconds },
+    });
+  }
+  revalidatePath(`/studio/series/${series.id}`);
+  revalidatePath(`/series/${series.slug}`);
+  return { ok: true, episodeId: ep.id, number: ep.number, durationSec: ep.durationSec };
 }

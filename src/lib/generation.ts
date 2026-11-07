@@ -7,6 +7,8 @@ export const GEN_DURATIONS = [5, 10] as const;
 export const GEN_CREDITS_PER_SECOND = 2;
 export const GEN_STARTER_CREDITS = 100;
 export const PROMPT_MAX = 1000;
+/** Max shots in one storyboard (one clip per shot, joined later on the editing table). */
+export const MAX_SHOTS = 8;
 
 export function costFor(durationSec: number) {
   return durationSec * GEN_CREDITS_PER_SECOND;

@@ -33,6 +33,14 @@ describe("stitchArgs", () => {
     expect(a.at(-1)).toBe("out.mp4");
     expect(stitchArgs(["a.mp4"], "o.mp4", "HORIZONTAL").join(" ")).toContain("scale=1280:720");
   });
+
+  it("keeps the first input's soundtrack padded with silence when continuing an episode", () => {
+    const a = stitchArgs(["ep.mp4", "clip.mp4"], "out.mp4", "VERTICAL", 12.5);
+    expect(a[a.indexOf("-filter_complex") + 1]).toContain("[0:a]aresample=44100,apad=whole_dur=12.50[a]");
+    expect(a).toContain("[a]");
+    expect(a).not.toContain("-an");
+    expect(a).not.toContain("-shortest");
+  });
 });
 
 describe("stitchClips (real ffmpeg)", () => {

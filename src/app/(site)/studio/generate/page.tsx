@@ -19,7 +19,14 @@ export default async function GeneratePage() {
   const { t, locale } = await getI18n();
   const [{ jobs, credits }, series] = await Promise.all([
     listGenerationsAction(),
-    prisma.series.findMany({ where: { creatorId: user.id }, orderBy: { updatedAt: "desc" }, select: { id: true, titleRu: true, titleEn: true } }),
+    prisma.series.findMany({
+      where: { creatorId: user.id },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true, titleRu: true, titleEn: true, orientation: true,
+        episodes: { orderBy: { number: "asc" }, select: { id: true, number: true, titleRu: true, titleEn: true, durationSec: true } },
+      },
+    }),
   ]);
   return (
     <div>
@@ -33,7 +40,12 @@ export default async function GeneratePage() {
         <h1 className="mt-3 font-display text-3xl font-bold md:text-4xl">{t.gen.title}</h1>
         <p className="mt-1.5 max-w-2xl text-muted">{t.gen.sub}</p>
       </div>
-      <GenStudio initialJobs={jobs} initialCredits={credits} series={series.map((s) => ({ id: s.id, title: pick(s, "title", locale) }))} provider={genProvider()} />
+      <GenStudio initialJobs={jobs} initialCredits={credits} series={series.map((s) => ({
+          id: s.id,
+          title: pick(s, "title", locale),
+          orientation: s.orientation,
+          episodes: s.episodes.map((e) => ({ id: e.id, number: e.number, title: pick(e, "title", locale), durationSec: e.durationSec })),
+        }))} provider={genProvider()} />
     </div>
   );
 }
