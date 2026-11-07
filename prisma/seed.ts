@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { seedPredictions } from "./seed-predictions";
 
 const prisma = new PrismaClient();
 
@@ -589,6 +590,8 @@ async function main() {
       await prisma.pollVote.create({ data: { userId: fan.id, pollId: poll.id, optionId: opt.id } });
     }
   }
+
+  await seedPredictions(prisma, fans.map((f) => f.id), viewer.id);
 
   // Viewer: continue watching + list
   const viewerSeries = ["bride-of-ashes", "last-signal", "red-thread"];

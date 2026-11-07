@@ -11,6 +11,8 @@ import { CoinAmount, EmptyState } from "@/components/ui/misc";
 import { BuyButton } from "@/components/wallet/buy-button";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
 import { PromoForm } from "@/components/wallet/promo-form";
+import { GoldPanel } from "@/components/wallet/gold-panel";
+import { earnGold, getGoldState } from "@/lib/gold";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -21,7 +23,9 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const { next, promo } = await searchParams;
   const user = await requireUser("/me/wallet");
   const { t, locale } = await getI18n();
-  const [txs, checkIn] = await Promise.all([
+  // Accounts created before gold existed get the sign-up gift once, on their first wallet visit.
+  await earnGold(user.id, "WELCOME").catch(() => 0);
+  const [txs, checkIn, goldState] = await Promise.all([
     prisma.coinTransaction.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -29,6 +33,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       include: { episode: { select: { number: true, series: { select: { titleRu: true, titleEn: true } } } } },
     }),
     getCheckInState(user.id),
+    getGoldState(user.id),
   ]);
   const mockMode = process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENTS === "1";
   const df = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -60,6 +65,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <CheckInWidget state={checkIn} compact />
         <PromoForm initial={promo?.slice(0, 32) ?? ""} />
       </div>
+
+      <GoldPanel state={goldState} t={t} df={df} />
 
       <h2 className="mb-4 mt-10 font-display text-xl font-semibold">{t.wallet.buy}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">

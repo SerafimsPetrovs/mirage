@@ -85,6 +85,8 @@ model User {
   /// Free coins (welcome bonus, daily check-in, admin grants). Spent first.
   bonusCoins         Int       @default(0)
   genCredits         Int       @default(100)
+  /// Gold: free-to-earn currency (check-in, watching, votes, correct predictions). Never bought or converted from coins.
+  gold               Int       @default(0)
   /// bcrypt hash of the 4-digit parental PIN for kids mode.
   kidsPinHash        String?
   kidsPinFails       Int       @default(0)
@@ -135,6 +137,8 @@ model User {
   sceneUnlocks     SceneUnlock[]
   chatThreads      ChatThread[]
   photoUnlocks     PhotoUnlock[]
+  goldTx           GoldTransaction[]
+  predictionBets   PredictionBet[]
 }
 
 model Session {
@@ -210,6 +214,7 @@ model Series {
   earnings       CreatorEarning[]
   cameos         Cameo[]
   showScripts    ShowScript[]
+  predictions    Prediction[]
 
   @@index([status, featured])
   @@index([creatorId])
@@ -238,6 +243,7 @@ model Episode {
   skins        Skin[]
   bonusScene   BonusScene?
   cameos       Cameo[]
+  predictions  Prediction[]
 
   @@unique([seriesId, number])
 }
@@ -770,4 +776,77 @@ model EmailVerification {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+/// Gold ledger. Gold is earned for free (never bought, never converted from coins) and spent on
+/// predictions and episode unlocks. `day` (UTC yyyy-mm-dd) enforces daily earning caps.
+model GoldTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  /// Signed.
+  amount    Int
+  /// WELCOME | CHECKIN | WATCH | VOTE | RATE | BET | WIN | REFUND | UNLOCK | ADMIN
+  reason    String
+  refId     String?
+  day       String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reason, day])
+  @@index([userId, createdAt])
+}
+
+/// "Guess what happens next": asked after an episode, closes when the next episode comes out,
+/// resolved by the creator. Bets are in gold; the split of bets stays hidden until the result.
+model Prediction {
+  id          String             @id @default(cuid())
+  seriesId    String
+  /// The episode after which the question is asked; bets close once a later episode exists.
+  episodeId   String
+  questionRu  String
+  questionEn  String
+  allowCustom Boolean            @default(true)
+  /// OPEN | RESOLVED | CANCELED
+  status      String             @default("OPEN")
+  resolvedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  series      Series             @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  episode     Episode            @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  options     PredictionOption[]
+  bets        PredictionBet[]
+
+  @@index([seriesId, createdAt])
+  @@index([episodeId])
+}
+
+model PredictionOption {
+  id           String          @id @default(cuid())
+  predictionId String
+  labelRu      String
+  labelEn      String
+  correct      Boolean         @default(false)
+  prediction   Prediction      @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  bets         PredictionBet[]
+}
+
+/// One bet per viewer per prediction: a ready option or the viewer's own guess (customText).
+model PredictionBet {
+  id           String            @id @default(cuid())
+  predictionId String
+  userId       String
+  optionId     String?
+  customText   String?
+  stake        Int
+  /// Custom guesses: set by the creator when resolving.
+  customOk     Boolean           @default(false)
+  /// PENDING | WON | LOST | REFUNDED
+  status       String            @default("PENDING")
+  payout       Int               @default(0)
+  createdAt    DateTime          @default(now())
+  prediction   Prediction        @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  option       PredictionOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  @@unique([predictionId, userId])
+  @@index([predictionId])
 }

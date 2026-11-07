@@ -1,4 +1,5 @@
 "use server";
+import { earnGold } from "@/lib/gold";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { dailyCheckIn, InsufficientCoinsError, unlockEpisode } from "@/lib/coins";
@@ -45,6 +46,7 @@ export async function checkInAction(): Promise<{ ok: boolean; reward?: number; s
   if (!user || user.kidsMode) return { ok: false, error: "auth" };
   const res = await dailyCheckIn(user.id);
   if (!res) return { ok: false, error: "already" };
+  await earnGold(user.id, "CHECKIN").catch((e) => console.error("gold", e));
   // An invited friend came back on another day → reward whoever invited them.
   await prisma.$transaction((tx) => rewardInviterOnReturn(tx, user.id)).catch((e) => console.error("referral reward", e));
   revalidatePath("/", "layout");

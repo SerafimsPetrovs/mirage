@@ -11,6 +11,7 @@ import { getSpicyForEpisode } from "@/lib/extras";
 import { getAdState } from "@/lib/ads";
 import { getOrCreateRefCode } from "@/lib/referrals";
 import { hasKidsAllowance } from "@/lib/kids";
+import { getEpisodePrediction } from "@/lib/predictions";
 
 type Props = { params: Promise<{ episodeId: string }> };
 
@@ -39,7 +40,7 @@ export default async function WatchPage({ params }: Props) {
   const access = decideAccess(user, ep, unlocked);
   const idx = s.episodes.findIndex((e) => e.id === ep.id);
   const kids = !!user?.kidsMode;
-  const [progress, liked, likeCount, commentCount, spicy, kidsAutoAllowed, ads] = await Promise.all([
+  const [progress, liked, likeCount, commentCount, spicy, kidsAutoAllowed, ads, prediction] = await Promise.all([
     user ? prisma.watchProgress.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } }) : null,
     user ? prisma.like.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } }) : null,
     prisma.like.count({ where: { episodeId } }),
@@ -47,6 +48,7 @@ export default async function WatchPage({ params }: Props) {
     getSpicyForEpisode(user, { id: ep.id, seriesId: ep.seriesId, creatorId: ep.series.creatorId }, ep.series, locale),
     kids && user && !access.ok ? hasKidsAllowance(user.id, ep.seriesId) : false,
     !kids && user && !access.ok && access.reason === "locked" ? getAdState(user.id, ep.id) : null,
+    kids || !access.ok ? null : getEpisodePrediction(ep.id, ep.seriesId, user?.id ?? null, locale),
   ]);
 
   return (
@@ -67,7 +69,9 @@ export default async function WatchPage({ params }: Props) {
       liked={!!liked}
       likeCount={likeCount}
       commentCount={commentCount}
-      user={user ? { coins: user.coins, name: user.name, hue: user.avatarHue } : null}
+      user={user ? { coins: user.coins, gold: user.gold, name: user.name, hue: user.avatarHue } : null}
+      prediction={prediction}
+      canPredict={user?.id !== ep.series.creatorId}
       kids={kids}
       kidsAutoAllowed={kidsAutoAllowed}
       spicy={spicy}

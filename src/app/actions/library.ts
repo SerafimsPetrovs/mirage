@@ -5,6 +5,11 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getEpisodeAccess } from "@/lib/coins";
 import { LIMITS, rateLimit } from "@/lib/rate-limit";
+import { earnGold } from "@/lib/gold";
+
+/** Free gold for an action; never in family mode, never breaks the action itself. */
+const gold = (user: { id: string; kidsMode: boolean }, reason: Parameters<typeof earnGold>[1], refId: string) =>
+  user.kidsMode ? Promise.resolve(0) : earnGold(user.id, reason, refId).catch((e) => (console.error("gold", e), 0));
 
 type Result<T = unknown> = { ok: true; data?: T } | { ok: false; error: "auth" | "invalid" | "locked" | "closed" | "tooMany" };
 
@@ -29,7 +34,8 @@ export async function rateAction(seriesId: string, value: number): Promise<Resul
     create: { userId: user.id, seriesId, value: v },
     update: { value: v },
   });
-  return { ok: true };
+  const g = await gold(user, "RATE", seriesId);
+  return { ok: true, data: { gold: g } };
 }
 
 export async function toggleLikeAction(episodeId: string): Promise<Result<{ liked: boolean; count: number }>> {
@@ -78,7 +84,7 @@ export async function getCommentsAction(episodeId: string) {
 }
 
 /** Called periodically by the player. Also counts a view the first time. */
-export async function saveProgressAction(episodeId: string, positionSec: number, completed: boolean): Promise<Result> {
+export async function saveProgressAction(episodeId: string, positionSec: number, completed: boolean): Promise<Result<{ gold: number }>> {
   const user = await getCurrentUser();
   const res = await getEpisodeAccess(user, episodeId);
   if (!res) return { ok: false, error: "invalid" };
@@ -98,7 +104,9 @@ export async function saveProgressAction(episodeId: string, positionSec: number,
       prisma.series.update({ where: { id: res.episode.seriesId }, data: { views: { increment: 1 } } }),
     ]);
   }
-  return { ok: true };
+  // Watched to the end (once per episode, a few per day) → free gold.
+  const g = completed && !existing?.completed ? await gold(user, "WATCH", episodeId) : 0;
+  return { ok: true, data: { gold: g } };
 }
 
 export async function voteAction(pollId: string, optionId: string): Promise<Result> {
@@ -112,6 +120,7 @@ export async function voteAction(pollId: string, optionId: string): Promise<Resu
     create: { userId: user.id, pollId, optionId },
     update: { optionId },
   });
+  const g = await gold(user, "VOTE", pollId);
   revalidatePath(`/series/${poll.series.slug}`);
-  return { ok: true };
+  return { ok: true, data: { gold: g } };
 }

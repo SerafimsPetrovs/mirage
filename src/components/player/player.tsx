@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronLeft, ChevronUp, FastForward, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX, Mic2 } from "lucide-react";
+  ChevronDown, ChevronLeft, ChevronUp, FastForward, Gem, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX, Mic2 } from "lucide-react";
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
 import { fmt, formatNumber } from "@/i18n/shared";
 import { ShareSheet, shareUrl } from "@/components/ui/share-sheet";
+import { useToast } from "@/components/ui/toast";
+import { PredictionCard } from "@/components/series/prediction-card";
+import type { PredictionView } from "@/lib/predictions";
 import { btn } from "@/components/ui/button";
 import { EpisodeNumberGrid, EpisodeList } from "@/components/series/episode-grid";
 import { saveProgressAction, toggleLikeAction } from "@/app/actions/library";
@@ -29,7 +32,11 @@ export type PlayerProps = {
   liked: boolean;
   likeCount: number;
   commentCount: number;
-  user: { coins: number; name: string; hue: number } | null;
+  user: { coins: number; gold: number; name: string; hue: number } | null;
+  /** "Guess what happens next" asked after this episode (null if none / family mode). */
+  prediction: PredictionView | null;
+  /** False for the series creator (can't play on their own series). */
+  canPredict: boolean;
   /** Kids mode: no comments, parental gate instead of the paywall, sleep timer + loop. */
   kids: boolean;
   kidsAutoAllowed: boolean;
@@ -52,6 +59,7 @@ function clock(s: number) {
 export function Player(props: PlayerProps) {
   const { episode, series, prevId, nextId, user } = props;
   const { t, locale } = useI18n();
+  const toast = useToast();
   const router = useRouter();
   const vertical = series.orientation === "VERTICAL";
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -67,7 +75,9 @@ export function Player(props: PlayerProps) {
   }, []);
   const [buffering, setBuffering] = useState(true);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [sheet, setSheet] = useState<"episodes" | "comments" | "skins" | "characters" | null>(null);
+  const [sheet, setSheet] = useState<"episodes" | "comments" | "skins" | "characters" | "predict" | null>(null);
+  const [predPrompt, setPredPrompt] = useState(false);
+  const askPredict = !!props.prediction && props.prediction.open && !props.prediction.mine && !props.kids && props.canPredict;
   const [liked, setLiked] = useState(props.liked);
   const [likes, setLikes] = useState(props.likeCount);
   const [chrome, setChrome] = useState(true);
@@ -92,9 +102,13 @@ export function Player(props: PlayerProps) {
       const v = videoRef.current;
       if (!v || episode.locked) return;
       lastSaved.current = Date.now();
-      saveProgressAction(episode.id, v.currentTime, completed).catch(() => {});
+      saveProgressAction(episode.id, v.currentTime, completed)
+        .then((r) => {
+          if (completed && r.ok && r.data?.gold) toast(fmt(t.gold.earned, { n: r.data.gold }));
+        })
+        .catch(() => {});
     },
-    [episode.id, episode.locked],
+    [episode.id, episode.locked, toast, t.gold.earned],
   );
 
   // Autoplay (with muted fallback when the browser blocks sound)
@@ -304,7 +318,9 @@ export function Player(props: PlayerProps) {
         save(true);
         setPlaying(false);
         setEnded(true);
-        if (nextId && !(scene && !scene.owned)) setCountdown(5);
+        // A question after this episode: ask it instead of jumping to the next episode.
+        if (askPredict) setPredPrompt(true);
+        else if (nextId && !(scene && !scene.owned)) setCountdown(5);
       }}
       onClick={onVideoClick}
       onPointerDown={onVideoPointerDown}
@@ -348,7 +364,26 @@ export function Player(props: PlayerProps) {
     </div>
   );
 
-  const centerPlay = !episode.locked && !playing && countdown === null && !buffering && (
+  const predictionOverlay = predPrompt && props.prediction && (
+    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/65 p-6 backdrop-blur-sm">
+      <div className="animate-pop max-w-xs text-center">
+        <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">{fmt(t.pred.kicker, { n: episode.number + 1 })}</p>
+        <p className="mt-2 font-display text-xl font-bold leading-snug">{props.prediction.question}</p>
+        <div className="mt-5 flex flex-col gap-2">
+          <button onClick={() => { setPredPrompt(false); setSheet("predict"); }} className={btn("coin", "md")}>
+            <Gem size={18} /> {t.pred.endCta}
+          </button>
+          {nextId ? (
+            <button onClick={() => go(nextId)} className={btn("glass", "md")}><SkipForward size={18} /> {t.player.next}</button>
+          ) : (
+            <button onClick={() => setPredPrompt(false)} className={btn("glass", "md")}>{t.common.close}</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const centerPlay = !episode.locked && !playing && countdown === null && !predPrompt && !buffering && (
     <button onClick={toggle} aria-label={t.player.playPause} className="glass animate-pop absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
       <Play size={28} fill="currentColor" className="ml-1" />
     </button>
@@ -364,7 +399,7 @@ export function Player(props: PlayerProps) {
     (props.kids && episode.reason === "locked" ? (
       <ParentGate episodeId={episode.id} price={episode.price} autoAllowed={props.kidsAutoAllowed} />
     ) : (
-      <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={balance} ads={props.ads} />
+      <LockOverlay episodeId={episode.id} number={episode.number} reason={episode.reason} price={episode.price} balance={balance} gold={user?.gold ?? 0} ads={props.ads} />
     ));
 
   const sceneOffer = scene && (
@@ -398,6 +433,11 @@ export function Player(props: PlayerProps) {
         <Sheet open={sheet === "characters"} onClose={() => setSheet(null)} title={t.chat.online}>
           <p className="-mt-1 mb-4 text-sm text-muted">{t.chat.onlineSub}</p>
           <CharacterStrip characters={characters} compact />
+        </Sheet>
+      )}
+      {props.prediction && !props.kids && (
+        <Sheet open={sheet === "predict"} onClose={() => setSheet(null)} title={t.pred.endTitle}>
+          <PredictionCard prediction={props.prediction} loggedIn={!!user} canPlay={props.canPredict} gold={user?.gold ?? 0} compact />
         </Sheet>
       )}
       {props.kids && <SleepOverlay tools={kidsTools} />}
@@ -527,6 +567,7 @@ export function Player(props: PlayerProps) {
             </div>
 
             {nextOverlay}
+            {predictionOverlay}
             {lock}
           </div>
 

@@ -14,6 +14,8 @@ import { EpisodeList, EpisodeNumberGrid } from "@/components/series/episode-grid
 import { ListButton, RatingStars, ShareButton } from "@/components/series/series-actions";
 import { ReportButton } from "@/components/report/report-button";
 import { PollCard } from "@/components/series/poll-card";
+import { PredictionCard } from "@/components/series/prediction-card";
+import { getSeriesPrediction } from "@/lib/predictions";
 import { CameoBlock } from "@/components/series/cameo-block";
 import { getShowBlock } from "@/lib/show";
 import { CharacterStrip } from "@/components/player/spicy";
@@ -49,11 +51,12 @@ export default async function SeriesPage({ params }: Props) {
   if (s.adultBlock) return <AdultWall title={s.title} poster={s.backdrop} reason={s.adultBlock} next={`/series/${s.slug}`} />;
   const block = spicyBlock(user, s);
   const showSpicy = block === null || (s.owner && !s.kids && !s.isFamilySafe);
-  const [similar, poll, characters, show] = await Promise.all([
+  const [similar, poll, characters, show, prediction] = await Promise.all([
     getSimilar(s.id, s.genres, locale),
     getActivePoll(s.id, user?.id ?? null, locale),
     showSpicy ? getSeriesCharacters(s.id, locale) : [],
     s.interactive && !s.kids ? getShowBlock(s.id, user?.id ?? null) : null,
+    s.kids ? null : getSeriesPrediction(s.id, user?.id ?? null, locale),
   ]);
   const vip = isVip(user);
   const refCode = user && !user.kidsMode ? await getOrCreateRefCode(user.id) : null;
@@ -152,6 +155,7 @@ export default async function SeriesPage({ params }: Props) {
               <CharacterStrip characters={characters} />
             </div>
           )}
+          {prediction && <PredictionCard prediction={prediction} loggedIn={!!user} canPlay={!s.owner} gold={user?.gold ?? 0} />}
           {poll && <PollCard poll={poll} loggedIn={!!user} canBoost={!!user && !s.kids && !s.owner} balance={user?.coins ?? 0} />}
           {show && <CameoBlock seriesId={s.id} loggedIn={!!user} defaultName={user?.name ?? ""} data={show} />}
 

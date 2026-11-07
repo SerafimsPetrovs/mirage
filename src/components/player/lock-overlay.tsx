@@ -2,13 +2,16 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Crown, Lock, LogIn, Tv } from "lucide-react";
+import { Coins, Crown, Gem, Lock, LogIn, Tv } from "lucide-react";
 import { btn } from "@/components/ui/button";
 import { CoinAmount } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import { unlockEpisodeAction } from "@/app/actions/wallet";
+import { unlockWithGoldAction } from "@/app/actions/predictions";
+import { goldPrice } from "@/lib/gold-rules";
+import { GoldAmount } from "@/components/series/prediction-card";
 import type { AdState } from "@/lib/ads";
 import { RewardedAd } from "./rewarded-ad";
 
@@ -18,10 +21,11 @@ type Props = {
   reason: "login" | "locked";
   price: number;
   balance: number;
+  gold: number;
   ads?: AdState | null;
 };
 
-export function LockOverlay({ episodeId, number, reason, price, balance, ads }: Props) {
+export function LockOverlay({ episodeId, number, reason, price, balance, gold, ads }: Props) {
   const { t } = useI18n();
   const toast = useToast();
   const router = useRouter();
@@ -37,6 +41,18 @@ export function LockOverlay({ episodeId, number, reason, price, balance, ads }: 
         toast(t.player.unlocked, "coin");
         router.refresh();
       } else if (r.error === "insufficient") setShort(true);
+      else if (r.error === "auth") router.push(`/login?next=${back}`);
+      else toast(t.common.error, "error");
+    });
+
+  const goldCost = goldPrice(price);
+  const unlockGold = () =>
+    start(async () => {
+      const r = await unlockWithGoldAction(episodeId);
+      if (r.ok) {
+        toast(t.gold.unlocked, "coin");
+        router.refresh();
+      } else if (r.error === "gold") toast(fmt(t.gold.notEnough, { n: goldCost }), "error");
       else if (r.error === "auth") router.push(`/login?next=${back}`);
       else toast(t.common.error, "error");
     });
@@ -64,8 +80,9 @@ export function LockOverlay({ episodeId, number, reason, price, balance, ads }: 
           <>
             <h2 className="font-display text-lg font-semibold">{fmt(t.player.lockedTitle, { n: number })}</h2>
             <p className="mt-2 text-sm text-muted">{t.player.lockedText}</p>
-            <p className="mt-4 text-sm text-muted">
-              {t.wallet.balance}: <CoinAmount value={balance} size={14} />
+            <p className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted">
+              <span>{t.wallet.balance}: <CoinAmount value={balance} size={14} /></span>
+              <span className="inline-flex items-center gap-1">{t.gold.name}: <GoldAmount value={gold} size={14} /></span>
             </p>
             <div className="mt-5 space-y-2.5">
               {short ? (
@@ -78,6 +95,19 @@ export function LockOverlay({ episodeId, number, reason, price, balance, ads }: 
                 </button>
               )}
               {short && <p className="text-xs text-red-300">{t.player.notEnough}</p>}
+              <button
+                onClick={unlockGold}
+                disabled={pending || gold < goldCost}
+                title={gold < goldCost ? fmt(t.gold.notEnough, { n: goldCost }) : undefined}
+                className={btn("glass", "lg", "w-full text-amber-300 disabled:opacity-50")}
+              >
+                <Gem size={18} /> {fmt(t.gold.openFor, { n: goldCost })}
+              </button>
+              {gold < goldCost && (
+                <Link href="/me/wallet#gold" className="block text-xs text-muted underline-offset-2 hover:underline">
+                  {fmt(t.gold.notEnough, { n: goldCost })} · {t.pred.howToEarn}
+                </Link>
+              )}
               <Link href={`/vip?next=${back}`} className={btn("vip", "lg", "w-full")}>
                 <Crown size={18} /> {t.player.getVip}
               </Link>

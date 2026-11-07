@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ExternalLink } from "lucide-react";
+import { ChevronLeft, ExternalLink, Gem } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { mediaUrl } from "@/lib/files";
@@ -13,6 +13,8 @@ import { SeriesForm } from "@/components/studio/series-form";
 import { DeleteSeries, EpisodeManager, PollForm, SubmitForReview } from "@/components/studio/episode-manager";
 import { StatusBadge } from "@/components/studio/status-badge";
 import { ExtrasManager } from "@/components/studio/extras-manager";
+import { PredictionManager } from "@/components/studio/prediction-manager";
+import { getStudioPredictions } from "@/lib/predictions";
 
 export default async function EditSeriesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -100,6 +102,15 @@ export default async function EditSeriesPage({ params }: { params: Promise<{ id:
           polls={s.polls.map((p) => ({ id: p.id, question: pick(p, "question", locale), votes: p._count.votes, closesAt: p.closesAt.toISOString() }))}
         />
       </section>
+
+      {!s.isFamilySafe && (
+        <section className="rounded-3xl p-5 ring-1 ring-line md:p-7" style={{ background: "radial-gradient(90% 120% at 100% 0%, rgba(252,211,77,.1), transparent 60%), var(--surface)" }}>
+          <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-semibold">
+            <Gem size={20} className="text-amber-300" /> {t.pred.studio.title}
+          </h2>
+          <PredictionManager episodes={s.episodes.map((e) => ({ id: e.id, number: e.number }))} items={await getStudioPredictions(s.id, locale)} />
+        </section>
+      )}
 
       <section className="rounded-3xl p-5 ring-1 ring-line md:p-7" style={{ background: "radial-gradient(90% 120% at 100% 0%, rgba(255,46,99,.12), transparent 60%), var(--surface)" }}>
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown, Plus } from "lucide-react";
+import { Crown, Gem, Plus } from "lucide-react";
 import { getCurrentUser, isVip } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
 import { btn } from "@/components/ui/button";
@@ -50,8 +50,12 @@ export async function SiteHeader() {
                   <Crown size={15} className="text-vip" /> VIP
                 </Link>
               )}
-              <Link href="/me/wallet" className={btn("glass", "sm", "px-3")} aria-label={t.nav.wallet}>
+              <Link href="/me/wallet" className={btn("glass", "sm", "gap-2.5 px-3")} aria-label={t.nav.wallet} title={`${t.nav.wallet}: ${user.coins} · ${t.gold.name}: ${user.gold}`}>
                 <CoinAmount value={user.coins} size={15} />
+                <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-amber-300">
+                  <Gem size={14} strokeWidth={2} />
+                  {user.gold}
+                </span>
               </Link>
               <UserMenu
                 user={{ name: user.name, email: user.email, hue: user.avatarHue, role: user.role, vip, adult: isAdultMode(user) }}

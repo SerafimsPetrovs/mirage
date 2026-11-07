@@ -1,4 +1,5 @@
 "use server";
+import { earnGold } from "@/lib/gold";
 import { promoProblem, redeemPromo } from "@/lib/promo";
 import { attachReferrer, REF_COOKIE } from "@/lib/referrals";
 import { headers } from "next/headers";
@@ -110,6 +111,7 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
     data: { name, email, passwordHash: await hashPassword(password), avatarHue: Math.floor(Math.random() * 360) },
   });
   await grantCoins(user.id, WELCOME_BONUS, "BONUS", { note: "welcome" });
+  await earnGold(user.id, "WELCOME").catch((e) => console.error("gold", e));
   if (promo) await redeemPromo(user.id, promo).catch((e) => console.error("promo at sign-up", e));
   const jar = await cookies();
   const ref = String(form.get("ref") || jar.get(REF_COOKIE)?.value || "");
