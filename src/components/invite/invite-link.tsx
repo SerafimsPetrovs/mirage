@@ -5,9 +5,10 @@ import { btn } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
+import { ShareSheet } from "@/components/ui/share-sheet";
 
 export function InviteLink({ code, bonus }: { code: string; bonus: number }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const toast = useToast();
   const path = `/r/${code}`;
   const [url, setUrl] = useState(path);
@@ -15,6 +16,7 @@ export function InviteLink({ code, bonus }: { code: string; bonus: number }) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setUrl(`${location.origin}${path}`), [path]);
   const text = fmt(t.invite.shareText, { n: bonus });
+  const [sheet, setSheet] = useState(false);
 
   return (
     <div>
@@ -28,25 +30,12 @@ export function InviteLink({ code, bonus }: { code: string; bonus: number }) {
           >
             <Copy size={18} /> {t.invite.copy}
           </button>
-          <button
-            onClick={async () => {
-              if (navigator.share) {
-                try {
-                  await navigator.share({ title: "MIRAGE", text, url });
-                  return;
-                } catch {
-                  /* cancelled */
-                }
-              }
-              await navigator.clipboard?.writeText(`${text} ${url}`);
-              toast(t.invite.copied);
-            }}
-            className={btn("primary", "md", "h-12 flex-1 sm:flex-none")}
-          >
+          <button onClick={() => setSheet(true)} className={btn("primary", "md", "h-12 flex-1 sm:flex-none")}>
             <Share2 size={18} /> {t.invite.share}
           </button>
         </div>
       </div>
+      <ShareSheet open={sheet} onClose={() => setSheet(false)} url={url} text={text} title="MIRAGE" image={`/api/og/mirage?l=${locale}`} />
     </div>
   );
 }

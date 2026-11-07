@@ -8,7 +8,7 @@ import {
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
 import { fmt, formatNumber } from "@/i18n/shared";
-import { useToast } from "@/components/ui/toast";
+import { ShareSheet, shareUrl } from "@/components/ui/share-sheet";
 import { btn } from "@/components/ui/button";
 import { EpisodeNumberGrid, EpisodeList } from "@/components/series/episode-grid";
 import { saveProgressAction, toggleLikeAction } from "@/app/actions/library";
@@ -52,7 +52,6 @@ function clock(s: number) {
 export function Player(props: PlayerProps) {
   const { episode, series, prevId, nextId, user } = props;
   const { t, locale } = useI18n();
-  const toast = useToast();
   const router = useRouter();
   const vertical = series.orientation === "VERTICAL";
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -235,15 +234,8 @@ export function Player(props: PlayerProps) {
     setSheet(null);
   };
 
-  const share = async () => {
-    const path = `/series/${series.slug}`;
-    const url = props.refCode ? `${location.origin}/r/${props.refCode}?to=${encodeURIComponent(path)}` : `${location.origin}${path}`;
-    if (navigator.share) {
-      try { await navigator.share({ title: series.title, url }); return; } catch { /* cancelled */ }
-    }
-    await navigator.clipboard?.writeText(url);
-    toast(t.series.copied);
-  };
+  const [shareLink, setShareLink] = useState<string | null>(null);
+  const share = () => setShareLink(shareUrl(`/series/${series.slug}`, props.refCode));
 
   const seek = (e: React.PointerEvent<HTMLDivElement>) => {
     const v = videoRef.current;
@@ -410,6 +402,14 @@ export function Player(props: PlayerProps) {
       )}
       {props.kids && <SleepOverlay tools={kidsTools} />}
       {runner.gate}
+      <ShareSheet
+        open={!!shareLink}
+        onClose={() => setShareLink(null)}
+        url={shareLink ?? ""}
+        title={series.title}
+        text={fmt(t.share.seriesText, { title: series.title })}
+        image={`/api/og/${series.slug}?l=${locale}`}
+      />
     </>
   );
 

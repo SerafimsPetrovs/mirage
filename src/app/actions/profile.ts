@@ -1,4 +1,5 @@
 "use server";
+import { getI18n } from "@/i18n/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -26,9 +27,13 @@ export async function applyCreatorAction(_: FormState, form: FormData): Promise<
   if (!user || user.kidsMode) return { error: "auth" };
   if (user.role !== "VIEWER") return { ok: true };
   const parsed = z
-    .object({ message: z.string().trim().min(10).max(1000), portfolio: z.string().trim().max(300) })
+    .object({ message: z.string().trim().min(30).max(1000), portfolio: z.string().trim().max(300) })
     .safeParse({ message: form.get("message"), portfolio: form.get("portfolio") ?? "" });
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success || form.get("agree") !== "on") {
+    const { t } = await getI18n();
+    if (!parsed.success) return { error: parsed.error.issues[0].path[0] === "message" ? t.me.apply2.tooShort : t.me.apply2.badLink };
+    return { error: t.me.apply2.mustAgree };
+  }
   const pending = await prisma.creatorApplication.findFirst({ where: { userId: user.id, status: "PENDING" } });
   if (!pending) await prisma.creatorApplication.create({ data: { userId: user.id, ...parsed.data } });
   revalidatePath("/me");

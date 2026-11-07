@@ -18,7 +18,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "1. Who can use MIRAGE",
         p: [
-          "You must be at least 16 years old (or the minimum age of digital consent in your country) to create an account. Younger children may only watch in Kids mode, switched on and supervised by a parent.",
+          "You must be at least 16 years old (or the minimum age of digital consent in your country) to create an account. Accounts are for adults and teenagers of that age only. An account holder may switch on Family mode to watch all-ages series together with their household; it is a restricted mode of the holder's own account, not a separate account.",
           "Series and add-ons marked 18+ are available only to adults who confirm their age and turn them on in their profile. Providing a false age is a breach of these terms.",
         ],
       },
@@ -90,7 +90,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "1. Data we collect",
         p: [
-          "Account: email, display name, password (stored only as a bcrypt hash), role, settings (language, 18+ preference, kids mode PIN as a hash).",
+          "Account: email, display name, password (stored only as a bcrypt hash), role, settings (language, 18+ preference, family mode PIN as a hash).",
           "Activity: watched episodes and progress, likes, ratings, comments, list, poll votes, check-ins, referrals.",
           "Purchases: orders, coin transactions, VIP periods. Card data is processed by the payment provider; we never see full card numbers.",
           "Creators: payout details (IBAN or PayPal email) and earnings.",
@@ -131,7 +131,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "6. Children",
         p: [
-          "Kids mode is a restricted mode of a parent's account: no comments, purchases or chats, and only family-safe series. We do not knowingly create accounts for children under 16.",
+          "MIRAGE is not directed at children and we do not knowingly create accounts for or collect personal data from anyone under 16. Family mode is a restricted mode of an adult's account (no comments, purchases or chats, only series marked “All ages”); it collects no additional data.",
         ],
       },
       {
@@ -226,7 +226,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "1. Кто может пользоваться MIRAGE",
         p: [
-          "Создать аккаунт можно с 16 лет (или с возраста цифрового согласия в вашей стране). Младшие дети смотрят только в детском режиме, который включает и контролирует родитель.",
+          "Создать аккаунт можно с 16 лет (или с возраста цифрового согласия в вашей стране). Аккаунты предназначены только для людей этого возраста и старше. Владелец аккаунта может включить семейный режим, чтобы смотреть сериалы «Для всех возрастов» вместе с близкими; это ограниченный режим его собственного аккаунта, а не отдельный аккаунт.",
           "Сериалы и дополнения с пометкой 18+ доступны только взрослым, которые подтвердили возраст и сами включили их в профиле. Указание ложного возраста — нарушение условий.",
         ],
       },
@@ -298,7 +298,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "1. Какие данные мы собираем",
         p: [
-          "Аккаунт: email, имя, пароль (хранится только как bcrypt-хеш), роль, настройки (язык, 18+, PIN детского режима — тоже хешем).",
+          "Аккаунт: email, имя, пароль (хранится только как bcrypt-хеш), роль, настройки (язык, 18+, PIN семейного режима — тоже хешем).",
           "Активность: просмотренные серии и прогресс, лайки, оценки, комментарии, список, голоса, ежедневные отметки, приглашения.",
           "Покупки: заказы, движения монет, периоды VIP. Данные карт обрабатывает платёжный провайдер; полный номер карты мы не видим.",
           "Авторы: реквизиты для выплат (IBAN или email PayPal) и доходы.",
@@ -339,7 +339,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "6. Дети",
         p: [
-          "Детский режим — ограниченный режим аккаунта родителя: без комментариев, покупок и чатов, только семейные сериалы. Мы сознательно не создаём аккаунты детям младше 16 лет.",
+          "MIRAGE не предназначен для детей: мы сознательно не создаём аккаунты и не собираем персональные данные лиц младше 16 лет. Семейный режим — ограниченный режим аккаунта взрослого (без комментариев, покупок и чатов, только сериалы «Для всех возрастов»); никаких дополнительных данных он не собирает.",
         ],
       },
       {

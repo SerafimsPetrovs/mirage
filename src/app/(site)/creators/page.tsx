@@ -41,7 +41,7 @@ export default async function CreatorsPage() {
           {isCreator ? (
             <Link href="/studio" className={btn("primary", "lg")}>{t.creators.ctaStudio}</Link>
           ) : (
-            <Link href={user ? "/me" : "/register?next=/me"} className={btn("primary", "lg")}>{t.creators.cta}</Link>
+            <Link href={user ? "/me#creator" : "/register?next=/me%23creator"} className={btn("primary", "lg")}>{t.creators.cta}</Link>
           )}
         </div>
       </div>

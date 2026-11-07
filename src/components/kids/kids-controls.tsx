@@ -2,7 +2,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { KeyRound, Lock, Rocket } from "lucide-react";
+import { KeyRound, Lock, Users } from "lucide-react";
 import { btn, inputCls } from "@/components/ui/button";
 import { Modal, PinInput } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -24,7 +24,7 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
-  // Came back from login with ?kids=on and no PIN yet → open the PIN dialog right away
+  // Came back from login with ?family=on and no PIN yet → open the PIN dialog right away
   const [open, setOpen] = useState(!!autoOpen && loggedIn && !hasPin);
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
@@ -39,17 +39,17 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
         router.push("/");
         router.refresh();
       } else if (r.error === "needPin") setOpen(true);
-      else if (r.error === "auth") router.push(`/login?next=${encodeURIComponent("/?kids=on")}`);
+      else if (r.error === "auth") router.push(`/login?next=${encodeURIComponent("/?family=on")}`);
       else toast(t.common.error, "error");
     });
 
   const click = () => {
-    if (!loggedIn) return router.push(`/login?next=${encodeURIComponent("/?kids=on")}`);
+    if (!loggedIn) return router.push(`/login?next=${encodeURIComponent("/?family=on")}`);
     if (hasPin) turnOn();
     else setOpen(true);
   };
 
-  // Came back from login with ?kids=on and the PIN already exists → switch on immediately
+  // Came back from login with ?family=on and the PIN already exists → switch on immediately
   useEffect(() => {
     if (autoOpen && loggedIn && hasPin) turnOn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +73,7 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
           className,
         )}
       >
-        <Rocket size={variant === "hero" ? 20 : 17} className="shrink-0" />
+        <Users size={variant === "hero" ? 20 : 17} className="shrink-0" />
         {variant === "hero" ? (
           t.kids.promoCta
         ) : (
@@ -86,7 +86,7 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
       <Modal open={open} onClose={() => setOpen(false)} label={t.kids.setPinTitle}>
         <form onSubmit={submit} className="text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3ec5ff,#7b6cff,#ff7eb6)] text-white">
-            <Rocket size={26} />
+            <Users size={26} />
           </div>
           <h2 className="font-display text-lg font-semibold">{t.kids.setPinTitle}</h2>
           <p className="mt-1.5 text-sm text-muted">{t.kids.setPinText}</p>

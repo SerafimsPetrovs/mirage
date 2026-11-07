@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Crown } from "lucide-react";
+import { Crown, Plus } from "lucide-react";
 import { getCurrentUser, isVip } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
 import { btn } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { HeaderShell, NavLinks } from "./header-client";
 import { isAdultMode } from "@/lib/spicy";
 import { UserMenu } from "./user-menu";
 import { SearchButton } from "./command-palette";
-import { KidsEnterButton, KidsExitButton } from "@/components/kids/kids-controls";
+import { KidsExitButton } from "@/components/kids/kids-controls";
 
 export async function SiteHeader() {
   const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
@@ -19,6 +19,8 @@ export async function SiteHeader() {
     { href: "/feed", label: t.nav.feed },
     { href: "/browse", label: t.nav.browse },
     ...(user && !kids ? [{ href: "/me#list", label: t.nav.myList }] : []),
+    ...(user && !kids && (user.role === "CREATOR" || user.role === "ADMIN") ? [{ href: "/studio", label: t.nav.studio }] : []),
+    ...(!kids && (!user || user.role === "VIEWER") ? [{ href: "/creators", label: t.nav.forCreators }] : []),
   ];
   return (
     <HeaderShell>
@@ -38,7 +40,11 @@ export async function SiteHeader() {
             <KidsExitButton />
           ) : user ? (
             <>
-              <KidsEnterButton loggedIn hasPin={!!user.kidsPinHash} />
+              {(user.role === "CREATOR" || user.role === "ADMIN") && (
+                <Link href="/studio/series/new" className={btn("primary", "sm", "max-lg:hidden")}>
+                  <Plus size={15} /> {t.studio.newSeries}
+                </Link>
+              )}
               {!vip && (
                 <Link href="/vip" className={btn("glass", "sm", "max-lg:hidden")}>
                   <Crown size={15} className="text-vip" /> VIP
@@ -53,7 +59,6 @@ export async function SiteHeader() {
             </>
           ) : (
             <>
-              <KidsEnterButton loggedIn={false} hasPin={false} />
               <Link href="/login" className={btn("ghost", "sm", "max-sm:hidden")}>
                 {t.nav.login}
               </Link>

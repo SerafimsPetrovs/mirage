@@ -43,7 +43,7 @@ export function Modal({
       document.body.style.overflow = prev;
     };
   }, [open, hydrated]);
-  // Portals only after hydration: a modal open on first render (e.g. ?kids=on) must not differ from the server HTML.
+  // Portals only after hydration: a modal open on first render (e.g. ?family=on) must not differ from the server HTML.
   if (!open || !hydrated) return null;
   return createPortal(
     <div className="fixed inset-0 z-[90] flex items-end justify-center p-3 sm:items-center sm:p-6">

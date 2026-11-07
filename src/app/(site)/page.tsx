@@ -15,7 +15,7 @@ import { getCheckInState } from "@/lib/coins";
 import { getRecommendations } from "@/lib/recommend";
 import { fmt } from "@/i18n/shared";
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ kids?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ family?: string }> }) {
   const [{ t, locale }, user, sp] = await Promise.all([getI18n(), getCurrentUser(), searchParams]);
   const kids = !!user?.kidsMode;
   const data = await getHomeData(locale, user?.id ?? null);
@@ -34,7 +34,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     <div className="pb-6">
       {kids && (
         <section className="px-4 pt-[calc(var(--header-h)+20px)] md:px-10 md:pt-[calc(var(--header-h)+32px)]">
-          {sp.kids === "locked" && (
+          {sp.family === "locked" && (
             <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium">
               <Lock size={15} /> {t.kids.lockedPage}
             </p>
@@ -63,12 +63,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
               className="relative flex flex-col gap-5 overflow-hidden rounded-3xl p-6 ring-1 ring-white/10 md:flex-row md:items-center md:justify-between md:p-8"
               style={{ background: "radial-gradient(70% 140% at 0% 0%, rgba(62,197,255,.38), transparent 60%), radial-gradient(70% 140% at 100% 100%, rgba(255,126,182,.36), transparent 60%), linear-gradient(120deg, #241f5c, #2b2266)" }}
             >
-              <span aria-hidden className="pointer-events-none absolute -right-6 -top-8 select-none text-[120px] leading-none opacity-25 md:right-8 md:top-1/2 md:-translate-y-1/2 md:text-[150px]">🚀</span>
+              <span aria-hidden className="pointer-events-none absolute -right-6 -top-8 select-none text-[120px] leading-none opacity-25 md:right-8 md:top-1/2 md:-translate-y-1/2 md:text-[150px]">🏡</span>
               <div className="relative">
                 <h2 className="font-display text-2xl font-bold md:text-3xl">{t.kids.promoTitle}</h2>
                 <p className="mt-2 max-w-xl text-white/80">{t.kids.promoText}</p>
               </div>
-              <KidsEnterButton variant="hero" loggedIn={!!user} hasPin={!!user?.kidsPinHash} autoOpen={sp.kids === "on"} className="relative self-start md:mr-40 md:self-auto" />
+              <KidsEnterButton variant="hero" loggedIn={!!user} hasPin={!!user?.kidsPinHash} autoOpen={sp.family === "on"} className="relative self-start md:mr-40 md:self-auto" />
             </div>
           </section>
         )}

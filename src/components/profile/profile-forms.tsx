@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useEffect, useState } from "react";
 import clsx from "clsx";
-import { Clapperboard } from "lucide-react";
+import { Check, Clapperboard, Gift, ShieldCheck } from "lucide-react";
 import { btn, inputCls, labelCls, textareaCls } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
@@ -59,22 +59,56 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
   const { t } = useI18n();
   const [state, action, pending] = useActionState<FormState, FormData>(applyCreatorAction, undefined);
   const sent = status === "PENDING" || state?.ok;
+  const a = t.me.apply2;
   return (
     <div
-      className="rounded-3xl p-5 ring-1 ring-line md:p-6"
+      id="creator"
+      className="scroll-mt-24 rounded-3xl p-5 ring-1 ring-line md:p-6"
       style={{ background: "radial-gradient(100% 140% at 100% 0%, rgba(255,46,99,.2), transparent 55%), var(--surface)" }}
     >
       <div className="mb-2 flex items-center gap-2 font-display text-lg font-semibold">
         <Clapperboard size={20} className="text-accent-2" /> {t.me.becomeCreator}
       </div>
       <p className="text-sm text-muted">{t.me.becomeCreatorText}</p>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-line">
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><Gift size={16} className="text-coin" /> {a.getTitle}</p>
+          <ul className="space-y-1.5 text-sm text-muted">
+            {a.get.map((x) => <li key={x} className="flex gap-2"><Check size={15} className="mt-0.5 shrink-0 text-ok" />{x}</li>)}
+          </ul>
+        </div>
+        <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-line">
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold"><ShieldCheck size={16} className="text-vip" /> {a.needTitle}</p>
+          <ul className="space-y-1.5 text-sm text-muted">
+            {a.need.map((x) => <li key={x} className="flex gap-2"><span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-vip" />{x}</li>)}
+          </ul>
+        </div>
+      </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted">{a.how}</p>
+
       {sent ? (
         <p className="mt-4 rounded-2xl bg-coin/10 px-4 py-3 text-sm font-medium text-coin">{t.me.applicationPending}</p>
       ) : (
-        <form action={action} className="mt-4 space-y-3">
+        <form action={action} className="mt-5 space-y-4">
           {status === "REJECTED" && <p className="text-sm text-red-300">{t.me.applicationRejected}</p>}
-          <textarea name="message" required minLength={10} maxLength={1000} rows={3} placeholder={t.me.applicationMessage} className={textareaCls} />
-          <input name="portfolio" type="url" placeholder={t.me.portfolio} className={inputCls} />
+          <div>
+            <label htmlFor="app-msg" className={labelCls}>{a.messageLabel}</label>
+            <textarea id="app-msg" name="message" required minLength={30} maxLength={1000} rows={4} placeholder={a.messagePh} className={textareaCls} />
+            <p className="mt-1 text-xs text-muted">{a.messageHint}</p>
+          </div>
+          <div>
+            <label htmlFor="app-portfolio" className={labelCls}>{a.portfolioLabel}</label>
+            <input id="app-portfolio" name="portfolio" type="url" placeholder="https://youtube.com/@your-channel" className={inputCls} />
+            <p className="mt-1 text-xs text-muted">{a.portfolioHint}</p>
+          </div>
+          <label className="flex items-start gap-3 text-sm text-muted">
+            <input type="checkbox" name="agree" required className="mt-1 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+            <span>
+              {a.agree}{" "}
+              <a href="/legal/terms" target="_blank" className="text-text underline underline-offset-2">{a.terms}</a>
+            </span>
+          </label>
           {state?.error && <p className="text-sm text-red-300">{state.error}</p>}
           <button disabled={pending} className={btn("primary", "md")}>{t.me.apply}</button>
         </form>

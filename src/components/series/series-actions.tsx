@@ -5,6 +5,8 @@ import clsx from "clsx";
 import { Check, Plus, Share2, Star } from "lucide-react";
 import { btn } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { ShareSheet, shareUrl } from "@/components/ui/share-sheet";
+import { fmt } from "@/i18n/shared";
 import { useI18n } from "@/i18n/client";
 import { rateAction, toggleListAction } from "@/app/actions/library";
 
@@ -36,31 +38,29 @@ export function ListButton({ seriesId, initial, compact }: { seriesId: string; i
   );
 }
 
-/** Shares the page; for signed-in viewers the link carries their invite code (/r/CODE?to=…). */
-export function ShareButton({ title, refCode }: { title: string; refCode?: string | null }) {
-  const { t } = useI18n();
-  const toast = useToast();
+/** Opens the share sheet; for signed-in viewers the link carries their invite code (/r/CODE?to=…). */
+export function ShareButton({ title, slug, refCode, withLabel }: { title: string; slug: string; refCode?: string | null; withLabel?: boolean }) {
+  const { t, locale } = useI18n();
+  const [url, setUrl] = useState<string | null>(null);
   return (
-    <button
-      className={btn("glass", "icon", "h-13 w-13")}
-      aria-label={t.series.share}
-      onClick={async () => {
-        const path = location.pathname;
-        const url = refCode ? `${location.origin}/r/${refCode}?to=${encodeURIComponent(path)}` : `${location.origin}${path}`;
-        if (navigator.share) {
-          try {
-            await navigator.share({ title, url });
-            return;
-          } catch {
-            /* user cancelled */
-          }
-        }
-        await navigator.clipboard?.writeText(url);
-        toast(t.series.copied);
-      }}
-    >
-      <Share2 size={20} />
-    </button>
+    <>
+      <button
+        className={withLabel ? btn("glass", "lg") : btn("glass", "icon", "h-13 w-13")}
+        aria-label={t.series.share}
+        onClick={() => setUrl(shareUrl(`/series/${slug}`, refCode))}
+      >
+        <Share2 size={20} />
+        {withLabel && t.series.share}
+      </button>
+      <ShareSheet
+        open={!!url}
+        onClose={() => setUrl(null)}
+        url={url ?? ""}
+        title={title}
+        text={fmt(t.share.seriesText, { title })}
+        image={`/api/og/${slug}?l=${locale}`}
+      />
+    </>
   );
 }
 

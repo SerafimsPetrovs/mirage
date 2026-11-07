@@ -12,10 +12,14 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", 
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getI18n();
+  const { t, locale } = await getI18n();
+  const image = { url: `/api/og/mirage?l=${locale}`, width: 1200, height: 630, alt: "MIRAGE" };
   return {
+    metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
     title: { default: t.meta.title, template: "%s · MIRAGE" },
     description: t.meta.description,
+    openGraph: { type: "website", siteName: "MIRAGE", title: t.meta.title, description: t.meta.description, images: [image] },
+    twitter: { card: "summary_large_image", title: t.meta.title, description: t.meta.description, images: [image.url] },
     applicationName: "MIRAGE",
     icons: { icon: "/icon.svg" },
   };

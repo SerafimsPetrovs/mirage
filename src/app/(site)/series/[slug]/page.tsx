@@ -31,7 +31,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!s) return {};
   // Never leak 18+ artwork into link previews; keep 18+ pages out of search engines.
   if (s.isAdult) return { title: `${s.title} (18+)`, robots: { index: false, follow: false } };
-  return { title: s.title, description: s.tagline || s.description.slice(0, 160), openGraph: { images: [s.backdrop] } };
+  const description = s.tagline || s.description.slice(0, 160);
+  const image = { url: `/api/og/${s.slug}?l=${locale}`, width: 1200, height: 630, alt: s.title };
+  return {
+    title: s.title,
+    description,
+    openGraph: { type: "video.tv_show", title: s.title, description, siteName: "MIRAGE", url: `/series/${s.slug}`, images: [image] },
+    twitter: { card: "summary_large_image", title: s.title, description, images: [image.url] },
+  };
 }
 
 export default async function SeriesPage({ params }: Props) {
@@ -108,7 +115,7 @@ export default async function SeriesPage({ params }: Props) {
                 </Link>
               )}
               <ListButton seriesId={s.id} initial={s.inList} />
-              <ShareButton title={s.title} refCode={refCode} />
+              <ShareButton title={s.title} slug={s.slug} refCode={refCode} />
               {!user?.kidsMode && user?.id !== s.creatorId && <ReportButton targetType="SERIES" targetId={s.id} loggedIn={!!user} />}
             </div>
             <p className="mt-4 text-sm text-muted">

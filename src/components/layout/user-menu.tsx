@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import clsx from "clsx";
-import { Clapperboard, Crown, Flame, Gift, Languages, LogOut, MessageCircleHeart, Shield, User, Wallet } from "lucide-react";
+import { Clapperboard, Crown, Flame, Gift, Languages, LogOut, MessageCircleHeart, Plus, Shield, User, Users, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { btn } from "@/components/ui/button";
@@ -78,11 +78,23 @@ export function UserMenu({ user }: Props) {
           <Link href="/vip" className={item} onClick={() => setOpen(false)}>
             <Crown size={18} className="text-vip" /> {t.nav.vip}
           </Link>
-          {(user.role === "CREATOR" || user.role === "ADMIN") && (
-            <Link href="/studio" className={item} onClick={() => setOpen(false)}>
-              <Clapperboard size={18} /> {t.nav.studio}
+          {user.role === "CREATOR" || user.role === "ADMIN" ? (
+            <>
+              <Link href="/studio" className={item} onClick={() => setOpen(false)}>
+                <Clapperboard size={18} /> {t.nav.studio}
+              </Link>
+              <Link href="/studio/series/new" className={item} onClick={() => setOpen(false)}>
+                <Plus size={18} className="text-accent" /> {t.studio.newSeries}
+              </Link>
+            </>
+          ) : (
+            <Link href="/creators" className={item} onClick={() => setOpen(false)}>
+              <Clapperboard size={18} /> {t.me.becomeCreator}
             </Link>
           )}
+          <Link href="/?family=on" className={item} onClick={() => setOpen(false)} title={t.kids.promoText}>
+            <Users size={18} className="text-sky-300" /> {t.kids.enter}
+          </Link>
           {user.role === "ADMIN" && (
             <Link href="/admin" className={item} onClick={() => setOpen(false)}>
               <Shield size={18} /> {t.nav.admin}
