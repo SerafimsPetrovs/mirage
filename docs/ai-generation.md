@@ -9,7 +9,12 @@ Page: `/studio/generate` (CREATOR / ADMIN). Status: **mock provider** — the UI
 - `startGenerationAction` checks the prompt, atomically debits credits (`updateMany … genCredits >= cost`) and creates a job.
 - `listGenerationsAction` advances mock jobs by elapsed time (`mockState`: ~3 s queue + 3 s per output second) and sets `resultUrl = demo:<clip>.mp4` on completion. The client polls every 1.2 s while any job is open.
 - Preview: `/api/studio/generations/[id]/video` (owner only, Range support).
-- `addGenerationToSeriesAction` appends the clip as the next episode of the creator's series.
+- **Storyboard** (2026-11-07): `startGenerationAction({ prompt, shots[] })` creates one job per shot (up to `MAX_SHOTS` = 8) in one
+  credit transaction; the shared scene description is prepended to every shot, style and seed are shared. Real (LTX) jobs run one after another.
+- **Editing table** (2026-11-07): `assembleClipsAction({ jobIds, seriesId, mode, episodeId?, title })` joins the chosen clips in order with
+  ffmpeg (`stitchClips(…, "studio")` → `storage/videos/studio/`). `mode: "new"` creates the next episode; `mode: "append"` puts the clips
+  after an existing episode's video and keeps its soundtrack (`apad=whole_dur`, silence under the new clips). Up to 11 clips + the episode.
+  Episodes on an external URL can't be continued (`external`).
 
 ## Content policy
 Generation has no external filter. `checkPrompt` hard-blocks sexual content involving minors

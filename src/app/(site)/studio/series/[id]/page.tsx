@@ -96,7 +96,8 @@ export default async function EditSeriesPage({ params }: { params: Promise<{ id:
       </section>
 
       <section className="rounded-3xl bg-surface p-5 ring-1 ring-line md:p-7">
-        <h2 className="mb-5 font-display text-xl font-semibold">{t.studio.polls}</h2>
+        <h2 className="mb-2 font-display text-xl font-semibold">{t.studio.polls}</h2>
+        <p className="mb-5 text-sm leading-relaxed text-muted">{t.studio.pollsSub}</p>
         <PollForm
           seriesId={s.id}
           polls={s.polls.map((p) => ({ id: p.id, question: pick(p, "question", locale), votes: p._count.votes, closesAt: p.closesAt.toISOString() }))}

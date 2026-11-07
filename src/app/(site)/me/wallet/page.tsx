@@ -41,6 +41,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 pt-[calc(var(--header-h)+24px)] md:px-10">
       <h1 className="font-display text-3xl font-bold">{t.wallet.title}</h1>
+      <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">{t.wallet.sub}</p>
 
       <div
         className="grain mt-6 overflow-hidden rounded-[28px] p-6 ring-1 ring-line md:p-8"

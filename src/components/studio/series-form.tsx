@@ -84,6 +84,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
           <div>
             <label className={labelCls} htmlFor="titleEn">{f.titleEn}</label>
             <input id="titleEn" name="titleEn" defaultValue={initial.titleEn} required maxLength={120} className={inputCls} />
+            <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.title}</p>
           </div>
           <div>
             <label className={labelCls} htmlFor="titleRu">{f.titleRu}</label>
@@ -92,6 +93,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
           <div>
             <label className={labelCls} htmlFor="taglineEn">{f.taglineEn}</label>
             <input id="taglineEn" name="taglineEn" defaultValue={initial.taglineEn} maxLength={200} className={inputCls} />
+            <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.tagline}</p>
           </div>
           <div>
             <label className={labelCls} htmlFor="taglineRu">{f.taglineRu}</label>
@@ -100,6 +102,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
           <div className="sm:col-span-2">
             <label className={labelCls} htmlFor="descriptionEn">{f.descriptionEn}</label>
             <textarea id="descriptionEn" name="descriptionEn" defaultValue={initial.descriptionEn} required rows={4} maxLength={4000} className={textareaCls} />
+            <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.description}</p>
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls} htmlFor="descriptionRu">{f.descriptionRu}</label>
@@ -115,6 +118,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
             <option value="VERTICAL">{t.common.vertical} 9:16</option>
             <option value="HORIZONTAL">{t.common.horizontal} 16:9</option>
           </select>
+          <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.orientation}</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="ageRating">{f.ageRating}</label>
@@ -125,10 +129,12 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
         <div>
           <label className={labelCls} htmlFor="freeEpisodes">{f.freeEpisodes}</label>
           <input id="freeEpisodes" name="freeEpisodes" type="number" min={0} max={50} defaultValue={initial.freeEpisodes} className={inputCls} />
+          <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.freeEpisodes}</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="defaultCoinPrice">{f.defaultCoinPrice}</label>
           <input id="defaultCoinPrice" name="defaultCoinPrice" type="number" min={1} max={500} defaultValue={initial.defaultCoinPrice} className={inputCls} />
+          <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.price}</p>
         </div>
       </div>
 
@@ -160,6 +166,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
         <div className="sm:col-span-2">
           <label className={labelCls} htmlFor="aiModels">{f.aiModels}</label>
           <input id="aiModels" name="aiModels" defaultValue={initial.aiModels} placeholder="Sora 2, Kling 2.5, Suno v5" maxLength={300} className={inputCls} />
+          <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.aiModels}</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="promptNotesRu">{f.promptNotesRu}</label>
@@ -168,6 +175,7 @@ export function SeriesForm({ initial }: { initial: SeriesFormValues }) {
         <div>
           <label className={labelCls} htmlFor="promptNotesEn">{f.promptNotesEn}</label>
           <textarea id="promptNotesEn" name="promptNotesEn" defaultValue={initial.promptNotesEn} rows={4} maxLength={3000} className={textareaCls} />
+          <p className="mt-1 text-xs leading-relaxed text-muted">{f.hints.promptNotes}</p>
         </div>
         <div className="sm:col-span-2">
           <label className={labelCls} htmlFor="hue">{f.hue}</label>
