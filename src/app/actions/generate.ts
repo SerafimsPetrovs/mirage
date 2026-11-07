@@ -1,4 +1,5 @@
 "use server";
+import { prepareWatermark } from "@/lib/watermark";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
@@ -220,6 +221,7 @@ export async function assembleClipsAction(input: unknown): Promise<AssembleResul
       data: { seriesId: series.id, number: (last?.number ?? 0) + 1, titleRu: title, titleEn: title, videoUrl, durationSec: clipSeconds },
     });
   }
+  after(() => prepareWatermark(videoUrl).catch(() => {}));
   revalidatePath(`/studio/series/${series.id}`);
   revalidatePath(`/series/${series.slug}`);
   return { ok: true, episodeId: ep.id, number: ep.number, durationSec: ep.durationSec };

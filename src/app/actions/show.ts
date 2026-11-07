@@ -1,4 +1,5 @@
 "use server";
+import { prepareWatermark } from "@/lib/watermark";
 import { z } from "zod";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -184,6 +185,7 @@ export async function publishScriptAction(scriptId: string, jobIds: string[] | s
   const durationSec = jobs.reduce((a, j) => a + j.durationSec, 0);
   try {
     const ep = await publishScript(scriptId, videoUrl, durationSec);
+    after(() => prepareWatermark(videoUrl).catch(() => {}));
     await done(ep.seriesId);
     return { ok: true, episodeId: ep.id };
   } catch (e) {

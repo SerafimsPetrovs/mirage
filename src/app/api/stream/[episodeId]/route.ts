@@ -1,8 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
-import { getEpisodeAccess } from "@/lib/coins";
 import { prisma } from "@/lib/db";
 import { resolveMediaPath, serveFile } from "@/lib/files";
-import { adultSeriesBlock, spicyBlock } from "@/lib/spicy";
+import { spicyBlock } from "@/lib/spicy";
+import { guardEpisodeStream } from "@/lib/stream-guard";
+import { readyAssetFor } from "@/lib/watermark";
 
 function serveRef(ref: string, req: Request) {
   if (/^https?:\/\//.test(ref)) return Response.redirect(ref, 302);
@@ -15,14 +16,9 @@ function serveRef(ref: string, req: Request) {
 export async function GET(req: Request, ctx: { params: Promise<{ episodeId: string }> }) {
   const { episodeId } = await ctx.params;
   const user = await getCurrentUser();
-  const res = await getEpisodeAccess(user, episodeId);
-  if (!res) return new Response("Not found", { status: 404 });
-  const { episode, access } = res;
-  const isOwner = !!user && (user.role === "ADMIN" || user.id === episode.series.creatorId);
-  if (episode.series.status !== "PUBLISHED" && !isOwner) return new Response("Not found", { status: 404 });
-  if (user?.kidsMode && !episode.series.isFamilySafe) return new Response("Not found", { status: 404 });
-  if (!isOwner && adultSeriesBlock(user, episode.series)) return new Response("Forbidden", { status: 403 });
-  if (!access.ok) return new Response("Locked", { status: 403 });
+  const g = await guardEpisodeStream(user, episodeId);
+  if (g.error) return g.error;
+  const { episode, isOwner } = g;
 
   const skinId = new URL(req.url).searchParams.get("skin");
   if (skinId) {
@@ -35,5 +31,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ episodeId: stri
     }
     return serveRef(skin.videoUrl, req);
   }
+  // Protected videos are only delivered as the personal watermarked HLS stream (owners still get the original).
+  if (!isOwner && (await readyAssetFor(episode.videoUrl))) return new Response("Use /api/hls", { status: 403 });
   return serveRef(episode.videoUrl, req);
 }

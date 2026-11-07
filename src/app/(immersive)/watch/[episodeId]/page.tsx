@@ -12,6 +12,7 @@ import { getAdState } from "@/lib/ads";
 import { getOrCreateRefCode } from "@/lib/referrals";
 import { hasKidsAllowance } from "@/lib/kids";
 import { getEpisodePrediction } from "@/lib/predictions";
+import { readyAssetFor } from "@/lib/watermark";
 
 type Props = { params: Promise<{ episodeId: string }> };
 
@@ -62,6 +63,7 @@ export default async function WatchPage({ params }: Props) {
         reason: access.ok ? null : access.reason,
         price: access.ok ? 0 : access.price,
         startAt: progress && !progress.completed ? progress.positionSec : 0,
+        hls: access.ok && !!(await readyAssetFor(ep.videoUrl)),
       }}
       series={{ slug: s.slug, title: s.title, orientation: s.orientation, poster: s.poster, backdrop: s.backdrop, episodes: s.episodes }}
       prevId={s.episodes[idx - 1]?.id ?? null}
@@ -71,6 +73,7 @@ export default async function WatchPage({ params }: Props) {
       commentCount={commentCount}
       user={user ? { coins: user.coins, gold: user.gold, name: user.name, hue: user.avatarHue } : null}
       prediction={prediction}
+      viewerTag={user ? user.id.slice(-6).toUpperCase() : null}
       canPredict={user?.id !== ep.series.creatorId}
       kids={kids}
       kidsAutoAllowed={kidsAutoAllowed}

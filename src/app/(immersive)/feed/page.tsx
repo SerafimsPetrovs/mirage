@@ -21,7 +21,7 @@ export default async function FeedPage() {
     orderBy: { views: "desc" },
     take: 30,
     include: {
-      episodes: { where: { number: 1 }, select: { id: true, number: true } },
+      episodes: { where: { number: 1 }, select: { id: true, number: true, videoUrl: true } },
       _count: { select: { episodes: true } },
       ...(user ? { listItems: { where: { userId: user.id }, select: { userId: true } } } : {}),
     },
@@ -34,6 +34,9 @@ export default async function FeedPage() {
     .sort((a, b) => a.k - b.k)
     .map((x) => x.s);
 
+  const protectedRefs = new Set(
+    (await prisma.watermarkAsset.findMany({ where: { status: "READY", sourceRef: { in: ordered.flatMap((s) => s.episodes.map((e) => e.videoUrl)) } }, select: { sourceRef: true } })).map((a) => a.sourceRef),
+  );
   const items: FeedItem[] = ordered
     .filter((s) => s.episodes[0])
     .map((s) => ({
@@ -47,6 +50,7 @@ export default async function FeedPage() {
       episodes: s._count.episodes,
       episodeId: s.episodes[0].id,
       episodeNumber: 1,
+      hls: protectedRefs.has(s.episodes[0].videoUrl),
       inList: "listItems" in s && Array.isArray(s.listItems) && s.listItems.length > 0,
     }));
 

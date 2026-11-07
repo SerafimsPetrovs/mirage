@@ -1,4 +1,5 @@
 "use client";
+import { useHls } from "@/components/player/use-hls";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
@@ -20,6 +21,8 @@ export type FeedItem = {
   episodes: number;
   episodeId: string;
   episodeNumber: number;
+  /** First episode is protected → play the personal watermarked HLS stream. */
+  hls: boolean;
   inList: boolean;
 };
 
@@ -65,7 +68,7 @@ export function Feed({ items }: { items: FeedItem[] }) {
           <div className="relative h-full w-full overflow-hidden md:h-[calc(100%-32px)] md:w-auto md:aspect-[9/16] md:rounded-3xl md:ring-1 md:ring-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={it.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            {Math.abs(idx - active) <= 1 && <FeedVideo src={`/api/stream/${it.episodeId}`} active={idx === active} muted={muted} />}
+            {Math.abs(idx - active) <= 1 && <FeedVideo src={`/api/stream/${it.episodeId}`} hlsUrl={it.hls ? `/api/hls/${it.episodeId}` : null} active={idx === active} muted={muted} />}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/40" />
 
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(14px,env(safe-area-inset-top))]">
@@ -115,8 +118,9 @@ export function Feed({ items }: { items: FeedItem[] }) {
   );
 }
 
-function FeedVideo({ src, active, muted }: { src: string; active: boolean; muted: boolean }) {
+function FeedVideo({ src, hlsUrl, active, muted }: { src: string; hlsUrl: string | null; active: boolean; muted: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
+  useHls(ref, hlsUrl);
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -129,7 +133,7 @@ function FeedVideo({ src, active, muted }: { src: string; active: boolean; muted
   return (
     <video
       ref={ref}
-      src={src}
+      src={hlsUrl ? undefined : src}
       muted={muted}
       loop
       playsInline

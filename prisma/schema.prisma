@@ -138,6 +138,7 @@ model User {
   chatThreads      ChatThread[]
   photoUnlocks     PhotoUnlock[]
   goldTx           GoldTransaction[]
+  wmSessions       WatermarkSession[]
   predictionBets   PredictionBet[]
 }
 
@@ -849,4 +850,36 @@ model PredictionBet {
 
   @@unique([predictionId, userId])
   @@index([predictionId])
+}
+
+/// Forensic watermark package of one source video (shared by every episode that uses the same file):
+/// two HLS encodes A and B that differ only by an invisible low-frequency luma pattern.
+model WatermarkAsset {
+  id        String             @id @default(cuid())
+  /// Media ref of the source video (storage:/demo:), unique.
+  sourceRef String             @unique
+  /// Folder under storage/wm/.
+  dir       String             @unique
+  /// PENDING | RUNNING | READY | FAILED
+  status    String             @default("PENDING")
+  segments  Int                @default(0)
+  segSec    Int                @default(2)
+  error     String?
+  createdAt DateTime           @default(now())
+  readyAt   DateTime?
+  sessions  WatermarkSession[]
+}
+
+/// Which A/B sequence (code) a signed-in viewer receives for an asset. Code 0 = guests (all A).
+model WatermarkSession {
+  id        String         @id @default(cuid())
+  assetId   String
+  userId    String
+  code      Int
+  createdAt DateTime       @default(now())
+  asset     WatermarkAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, userId])
+  @@unique([assetId, code])
 }

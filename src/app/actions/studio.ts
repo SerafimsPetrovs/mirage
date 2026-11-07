@@ -1,4 +1,6 @@
 "use server";
+import { after } from "next/server";
+import { prepareWatermark } from "@/lib/watermark";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -144,6 +146,8 @@ export async function addEpisodeAction(seriesId: string, input: Record<string, s
       coinPrice: parsed.data.coinPrice === "" ? null : parsed.data.coinPrice,
     },
   });
+  // Invisible per-viewer watermark is encoded in the background (minutes); until then the plain file plays.
+  if (!/^https?:/.test(parsed.data.videoUrl)) after(() => prepareWatermark(parsed.data.videoUrl).catch(() => {}));
   revalidatePath(`/studio/series/${seriesId}`);
   return { ok: true };
 }

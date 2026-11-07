@@ -40,6 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           { href: "/admin/payouts", label: t.payouts.nav, badge: payouts },
           { href: "/admin/show", label: t.show.adminNav },
           { href: "/admin/promos", label: t.promo.adminNav },
+          { href: "/admin/watermark", label: t.wm.nav },
           { href: "/admin/comments", label: t.admin.comments },
           { href: "/admin/orders", label: t.adm.orders },
           { href: "/admin/log", label: t.adm.log },

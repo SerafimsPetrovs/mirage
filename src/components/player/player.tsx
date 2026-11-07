@@ -11,6 +11,7 @@ import { fmt, formatNumber } from "@/i18n/shared";
 import { ShareSheet, shareUrl } from "@/components/ui/share-sheet";
 import { useToast } from "@/components/ui/toast";
 import { PredictionCard } from "@/components/series/prediction-card";
+import { useHls } from "./use-hls";
 import type { PredictionView } from "@/lib/predictions";
 import { btn } from "@/components/ui/button";
 import { EpisodeNumberGrid, EpisodeList } from "@/components/series/episode-grid";
@@ -25,7 +26,7 @@ import type { AdState } from "@/lib/ads";
 import { KidsToolButtons, SleepOverlay, useKidsTools } from "@/components/kids/kids-tools";
 
 export type PlayerProps = {
-  episode: { id: string; number: number; title: string; locked: boolean; reason: "login" | "locked" | null; price: number; startAt: number };
+  episode: { id: string; number: number; title: string; locked: boolean; reason: "login" | "locked" | null; price: number; startAt: number; hls: boolean };
   series: { slug: string; title: string; orientation: "VERTICAL" | "HORIZONTAL"; poster: string; backdrop: string; episodes: EpisodeItem[] };
   prevId: string | null;
   nextId: string | null;
@@ -35,6 +36,8 @@ export type PlayerProps = {
   user: { coins: number; gold: number; name: string; hue: number } | null;
   /** "Guess what happens next" asked after this episode (null if none / family mode). */
   prediction: PredictionView | null;
+  /** Short viewer tag drawn over the video (visible deterrent; the real tracing is the invisible A/B watermark). */
+  viewerTag: string | null;
   /** False for the series creator (can't play on their own series). */
   canPredict: boolean;
   /** Kids mode: no comments, parental gate instead of the paywall, sleep timer + loop. */
@@ -87,6 +90,9 @@ export function Player(props: PlayerProps) {
   const [skins, setSkins] = useState(props.spicy?.skins ?? []);
   const [scene, setScene] = useState(props.spicy?.scene ?? null);
   const [skinId, setSkinId] = useState<string | null>(null);
+  // Protected episodes play as the viewer's personal watermarked HLS stream (skins stay plain mp4).
+  const hlsUrl = !episode.locked && episode.hls && !skinId ? `/api/hls/${episode.id}` : null;
+  useHls(videoRef, hlsUrl);
   const [ended, setEnded] = useState(false);
   const pendingSeek = useRef<number | null>(null);
   const runner = useSpicyRunner(setBalance);
@@ -290,7 +296,7 @@ export function Player(props: PlayerProps) {
     <video
       ref={videoRef}
       key={episode.id}
-      src={`/api/stream/${episode.id}${skinId ? `?skin=${skinId}` : ""}`}
+      src={hlsUrl ? undefined : `/api/stream/${episode.id}${skinId ? `?skin=${skinId}` : ""}`}
       className={clsx("absolute inset-0 h-full w-full select-none [-webkit-touch-callout:none]", vertical ? "object-cover" : "object-contain")}
       playsInline
       preload="auto"
@@ -382,6 +388,8 @@ export function Player(props: PlayerProps) {
       </div>
     </div>
   );
+
+  const viewerMark = !episode.locked && props.viewerTag && <ViewerMark tag={props.viewerTag} />;
 
   const centerPlay = !episode.locked && !playing && countdown === null && !predPrompt && !buffering && (
     <button onClick={toggle} aria-label={t.player.playPause} className="glass animate-pop absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
@@ -568,6 +576,7 @@ export function Player(props: PlayerProps) {
 
             {nextOverlay}
             {predictionOverlay}
+            {viewerMark}
             {lock}
           </div>
 
@@ -715,5 +724,20 @@ export function Player(props: PlayerProps) {
       </div>
       {sheets}
     </div>
+  );
+}
+
+/** Faint "MIRAGE · tag" that drifts between corners: screen recordings show whose account it was. */
+function ViewerMark({ tag }: { tag: string }) {
+  const [pos, setPos] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPos((p) => (p + 1) % 4), 17_000);
+    return () => clearInterval(id);
+  }, []);
+  const place = ["left-4 top-20", "right-4 top-1/3", "left-6 bottom-1/3", "right-6 top-24"][pos];
+  return (
+    <span aria-hidden className={clsx("pointer-events-none absolute z-[5] select-none font-mono text-[11px] tracking-wider text-white/25 transition-all duration-1000", place)}>
+      MIRAGE · {tag}
+    </span>
   );
 }
