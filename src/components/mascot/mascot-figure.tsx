@@ -13,8 +13,10 @@ import type { Emotion } from "@/lib/mascot";
  *  - lure: sways, its glow takes the emotion's colour and flares on loud syllables.
  * `variant` switches between a few poses per emotion ("micro-clips").
  */
-type Hand = "relaxed" | "point" | "fist" | "palm";
-type Pose = { head: number; lean: number; armL: number; armR: number; y: number; scale: number; hL: Hand; hR: Hand };
+/** `you` = fist with the index finger aimed straight at the viewer (Uncle Sam), drawn over the cuff. */
+export type Hand = "relaxed" | "point" | "fist" | "palm" | "you";
+/** `lenL`/`lenR` < 1 foreshorten an arm (reaching toward the viewer). */
+export type Pose = { head: number; lean: number; armL: number; armR: number; y: number; scale: number; hL: Hand; hR: Hand; lenL?: number; lenR?: number };
 
 const P = (head: number, lean: number, armL: number, armR: number, y: number, scale: number, hL: Hand, hR: Hand): Pose => ({ head, lean, armL, armR, y, scale, hL, hR });
 
@@ -299,15 +301,38 @@ function HandShape({ kind }: { kind: Hand }) {
   }
 }
 
-function Arm({ hand, lit }: { hand: Hand; lit: boolean }) {
+/** Finger aimed at the camera: knuckles toward us, fingertip + nail in the middle, thumb across. */
+function HandYou() {
+  const s = { fill: SKIN, stroke: OUT, strokeWidth: 4, strokeLinejoin: "round" as const };
+  return (
+    <g transform="translate(0 112) scale(1.6)">
+      <path d="M-30 -18 C-34 6 -26 30 -2 34 C22 36 34 18 32 -6 C30 -26 14 -36 -6 -34 C-22 -32 -28 -26 -30 -18 Z" {...s} />
+      <path d="M-28 -2 q14 4 26 0 M-26 14 q14 5 26 1" fill="none" stroke={OUT} strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M-30 -10 C-34 10 -28 26 -12 32" fill="none" stroke={SKIN_SH} strokeWidth="8" strokeLinecap="round" opacity=".8" />
+      {/* thumb over the curled fingers */}
+      <path d="M-24 22 C-10 30 12 30 22 20 C26 14 20 8 12 12 C2 18 -12 16 -22 14 Z" fill={SKIN} stroke={OUT} strokeWidth="3.5" strokeLinejoin="round" />
+      {/* index fingertip pointing at the viewer */}
+      <circle cx="10" cy="-8" r="17" fill={SKIN} stroke={OUT} strokeWidth="4" />
+      <ellipse cx="13" cy="-11" rx="8.5" ry="9.5" fill={SKIN_LIT} stroke={OUT} strokeWidth="2.5" />
+      <path d="M2 4 q8 6 18 0" fill="none" stroke={OUT} strokeWidth="2" opacity=".6" />
+    </g>
+  );
+}
+
+function Arm({ hand, lit, len = 1, angle }: { hand: Hand; lit: boolean; len?: number; angle: number }) {
   return (
     <g>
-      <path d="M-22 -6 Q0 -22 21 -6 C25 36 23 78 19 114 L-19 114 C-25 78 -27 36 -22 -6 Z" fill={SUIT} stroke={OUT} strokeWidth="4" strokeLinejoin="round" />
-      <path d="M-14 4 C-18 40 -16 80 -12 108" fill="none" stroke={SUIT_SH} strokeWidth="9" strokeLinecap="round" opacity=".75" />
-      {lit && <path d="M17 2 C20 40 20 78 16 106" fill="none" stroke={SUIT_LIT} strokeWidth="3.5" strokeLinecap="round" />}
-      <path d="M-6 70 q6 6 12 2" fill="none" stroke={OUT} strokeWidth="2" opacity=".6" />
-      <rect x="-19" y="108" width="38" height="12" rx="3" fill={SHIRT} stroke={OUT} strokeWidth="3" />
-      <HandShape kind={hand} />
+      <g transform={`scale(1 ${len})`}>
+        <path d="M-22 -6 Q0 -22 21 -6 C25 36 23 78 19 114 L-19 114 C-25 78 -27 36 -22 -6 Z" fill={SUIT} stroke={OUT} strokeWidth="4" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        <path d="M-14 4 C-18 40 -16 80 -12 108" fill="none" stroke={SUIT_SH} strokeWidth="9" strokeLinecap="round" opacity=".75" />
+        {lit && <path d="M17 2 C20 40 20 78 16 106" fill="none" stroke={SUIT_LIT} strokeWidth="3.5" strokeLinecap="round" />}
+        <path d="M-6 70 q6 6 12 2" fill="none" stroke={OUT} strokeWidth="2" opacity=".6" />
+      </g>
+      {/* cuff + hand keep their size; the `you` hand stays upright whatever the arm angle */}
+      <g transform={`translate(0 ${114 * len}) ${hand === "you" ? `rotate(${-angle})` : ""} translate(0 -114)`}>
+        <rect x="-19" y="108" width="38" height="12" rx="3" fill={SHIRT} stroke={OUT} strokeWidth="3" />
+        {hand === "you" ? <HandYou /> : <HandShape kind={hand} />}
+      </g>
     </g>
   );
 }
@@ -465,27 +490,51 @@ function useFlap(active: boolean, pulse: number) {
   return Math.abs(Math.sin(t / 75)) * (0.55 + 0.45 * Math.abs(Math.sin(t / 190 + 1))) * amp;
 }
 
-export function MascotFigure({ emotion, variant = 0, pulse = 0, className }: { emotion: Emotion; variant?: number; pulse?: number; className?: string }) {
+export function MascotFigure({
+  emotion,
+  variant = 0,
+  pulse = 0,
+  pose,
+  still = false,
+  viewBox = "0 0 440 480",
+  className,
+}: {
+  emotion: Emotion;
+  variant?: number;
+  pulse?: number;
+  /** Fixed pose instead of the emotion's micro-clips (illustrations). */
+  pose?: Pose;
+  /** No talking mouth (illustrations). */
+  still?: boolean;
+  /** Wider frame for illustrations so raised hands are not cut. */
+  viewBox?: string;
+  className?: string;
+}) {
   const poses = POSES[emotion] ?? POSES.IDLE;
-  const p = poses[variant % poses.length];
+  const p = pose ?? poses[variant % poses.length];
   const ease = "transform 180ms cubic-bezier(.2,.8,.2,1)";
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const flap = useFlap(emotion !== "IDLE", pulse);
+  const flap = useFlap(!still && emotion !== "IDLE", pulse);
   const flare = 1 + Math.min(0.35, pulse * 0.12);
+  const armL = (
+    <g style={{ transform: `translate(70px, 370px) rotate(${p.armL}deg)`, transition: ease }}>
+      <Arm hand={p.hL} lit={false} len={p.lenL} angle={p.armL} />
+    </g>
+  );
   return (
-    <svg viewBox="0 0 440 480" className={clsx("mascot-fig overflow-visible", `mascot-${emotion.toLowerCase()}`, className)} role="img" aria-label="Mr. Static">
+    <svg viewBox={viewBox} className={clsx("mascot-fig overflow-visible", `mascot-${emotion.toLowerCase()}`, className)} role="img" aria-label="Mr. Static">
       <g style={{ transform: `translateY(${p.y}px) scale(${p.scale}) rotate(${p.lean}deg)`, transformOrigin: "200px 480px", transition: ease }}>
         <g className="mascot-breathe">
           <Body />
-          <g style={{ transform: `translate(70px, 370px) rotate(${p.armL}deg)`, transition: ease }}>
-            <Arm hand={p.hL} lit={false} />
-          </g>
+          {p.hL !== "you" && armL}
           <g style={{ transform: `translate(316px, 366px) rotate(${p.armR}deg) scaleX(-1)`, transition: ease }}>
-            <Arm hand={p.hR} lit />
+            <Arm hand={p.hR} lit len={p.lenR} angle={-p.armR} />
           </g>
           <g style={{ transform: `rotate(${p.head}deg)`, transformOrigin: "200px 318px", transition: ease }}>
             <Head emotion={emotion} flap={flap} uid={uid} glow={LURE[emotion]} flare={flare} />
           </g>
+          {/* an arm reaching at the viewer is in front of everything */}
+          {p.hL === "you" && armL}
         </g>
       </g>
     </svg>

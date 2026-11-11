@@ -6,6 +6,7 @@ import { btn, inputCls, labelCls, textareaCls } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
+import { MascotCameo } from "@/components/mascot/mascot-cameo";
 import { applyCreatorAction, updateProfileAction } from "@/app/actions/profile";
 import type { FormState } from "@/app/actions/auth";
 
@@ -66,10 +67,15 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
       className="scroll-mt-24 rounded-3xl p-5 ring-1 ring-line md:p-6"
       style={{ background: "radial-gradient(100% 140% at 100% 0%, rgba(255,46,99,.2), transparent 55%), var(--surface)" }}
     >
-      <div className="mb-2 flex items-center gap-2 font-display text-lg font-semibold">
-        <Clapperboard size={20} className="text-accent-2" /> {t.me.becomeCreator}
+      <div className="flex items-end gap-3">
+        <div className="min-w-0 flex-1 self-center">
+          <div className="mb-2 flex items-center gap-2 font-display text-lg font-semibold">
+            <Clapperboard size={20} className="text-accent-2" /> {t.me.becomeCreator}
+          </div>
+          <p className="text-sm text-muted">{t.me.becomeCreatorText}</p>
+        </div>
+        <MascotCameo kind="want-you" className="-my-2 w-[120px] shrink-0 md:w-[170px]" />
       </div>
-      <p className="text-sm text-muted">{t.me.becomeCreatorText}</p>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-line">
