@@ -62,7 +62,7 @@ export const getKidsMode = cache(async () => (await getCurrentUser())?.kidsMode 
 
 /** Redirects away from grown-up-only pages (wallet, studio, admin, profile settings) in kids mode. */
 export async function forbidInKidsMode() {
-  if (await getKidsMode()) redirect("/?family=locked");
+  if (await getKidsMode()) redirect("/library?family=locked");
 }
 
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;

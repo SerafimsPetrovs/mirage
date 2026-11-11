@@ -6,6 +6,7 @@ import { getCurrentUser, isVip } from "@/lib/auth";
 import { getActivePoll, getSeriesPage, getSimilar } from "@/lib/series";
 import { getI18n } from "@/i18n/server";
 import { fmt, formatNumber, plural } from "@/i18n/shared";
+import { LocalTime } from "@/components/ui/local-time";
 import { btn } from "@/components/ui/button";
 import { AiChip, Avatar, SectionTitle } from "@/components/ui/misc";
 import { Row, RowItem } from "@/components/media/row";
@@ -146,6 +147,18 @@ export default async function SeriesPage({ params }: Props) {
               {t.series.episodes} <span className="text-muted">· {s.episodes.length}</span>
             </h2>
             {vertical ? <EpisodeNumberGrid episodes={s.episodes} currentId={s.hasProgress ? s.resume?.id : undefined} t={t} /> : <EpisodeList episodes={s.episodes} backdrop={s.backdrop} t={t} />}
+            {s.upcoming.length > 0 && (
+              <ul className="mt-4 space-y-1.5 text-sm">
+                {s.upcoming.slice(0, 3).map((u) => (
+                  <li key={u.number} className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 ring-1 ring-line">
+                    <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-xs font-bold text-accent">{t.v3.studio.soon}</span>
+                    <span>
+                      {fmt(t.v3.studio.soonLine, { n: u.number })} <LocalTime ms={u.at} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
 

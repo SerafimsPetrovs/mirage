@@ -39,6 +39,12 @@ enum CoinReason {
   PHOTO
   PROMO
   CAMEO
+  TV_ORDER
+  TV_TICKER
+  TV_SUPERCHAT
+  APP
+  BOUNTY
+  BUDDY
 }
 
 enum OrderKind {
@@ -140,6 +146,25 @@ model User {
   goldTx           GoldTransaction[]
   wmSessions       WatermarkSession[]
   predictionBets   PredictionBet[]
+  tvClips          TvClip[]
+  tvMessages       TvMessage[]
+  tvTickers        TvTicker[]
+  tvOrders         TvOrder[]
+  tvLikes          TvClipLike[]
+  /// Muted in MIRAGE TV chats until this moment (moderation).
+  tvMutedUntil     DateTime?
+  /// Watch buddy: the chosen companion and what it wears ({"hat":"cap","face":null,"neck":"scarf"}).
+  buddyId          String    @default("blip")
+  buddyOutfit      String    @default("{}")
+  buddyItems       BuddyItem[]
+  tvPollVotes      TvPollVote[]
+  tvQuizAnswers    TvQuizAnswer[]
+  tvWatch          TvWatch[]
+  tvGames          TvGame[]
+  invitesOwned     CreatorInvite[] @relation("InviteOwner")
+  inviteUsed       CreatorInvite?  @relation("InviteUser")
+  creatorTasks     CreatorTask[]
+  appPurchases     AiAppPurchase[]
 }
 
 model Session {
@@ -216,6 +241,9 @@ model Series {
   cameos         Cameo[]
   showScripts    ShowScript[]
   predictions    Prediction[]
+  tvClips        TvClip[]
+  funnelClicks   TvFunnelClick[]
+  tasks          CreatorTask[]
 
   @@index([status, featured])
   @@index([creatorId])
@@ -232,6 +260,8 @@ model Episode {
   thumbnailUrl String?
   coinPrice    Int?
   views        Int      @default(0)
+  /// Release scheduler: hidden from viewers until this moment (null = released).
+  publishAt    DateTime?
   createdAt    DateTime @default(now())
 
   series       Series            @relation(fields: [seriesId], references: [id], onDelete: Cascade)
@@ -245,6 +275,7 @@ model Episode {
   bonusScene   BonusScene?
   cameos       Cameo[]
   predictions  Prediction[]
+  tvSlots      TvSlot[]
 
   @@unique([seriesId, number])
 }
@@ -786,7 +817,7 @@ model GoldTransaction {
   userId    String
   /// Signed.
   amount    Int
-  /// WELCOME | CHECKIN | WATCH | VOTE | RATE | BET | WIN | REFUND | UNLOCK | ADMIN
+  /// WELCOME | CHECKIN | WATCH | VOTE | RATE | BET | WIN | REFUND | UNLOCK | BUDDY | ADMIN
   reason    String
   refId     String?
   day       String
@@ -882,4 +913,417 @@ model WatermarkSession {
 
   @@unique([assetId, userId])
   @@unique([assetId, code])
+}
+
+// ───────────────────────────── MIRAGE TV ─────────────────────────────
+
+/// A 24/7 channel of the interdimensional TV. Everyone watching it sees the same slot at the same second.
+model TvChannel {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  /// Channel number on the remote (unique).
+  number      Int      @unique
+  nameRu      String
+  nameEn      String
+  taglineRu   String   @default("")
+  taglineEn   String   @default("")
+  /// ABSURD | DOCS | DARK | MUSIC | CHILL | SERIES | KIDS | NIGHT — picks host templates and the look.
+  kind        String
+  /// Catalog genres (comma separated) whose free episodes fill gaps between TV clips. Empty = no episodes.
+  genres      String   @default("")
+  hue         Int      @default(330)
+  hostName    String
+  /// Character description for the LLM showrunner (fictional hosts only).
+  hostPersona String   @default("")
+  /// Visible only in family mode, and only family-safe content.
+  familyOnly  Boolean  @default(false)
+  /// 18+ channel: only for viewers with 18+ enabled.
+  isAdult     Boolean  @default(false)
+  /// SMS greetings ticker (music channel).
+  ticker      Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  /// Hosts a quiz every half hour.
+  quiz     Boolean  @default(true)
+  /// Bounty hub: minutes of fresh content the channel needs per 24 h.
+  bufferTargetMin Int       @default(120)
+  /// Admin's manual "deficit / bounty x2" switch (until this moment).
+  bountyUntil     DateTime?
+  alerts       TvAlert[]
+  injections   TvInjection[]
+  funnelClicks TvFunnelClick[]
+  slots    TvSlot[]
+  clips    TvClip[]
+  messages TvMessage[]
+  tickers  TvTicker[]
+  orders   TvOrder[]
+  polls    TvPoll[]
+  factory  TvFactoryItem[]
+}
+
+/// TV-only content: shows, bumpers, fake/sponsored ads, music videos.
+model TvClip {
+  id          String      @id @default(cuid())
+  channelId   String
+  /// SHOW | BUMPER | AD | MUSIC
+  kind        String      @default("SHOW")
+  title       String
+  /// Music videos: performer shown in the corner caption.
+  artist      String      @default("")
+  videoUrl    String
+  durationSec Int         @default(30)
+  orientation Orientation @default(HORIZONTAL)
+  /// PENDING (moderation) | APPROVED | REJECTED
+  status      String      @default("PENDING")
+  /// "Sponsored by …" plate for clips ordered by viewers.
+  sponsorName String?
+  creatorId   String?
+  plays       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  /// "Info" popover: what this show/universe is about.
+  lore        String      @default("")
+  /// AI tools used (comma separated).
+  aiTools     String      @default("")
+  /// Genre tags (comma separated).
+  tags        String      @default("")
+  ageRating   String      @default("12+")
+  /// Prompts / production notes from the creator (shared pool metadata).
+  prompts     String      @default("")
+  /// WebVTT or SRT subtitles shown while the broadcast is muted.
+  captions    String      @default("")
+  /// The catalog series this clip belongs to ("watch the whole series" funnel).
+  seriesId    String?
+  /// Bounty zone of the channel when the clip was uploaded: GREEN | YELLOW | RED | BOOST ("" = admin upload).
+  bountyZone  String      @default("")
+  /// Set once the bounty reward was paid (on approval).
+  bountyPaidAt DateTime?
+
+  channel TvChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  creator User?        @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  series  Series?      @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  slots   TvSlot[]
+  likes   TvClipLike[]
+  order   TvOrder?
+
+  @@index([channelId, status, kind])
+}
+
+/// One entry of a channel's daily schedule (built lazily per UTC day).
+model TvSlot {
+  id          String    @id @default(cuid())
+  channelId   String
+  /// UTC day YYYY-MM-DD the slot belongs to.
+  day         String
+  startsAt    DateTime
+  durationSec Int
+  /// CLIP | EPISODE | HOST | BREAK | CHART
+  kind        String
+  clipId      String?
+  episodeId   String?
+  /// Host lines (HOST, CHART intro) written by the LLM showrunner or templates.
+  textRu      String    @default("")
+  textEn      String    @default("")
+  /// BREAK: the sponsored clip bound to this break when it went on air.
+  breakClipId String?
+  /// QUIZ: {"q":{ru,en},"options":[{ru,en}…],"correct":n} — the answer never leaves the server before the slot ends.
+  data        String    @default("")
+  quizAnswers TvQuizAnswer[]
+  channel     TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  clip        TvClip?   @relation(fields: [clipId], references: [id], onDelete: SetNull)
+  episode     Episode?  @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@unique([channelId, startsAt])
+  @@index([channelId, day])
+}
+
+/// Live chat message of a channel.
+model TvMessage {
+  id        String    @id @default(cuid())
+  channelId String
+  userId    String
+  text      String
+  /// Super chat: coins paid to highlight the message (0 = normal message).
+  paid      Int       @default(0)
+  reports   Int       @default(0)
+  hidden    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  channel   TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+/// Paid SMS greeting in the crawling ticker (shown for a while to everyone on the channel).
+model TvTicker {
+  id        String    @id @default(cuid())
+  channelId String
+  userId    String
+  text      String
+  coins     Int
+  hidden    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  channel   TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+/// "Put something crazy on air": a viewer pays, AI generates a clip, a moderator approves, it airs in a break.
+model TvOrder {
+  id           String    @id @default(cuid())
+  userId       String
+  channelId    String
+  idea         String
+  prompt       String    @default("")
+  coins        Int
+  /// GENERATING | REVIEW | APPROVED | AIRED | REJECTED | FAILED
+  status       String    @default("GENERATING")
+  jobId        String?
+  clipId       String?   @unique
+  rejectReason String?
+  createdAt    DateTime  @default(now())
+  airedAt      DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel      TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  clip         TvClip?   @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+/// A viewer's like of a music video (drives the weekly Top 10).
+model TvClipLike {
+  userId    String
+  clipId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clip      TvClip   @relation(fields: [clipId], references: [id], onDelete: Cascade)
+
+  @@id([userId, clipId])
+  @@index([clipId, createdAt])
+}
+
+/// "What's next?" poll on air: viewers pick one of three programmes, the winner airs right after the current one.
+model TvPoll {
+  id         String       @id @default(cuid())
+  channelId  String
+  /// JSON array of clip/episode refs: [{"type":"CLIP","id":"…"}]
+  options    String
+  endsAt     DateTime
+  /// Index of the winning option once resolved.
+  winner     Int?
+  resolved   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  channel    TvChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  votes      TvPollVote[]
+
+  @@index([channelId, resolved, endsAt])
+}
+
+model TvPollVote {
+  pollId    String
+  userId    String
+  option    Int
+  createdAt DateTime @default(now())
+  poll      TvPoll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId])
+}
+
+model TvQuizAnswer {
+  slotId    String
+  userId    String
+  choice    Int
+  rewarded  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  slot      TvSlot   @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([slotId, userId])
+}
+
+/// Seconds of TV a viewer watched on a UTC day (heartbeats), and how many 10-minute rewards were paid.
+model TvWatch {
+  userId   String
+  day      String
+  seconds  Int      @default(0)
+  rewarded Int      @default(0)
+  lastBeat DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+}
+
+/// One round of the ad-break mini game (server-timed, so a score can't be posted without playing).
+model TvGame {
+  id         String    @id @default(cuid())
+  userId     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  score      Int?
+  gold       Int       @default(0)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+/// Admin's AI clip factory: an idea for a channel → a generation job → added to the channel as a clip.
+model TvFactoryItem {
+  id        String    @id @default(cuid())
+  channelId String
+  kind      String    @default("SHOW")
+  title     String
+  prompt    String
+  jobId     String?
+  /// DRAFT (idea) | GENERATING | READY | ADDED | FAILED
+  status    String    @default("DRAFT")
+  clipId    String?
+  createdAt DateTime  @default(now())
+  channel   TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+}
+
+/// A viewer clicked "watch the whole series" during a broadcast (creator analytics).
+model TvFunnelClick {
+  id        String     @id @default(cuid())
+  seriesId  String
+  channelId String?
+  userId    String?
+  createdAt DateTime   @default(now())
+  series    Series     @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  channel   TvChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@index([seriesId, createdAt])
+}
+
+/// System alert / crawl shown over the broadcast to every viewer (all channels when channelId is null).
+model TvAlert {
+  id        String     @id @default(cuid())
+  channelId String?
+  text      String
+  until     DateTime
+  createdAt DateTime   @default(now())
+  channel   TvChannel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([until])
+}
+
+/// Live teleprompter: the mascot reads an admin's text — picture-in-picture over the current video, or a breaking-news slot.
+model TvInjection {
+  id          String     @id @default(cuid())
+  /// null = every channel.
+  channelId   String?
+  text        String
+  /// PIP | BREAKING
+  mode        String     @default("PIP")
+  /// AUTO | ANGRY_RAGE | HYPE_EXCITED | LAUGH_SARCASM | SHOCK_SCARED
+  tone        String     @default("AUTO")
+  /// JSON emotional timeline (parseScriptToEmotionalTimeline).
+  timeline    String
+  /// Server TTS file (null = the viewer's browser speaks).
+  audioUrl    String?
+  startsAt    DateTime
+  durationSec Int
+  createdAt   DateTime   @default(now())
+  channel     TvChannel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([startsAt])
+}
+
+/// Mascot clip bank: short loops per emotion stitched live by the DynamicMascotPlayer.
+model MascotClip {
+  id         String   @id @default(cuid())
+  /// IDLE | NEUTRAL_TALK | HYPE_EXCITED | ANGRY_RAGE | LAUGH_SARCASM | SHOCK_SCARED | GLITCH_TRANSITION
+  emotion    String
+  url        String
+  durationMs Int      @default(800)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([emotion, active])
+}
+
+/// Creator invite: every active creator has 5; a viewer who enters one becomes a creator.
+model CreatorInvite {
+  code      String    @id
+  ownerId   String
+  usedById  String?   @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  owner     User      @relation("InviteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  usedBy    User?     @relation("InviteUser", fields: [usedById], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+}
+
+/// Creator's production planner: episodes to make, script notes, readiness checklist.
+model CreatorTask {
+  id        String    @id @default(cuid())
+  creatorId String
+  seriesId  String?
+  title     String
+  notes     String    @default("")
+  dueAt     DateTime?
+  /// TODO | DOING | DONE
+  status    String    @default("TODO")
+  /// JSON [{"t":"Script","done":false}]
+  checklist String    @default("[]")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  creator   User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  series    Series?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+
+  @@index([creatorId, status])
+}
+
+/// One-click AI app showcase: packaged installers for people who don't use GitHub or a console.
+model AiApp {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  taglineRu     String   @default("")
+  taglineEn     String   @default("")
+  descriptionRu String   @default("")
+  descriptionEn String   @default("")
+  /// IMAGE | VIDEO | VOICE | MUSIC | TEXT | TOOLS
+  category      String   @default("TOOLS")
+  hue           Int      @default(260)
+  /// 0 = free.
+  priceCoins    Int      @default(0)
+  /// Stored installer refs (storage path or URL); empty = not available for that OS yet.
+  winFile       String   @default("")
+  macFile       String   @default("")
+  /// Opens in the browser instead of a download.
+  webUrl        String   @default("")
+  /// Short requirement line, e.g. "Windows 10+, 8 GB GPU".
+  requirements  String   @default("")
+  featured      Boolean  @default(false)
+  active        Boolean  @default(true)
+  downloads     Int      @default(0)
+  createdAt     DateTime @default(now())
+  purchases     AiAppPurchase[]
+}
+
+model AiAppPurchase {
+  userId    String
+  appId     String
+  coins     Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  app       AiApp    @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@id([userId, appId])
+}
+
+/// A watch-buddy character or outfit piece the viewer owns (free ones are never stored).
+model BuddyItem {
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
 }

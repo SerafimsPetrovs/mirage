@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import { Coins, Crown, Sparkles } from "lucide-react";
+import { MascotCameo, type MascotCameoKind } from "@/components/mascot/mascot-cameo";
 
 export function Avatar({ name, hue, size = 36, className }: { name: string; hue: number; size?: number; className?: string }) {
   return (
@@ -65,10 +66,15 @@ export function SectionTitle({ title, sub, action }: { title: string; sub?: stri
   );
 }
 
-export function EmptyState({ icon, title, text, action }: { icon: React.ReactNode; title: string; text?: string; action?: React.ReactNode }) {
+/** Viewer-facing empty states pass `mascot` to show Mr. Static instead of the icon. */
+export function EmptyState({ icon, title, text, action, mascot }: { icon: React.ReactNode; title: string; text?: string; action?: React.ReactNode; mascot?: MascotCameoKind }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-line px-6 py-14 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2 text-muted">{icon}</div>
+    <div className={clsx("flex flex-col items-center justify-center rounded-3xl border border-dashed border-line px-6 text-center", mascot ? "pb-12 pt-6" : "py-14")}>
+      {mascot ? (
+        <MascotCameo kind={mascot} className="mb-2 w-[200px] md:w-[230px]" />
+      ) : (
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-2 text-muted">{icon}</div>
+      )}
       <p className="font-display text-base font-semibold">{title}</p>
       {text && <p className="mt-1.5 max-w-sm text-sm text-muted">{text}</p>}
       {action && <div className="mt-5">{action}</div>}

@@ -4,7 +4,7 @@
  * Gold is a free-to-earn currency. It is never sold and never converted from coins, so a prediction
  * stake has no money value: predictions stay a free game, not gambling.
  */
-export type GoldEarnReason = "WELCOME" | "CHECKIN" | "WATCH" | "VOTE" | "RATE";
+export type GoldEarnReason = "WELCOME" | "CHECKIN" | "WATCH" | "VOTE" | "RATE" | "TV_WATCH" | "TV_VOTE" | "TV_QUIZ" | "TV_GAME";
 
 /** How much one action gives and how many times a day it pays. */
 export const GOLD_EARN: Record<GoldEarnReason, { amount: number; perDay: number }> = {
@@ -13,6 +13,14 @@ export const GOLD_EARN: Record<GoldEarnReason, { amount: number; perDay: number 
   WATCH: { amount: 2, perDay: 5 },
   VOTE: { amount: 3, perDay: 3 },
   RATE: { amount: 2, perDay: 3 },
+  /** MIRAGE TV: every 10 minutes on air (up to an hour a day). */
+  TV_WATCH: { amount: 2, perDay: 6 },
+  /** "What's next?" vote on air. */
+  TV_VOTE: { amount: 1, perDay: 5 },
+  /** Correct quiz answer on air. */
+  TV_QUIZ: { amount: 3, perDay: 5 },
+  /** Good score in the ad-break mini game. */
+  TV_GAME: { amount: 3, perDay: 3 },
 };
 
 /** Episode price in gold: cheaper in numbers than coins (gold is scarce), never below 1. */

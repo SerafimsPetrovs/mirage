@@ -1,0 +1,2 @@
+storage/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+storage/**/*.ts filter=lfs diff=lfs merge=lfs -text

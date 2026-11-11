@@ -51,7 +51,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {results && (
         <div className="mt-10">
           <h1 className="mb-5 font-display text-xl font-semibold">{fmt(t.search.results, { q })}</h1>
-          {results.length ? <SeriesGrid items={results} t={t} locale={locale} /> : <EmptyState icon={<SearchX size={24} />} title={t.search.none} />}
+          {results.length ? <SeriesGrid items={results} t={t} locale={locale} /> : <EmptyState mascot="shrug" icon={<SearchX size={24} />} title={t.search.none} />}
         </div>
       )}
     </div>

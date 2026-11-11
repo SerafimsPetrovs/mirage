@@ -8,6 +8,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
   const { slug } = await ctx.params;
   const [user, locale] = await Promise.all([getCurrentUser(), getLocale()]);
   const s = await getSeriesPage(slug, user, locale);
-  if (!s || !s.resume) redirect("/");
+  if (!s || !s.resume) redirect("/library");
   redirect(`/watch/${s.resume.id}`);
 }

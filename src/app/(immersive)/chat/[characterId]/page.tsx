@@ -29,7 +29,7 @@ export default async function ChatPage({ params }: Props) {
   const [{ locale }, user, c] = await Promise.all([getI18n(), getCurrentUser(), load(characterId)]);
   if (!c || c.series.status !== "PUBLISHED") notFound();
   const block = spicyBlock(user, c.series);
-  if (block === "kids") redirect("/?family=locked");
+  if (block === "kids") redirect("/library?family=locked");
   if (block === "family") notFound();
   if (block === "auth") redirect(`/login?next=${encodeURIComponent(`/chat/${characterId}`)}`);
 

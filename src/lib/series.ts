@@ -46,7 +46,11 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
   const unlocked = new Set(unlocks.map((u) => u.episodeId));
   const progressMap = new Map(progress.map((p) => [p.episodeId, p]));
 
-  const episodes: EpisodeItem[] = s.episodes.map((e) => {
+  // Release scheduler: episodes with a future publishAt are hidden from viewers (the owner sees everything).
+  const now = new Date();
+  const released = s.episodes.filter((e) => owner || !e.publishAt || e.publishAt <= now);
+  const upcoming = owner ? [] : s.episodes.filter((e) => e.publishAt && e.publishAt > now).map((e) => ({ number: e.number, at: e.publishAt!.getTime() }));
+  const episodes: EpisodeItem[] = released.map((e) => {
     const access = decideAccess(user, { ...e, series: s }, unlocked.has(e.id));
     const p = progressMap.get(e.id);
     return {
@@ -91,6 +95,7 @@ export async function getSeriesPage(slug: string, user: CurrentUser | null, loca
     creator: s.creator,
     inListCount: s._count.listItems,
     episodes,
+    upcoming,
     resume,
     hasProgress: progress.length > 0,
     inList: !!inList,

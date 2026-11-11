@@ -14,6 +14,10 @@ const PRESETS = {
   shrug: { emotion: "CONFUSED", pose: { head: -10, lean: 0, armL: 62, armR: -62, y: 0, scale: 1, hL: "palm", hR: "palm" } },
   /** Something broke. */
   oops: { emotion: "SHOCK_SCARED", pose: { head: 6, lean: -4, armL: 118, armR: -118, y: 4, scale: 0.96, hL: "palm", hR: "palm" } },
+  /** Nothing here yet: a little sad, arms down. */
+  lonely: { emotion: "SAD", pose: { head: 8, lean: 3, armL: -2, armR: 2, y: 6, scale: 0.97, hL: "relaxed", hR: "relaxed" }, viewBox: "-20 10 480 470" },
+  /** Celebrating (e.g. application sent). */
+  cheer: { emotion: "HYPE_EXCITED", pose: { head: -6, lean: -2, armL: 150, armR: -40, y: -6, scale: 1.04, hL: "fist", hR: "relaxed" } },
 } satisfies Record<string, { emotion: Emotion; pose: Pose; viewBox?: string }>;
 
 export type MascotCameoKind = keyof typeof PRESETS;

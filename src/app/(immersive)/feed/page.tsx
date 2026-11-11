@@ -56,7 +56,7 @@ export default async function FeedPage() {
 
   return (
     <>
-      <Feed items={items} />
+      <Feed items={items} loggedIn={!!user} />
       <MobileTabBar overlay kids={!!user?.kidsMode} />
     </>
   );

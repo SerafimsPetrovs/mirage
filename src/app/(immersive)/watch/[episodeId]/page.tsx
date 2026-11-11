@@ -34,6 +34,8 @@ export default async function WatchPage({ params }: Props) {
   if (!ep) notFound();
   const s = await getSeriesPage(ep.series.slug, user, locale);
   if (!s) notFound();
+  // Not released yet (release scheduler) → the episode doesn't exist for this viewer.
+  if (!s.episodes.some((e) => e.id === ep.id)) notFound();
   // 18+ series: the series page shows the age wall.
   if (s.adultBlock) redirect(`/series/${s.slug}`);
 

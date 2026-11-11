@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useEffect, useState } from "react";
 import clsx from "clsx";
-import { Check, Clapperboard, Gift, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, Clapperboard, Gift, ShieldCheck } from "lucide-react";
 import { btn, inputCls, labelCls, textareaCls } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
@@ -61,6 +61,14 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
   const [state, action, pending] = useActionState<FormState, FormData>(applyCreatorAction, undefined);
   const sent = status === "PENDING" || state?.ok;
   const a = t.me.apply2;
+  // Collapsed by default (the profile was a wall of text); opened by a #creator link or after a rejection.
+  const [open, setOpen] = useState(status === "REJECTED");
+  useEffect(() => {
+    if (window.location.hash === "#creator") {
+      const id = window.setTimeout(() => setOpen(true), 0);
+      return () => clearTimeout(id);
+    }
+  }, []);
   return (
     <div
       id="creator"
@@ -76,6 +84,13 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
         </div>
         <MascotCameo kind="want-you" className="-my-2 w-[120px] shrink-0 md:w-[170px]" />
       </div>
+      {!sent && (
+        <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={btn(open ? "ghost" : "primary", "md", "mt-4")}>
+          {open ? a.close : a.open} <ChevronDown size={18} className={clsx("transition-transform", open && "rotate-180")} />
+        </button>
+      )}
+      {(open || sent) && (
+        <>
 
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-2xl bg-surface-2/60 p-4 ring-1 ring-line">
@@ -94,7 +109,10 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
       <p className="mt-3 text-xs leading-relaxed text-muted">{a.how}</p>
 
       {sent ? (
-        <p className="mt-4 rounded-2xl bg-coin/10 px-4 py-3 text-sm font-medium text-coin">{t.me.applicationPending}</p>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-coin/10 px-4 py-3">
+          <MascotCameo kind="cheer" className="-my-3 w-[96px] shrink-0" />
+          <p className="text-sm font-medium text-coin">{t.me.applicationPending}</p>
+        </div>
       ) : (
         <form action={action} className="mt-5 space-y-4">
           {status === "REJECTED" && <p className="text-sm text-red-300">{t.me.applicationRejected}</p>}
@@ -118,6 +136,8 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
           {state?.error && <p className="text-sm text-red-300">{state.error}</p>}
           <button disabled={pending} className={btn("primary", "md")}>{t.me.apply}</button>
         </form>
+      )}
+        </>
       )}
     </div>
   );

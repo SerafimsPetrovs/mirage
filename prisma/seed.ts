@@ -4,6 +4,8 @@ import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { seedPredictions } from "./seed-predictions";
+import { seedTv } from "./seed-tv";
+import { seedApps } from "./seed-apps";
 
 const prisma = new PrismaClient();
 
@@ -652,6 +654,8 @@ async function main() {
 
   await seedShow(admin.id, fans.map((f) => f.id), viewer.id);
   await seedFanService(created);
+  await seedTv(prisma);
+  await seedApps(prisma);
 
   // A pending series + creator application for the admin queues
   await prisma.series.create({

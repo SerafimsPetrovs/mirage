@@ -41,7 +41,7 @@ export default async function MyChatsPage() {
         {!adult ? (
           <EmptyState icon={<MessageCircleHeart size={24} />} title={t.me.chatsHidden} />
         ) : threads.length === 0 ? (
-          <EmptyState icon={<MessageCircleHeart size={24} />} title={t.me.noChats} />
+          <EmptyState mascot="lonely" icon={<MessageCircleHeart size={24} />} title={t.me.noChats} />
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-3xl bg-surface ring-1 ring-line">
             {threads.map((th) => {

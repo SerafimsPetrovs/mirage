@@ -21,7 +21,7 @@ export async function moderateSeriesAction(seriesId: string, decision: "approve"
     await prisma.series.update({ where: { id: seriesId }, data: { status: "REJECTED", rejectReason: (reason ?? "").slice(0, 500) || "—" } });
   }
   revalidatePath("/admin", "layout");
-  revalidatePath("/");
+  revalidatePath("/library");
 }
 
 export async function setSeriesFlagsAction(seriesId: string, patch: { featured?: boolean; isFamilySafe?: boolean; isAdult?: boolean; status?: "PUBLISHED" | "DRAFT" }) {
@@ -49,7 +49,7 @@ export async function setSeriesFlagsAction(seriesId: string, patch: { featured?:
     data: { ...clean, ...(patch.status === "PUBLISHED" ? { publishedAt: new Date() } : {}) },
   });
   revalidatePath("/admin", "layout");
-  revalidatePath("/");
+  revalidatePath("/library");
 }
 
 export async function setUserRoleAction(userId: string, role: "VIEWER" | "CREATOR" | "ADMIN") {

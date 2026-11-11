@@ -34,7 +34,7 @@ export async function earnGold(userId: string, reason: GoldEarnReason, refId?: s
 }
 
 /** Atomic conditional decrement + ledger row. Throws InsufficientGoldError. */
-export async function spendGold(tx: Tx, userId: string, amount: number, reason: "BET" | "UNLOCK", refId?: string) {
+export async function spendGold(tx: Tx, userId: string, amount: number, reason: "BET" | "UNLOCK" | "BUDDY", refId?: string) {
   const r = await tx.user.updateMany({ where: { id: userId, gold: { gte: amount } }, data: { gold: { decrement: amount } } });
   if (r.count === 0) {
     const u = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { gold: true } });
@@ -46,7 +46,7 @@ export async function spendGold(tx: Tx, userId: string, amount: number, reason: 
 }
 
 /** Credits gold won or refunded (no daily limit). */
-export async function creditGold(tx: Tx, userId: string, amount: number, reason: "WIN" | "REFUND" | "ADMIN", refId?: string) {
+export async function creditGold(tx: Tx, userId: string, amount: number, reason: "WIN" | "REFUND" | "ADMIN" | "ACHIEVEMENT", refId?: string) {
   if (amount <= 0) return;
   await tx.goldTransaction.create({ data: { userId, amount, reason, refId, day: utcDay() } });
   await tx.user.update({ where: { id: userId }, data: { gold: { increment: amount } } });
@@ -90,7 +90,7 @@ export async function getGoldState(userId: string) {
     prisma.goldTransaction.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
   const done = new Map(today.map((r) => [r.reason, r._count._all]));
-  const tasks = (["CHECKIN", "WATCH", "VOTE", "RATE"] as const).map((reason) => ({
+  const tasks = (["CHECKIN", "WATCH", "VOTE", "RATE", "TV_WATCH", "TV_QUIZ", "TV_VOTE", "TV_GAME"] as const).map((reason) => ({
     reason,
     amount: GOLD_EARN[reason].amount,
     perDay: GOLD_EARN[reason].perDay,

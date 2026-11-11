@@ -212,6 +212,163 @@ input, textarea, select {
 }
 [data-theme="kids"] .rounded-3xl { border-radius: 28px; }
 
+/* ───────── MIRAGE TV: analog CRT look (scanlines, vignette, OSD) ───────── */
+.tv-root {
+  --osd: #b6ffcf;
+  /* Height of the ticker + remote: lower thirds sit above it (and drop when the remote hides on desktop). */
+  --tv-ui-bottom: calc(var(--tv-ui-full, 62px) + var(--tv-react, 0px) + env(safe-area-inset-bottom));
+  background: #000;
+  color: #f4f4f8;
+}
+@media (min-width: 768px) {
+  .tv-root.tv-idle { --tv-ui-bottom: var(--tv-ui-idle, 0px); }
+}
+/* The reaction bar sits in the remote row on large screens (no extra height). */
+@media (min-width: 1024px) {
+  .tv-root { --tv-react: 0px !important; }
+}
+.tv-scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 2px, rgba(0, 0, 0, 0.22) 3px);
+  mix-blend-mode: multiply;
+}
+.tv-vignette::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.75) 100%);
+}
+.tv-osd {
+  font-family: var(--font-vt), ui-monospace, monospace;
+  color: var(--osd);
+  text-shadow: 0 0 6px rgba(120, 255, 170, 0.75), 0 0 18px rgba(120, 255, 170, 0.35);
+  letter-spacing: 0.04em;
+}
+.tv-flicker { animation: tv-flicker 6s infinite steps(1); }
+@keyframes tv-flicker {
+  0%, 96%, 100% { opacity: 1; }
+  97% { opacity: 0.86; }
+  98% { opacity: 0.95; }
+}
+.tv-marquee { animation: tv-marquee var(--dur, 30s) linear infinite; }
+@keyframes tv-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.tv-caret::after { content: "▍"; animation: tv-blink 1s steps(1) infinite; margin-left: 2px; }
+@keyframes tv-blink { 50% { opacity: 0; } }
+.tv-talk span { animation: tv-talk 0.9s ease-in-out infinite; transform-origin: bottom; }
+.tv-talk span:nth-child(2) { animation-delay: -0.3s; }
+.tv-talk span:nth-child(3) { animation-delay: -0.6s; }
+@keyframes tv-talk { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+
+/* Power-on when the TV opens: a bright line opens up into the picture. */
+.tv-power-on { animation: tv-power-on 0.9s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes tv-power-on {
+  0% { transform: scale(0.02, 0.003); filter: brightness(6); }
+  35% { transform: scale(1, 0.006); filter: brightness(4); }
+  70% { transform: scale(1, 1); filter: brightness(1.6); }
+  100% { transform: none; filter: none; }
+}
+
+/* Gate → TV: glitch, crack, then the old-tube collapse to a dot. */
+.gate-glitch { animation: gate-glitch 0.55s steps(2) both; }
+@keyframes gate-glitch {
+  0% { transform: none; filter: none; }
+  20% { transform: translate(-6px, 2px) skewX(4deg); filter: hue-rotate(70deg) saturate(3); }
+  40% { transform: translate(8px, -3px); filter: invert(1) contrast(2); clip-path: inset(10% 0 40% 0); }
+  60% { transform: translate(-3px, 0) skewX(-6deg); filter: hue-rotate(-90deg); clip-path: inset(50% 0 5% 0); }
+  80% { transform: translate(4px, 1px); filter: contrast(3) brightness(1.4); clip-path: none; }
+  100% { transform: none; filter: brightness(1.3); }
+}
+.gate-collapse { animation: gate-collapse 0.5s cubic-bezier(.7, 0, .9, .4) both; }
+@keyframes gate-collapse {
+  0% { transform: none; filter: brightness(1.3); }
+  55% { transform: scale(1, 0.004); filter: brightness(5); }
+  100% { transform: scale(0, 0.004); filter: brightness(8); }
+}
+.gate-dot { animation: gate-dot 0.6s ease-out both; }
+@keyframes gate-dot {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+.gate-crack path { stroke-dasharray: 400; stroke-dashoffset: 400; animation: gate-crack 0.35s ease-out forwards; }
+@keyframes gate-crack { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-flicker, .tv-talk span, .tv-caret::after { animation: none; }
+  .tv-marquee { animation-duration: calc(var(--dur, 30s) * 3); }
+  .tv-power-on, .gate-glitch, .gate-collapse { animation: fade-up 0.3s ease-out both; }
+}
+
+/* TV reactions float up and fade */
+.tv-float { animation: tv-float 3s ease-out forwards; }
+@keyframes tv-float {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  12% { transform: translateY(-20px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-320px) translateX(var(--drift, 12px)) scale(0.9); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-float { animation-duration: 1.2s !important; }
+}
+
+/* ───── Mascot "Mr. Static": moods and the TV glitch between micro-clips ───── */
+.mascot-mood-angry_rage { animation: mascot-shake 0.18s linear infinite; }
+.mascot-mood-shock_scared { animation: mascot-tremble 0.12s linear infinite; }
+.mascot-mood-hype_excited { animation: mascot-bounce 0.5s ease-in-out infinite; }
+.mascot-mood-laugh_sarcasm { animation: mascot-bounce 0.32s ease-in-out infinite; }
+.mascot-lens { animation: mascot-lens 2.4s ease-in-out infinite; }
+@keyframes mascot-shake { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-3px, 1px); } 75% { transform: translate(3px, -1px); } }
+@keyframes mascot-tremble { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(1.5px); } }
+@keyframes mascot-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes mascot-lens { 0%, 92%, 100% { opacity: 1; } 95% { opacity: 0.35; } }
+.mascot-glitch { animation: mascot-glitch 0.2s steps(2) both; }
+@keyframes mascot-glitch {
+  0% { transform: translate(-6px, 2px) skewX(8deg); clip-path: inset(10% 0 55% 0); filter: drop-shadow(5px 0 #ff2e63) drop-shadow(-5px 0 #3ec5ff) hue-rotate(90deg); }
+  50% { transform: translate(5px, -2px) skewX(-6deg); clip-path: inset(45% 0 8% 0); filter: drop-shadow(-4px 0 #ff2e63) drop-shadow(4px 0 #7dffb2) saturate(3); }
+  100% { transform: none; clip-path: inset(0 0 0 0); filter: none; }
+}
+/* Unmute button: big, pulsing, impossible to miss */
+.pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+@keyframes pulse-ring { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55); } 80%, 100% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); } }
+/* TikTok-live style chat: messages rise and dissolve */
+.chat-float { animation: chat-float 5s ease-out forwards; }
+@keyframes chat-float { 0% { opacity: 0; transform: translateY(14px); } 8% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-mood-angry_rage, .mascot-mood-shock_scared, .mascot-mood-hype_excited, .mascot-mood-laugh_sarcasm, .mascot-lens, .pulse-ring { animation: none; }
+  .mascot-glitch { animation-duration: 0.01s; }
+}
+
+/* Mascot v2: particles and clearer moods */
+.mascot-fx { animation-timing-function: ease-out; animation-fill-mode: forwards; opacity: 0; }
+.mascot-fx-rise { animation-name: mascot-rise; }
+.mascot-fx-fall { animation-name: mascot-fall; animation-timing-function: ease-in; }
+.mascot-fx-burst { animation-name: mascot-burst; }
+@keyframes mascot-rise { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), -90px) scale(1.15); } }
+@keyframes mascot-fall { 0% { opacity: 0; transform: translate(-50%, -10px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, 110px); } }
+@keyframes mascot-burst { 0% { opacity: 0; transform: translate(-50%, 0) scale(.3); } 20% { opacity: 1; transform: translate(-50%, 0) scale(1.25); } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), var(--dy)) scale(.9); } }
+.mascot-heartbeat { animation: mascot-heartbeat .8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes mascot-heartbeat { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.25); } }
+.mascot-tear { animation: mascot-tear 1.3s ease-in infinite; }
+@keyframes mascot-tear { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+.mascot-blink { animation: mascot-blink 4.2s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes mascot-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+.mascot-mood-love { animation: mascot-sway 1.8s ease-in-out infinite; }
+.mascot-mood-sad { animation: mascot-droop 2.4s ease-in-out infinite; }
+.mascot-mood-confused { animation: mascot-wobble 1.4s ease-in-out infinite; }
+@keyframes mascot-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes mascot-droop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+@keyframes mascot-wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .mascot-heartbeat, .mascot-tear, .mascot-blink, .mascot-mood-love, .mascot-mood-sad, .mascot-mood-confused { animation: none; }
+}
+
 /* Mr. Static puppet: blinking lids, swaying lure, breathing */
 .mascot-lid-blink { transform-box: fill-box; transform-origin: top; animation: mascot-lid-blink 4.6s infinite; transform: scaleY(0); }
 @keyframes mascot-lid-blink { 0%, 93%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1); } }
@@ -220,3 +377,32 @@ input, textarea, select {
 .mascot-breathe { animation: mascot-breathe 3.6s ease-in-out infinite; transform-origin: 200px 480px; }
 @keyframes mascot-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.012); } }
 @media (prefers-reduced-motion: reduce) { .mascot-lid-blink, .mascot-lure, .mascot-breathe { animation: none; } }
+
+/* ───────── watch buddy ───────── */
+.buddy-blink { animation: buddy-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes buddy-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+.buddy-glow { animation: buddy-glow 2.2s ease-in-out infinite; }
+@keyframes buddy-glow { 50% { opacity: 0.55; } }
+.buddy-tail { animation: buddy-tail 3s ease-in-out infinite; }
+@keyframes buddy-tail { 50% { transform: rotate(-10deg); } }
+.buddy-float { animation: buddy-float 3.2s ease-in-out infinite; }
+@keyframes buddy-float { 50% { transform: translateY(-5px); } }
+.buddy-jitter { animation: buddy-jitter 0.25s steps(2) infinite; }
+@keyframes buddy-jitter { 50% { transform: translateX(1px); } }
+.buddy-pop { animation: buddy-pop 0.45s cubic-bezier(.3,1.6,.5,1); transform-origin: 50% 100%; }
+@keyframes buddy-pop { 0% { transform: scale(1, 1); } 35% { transform: scale(1.12, 0.88); } 70% { transform: scale(0.95, 1.06); } }
+.buddy-bob > * { animation: buddy-bob 3.4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes buddy-bob { 50% { transform: scale(1.02, 0.98); } }
+.buddy-breathe > * { animation: buddy-bob 4.8s ease-in-out infinite; transform-origin: 50% 100%; }
+.buddy-dance > * { animation: buddy-dance 0.9s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes buddy-dance { 25% { transform: rotate(-7deg) translateY(-3px); } 75% { transform: rotate(7deg) translateY(-3px); } }
+.buddy-shake > * { animation: buddy-shake 0.18s linear infinite; }
+@keyframes buddy-shake { 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
+.buddy-walk > * { animation: buddy-walk 0.42s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes buddy-walk { 50% { transform: translateY(-5px) rotate(3deg); } }
+.buddy-zzz { animation: buddy-zzz 2.4s ease-in-out infinite; }
+@keyframes buddy-zzz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(8px, -14px); } }
+@media (prefers-reduced-motion: reduce) {
+  .buddy-blink, .buddy-glow, .buddy-tail, .buddy-float, .buddy-jitter, .buddy-pop, .buddy-bob > *, .buddy-breathe > *,
+  .buddy-dance > *, .buddy-shake > *, .buddy-walk > *, .buddy-zzz { animation: none; }
+}

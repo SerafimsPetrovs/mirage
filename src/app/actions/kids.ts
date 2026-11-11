@@ -75,3 +75,15 @@ async function unlockFor(userId: string, episodeId: string, allowToday: boolean)
   if (allowToday) await grantKidsAllowance(userId, ep.seriesId);
   return { ok: true };
 }
+
+/** Profile → "Family mode PIN": set or change the PIN with the account password (outside family mode only). */
+export async function setFamilyPinAction(password: string, newPin: string): Promise<KidsResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "auth" };
+  if (user.kidsMode) return { ok: false, error: "notAllowed" };
+  if (!PIN_RE.test(newPin)) return { ok: false, error: "invalid" };
+  if (!(await verifyPassword(password, user.passwordHash))) return { ok: false, error: "wrong" };
+  await setKidsPin(user.id, newPin);
+  revalidatePath("/me");
+  return { ok: true };
+}

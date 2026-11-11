@@ -22,6 +22,7 @@ import { LockOverlay } from "./lock-overlay";
 import { Ambient } from "./ambient";
 import { CharacterStrip, SceneOffer, SkinsSheet, useSpicyRunner, type SpicyData } from "./spicy";
 import { ParentGate } from "@/components/kids/parent-gate";
+import { HardLoginWall, useGuestWall } from "@/components/auth/guest-wall";
 import type { AdState } from "@/lib/ads";
 import { KidsToolButtons, SleepOverlay, useKidsTools } from "@/components/kids/kids-tools";
 
@@ -92,9 +93,23 @@ export function Player(props: PlayerProps) {
   const [skinId, setSkinId] = useState<string | null>(null);
   // Protected episodes play as the viewer's personal watermarked HLS stream (skins stay plain mp4).
   const hlsUrl = !episode.locked && episode.hls && !skinId ? `/api/hls/${episode.id}` : null;
-  useHls(videoRef, hlsUrl);
+  // Hard login wall: a guest watches 60 s for free, then playback and streaming stop until sign-in.
+  const walled = useGuestWall(!user && !episode.locked, playing);
+  useHls(videoRef, hlsUrl, walled);
   const [ended, setEnded] = useState(false);
   const pendingSeek = useRef<number | null>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!walled || !v) return;
+    const at = v.currentTime;
+    pendingSeek.current = at;
+    try {
+      sessionStorage.setItem(`mirage_resume:${episode.id}`, String(at));
+    } catch {}
+    v.pause();
+    v.muted = true;
+    if (!hlsUrl) queueMicrotask(() => v.load());
+  }, [walled, episode.id, hlsUrl]);
   const runner = useSpicyRunner(setBalance);
   const kidsTools = useKidsTools(videoRef, props.kids, episode.id);
   const characters = props.spicy?.characters ?? [];
@@ -121,7 +136,13 @@ export function Player(props: PlayerProps) {
   useEffect(() => {
     const v = videoRef.current;
     if (!v || episode.locked) return;
-    if (episode.startAt > 0) v.currentTime = episode.startAt;
+    let resume = 0;
+    try {
+      // Signed in from the login wall: continue from the very same second.
+      resume = Number(sessionStorage.getItem(`mirage_resume:${episode.id}`)) || 0;
+      sessionStorage.removeItem(`mirage_resume:${episode.id}`);
+    } catch {}
+    if (episode.startAt > 0 || resume > 0) v.currentTime = Math.max(episode.startAt, resume);
     v.play().catch(() => {
       v.muted = true;
       setMuted(true);
@@ -296,7 +317,7 @@ export function Player(props: PlayerProps) {
     <video
       ref={videoRef}
       key={episode.id}
-      src={hlsUrl ? undefined : `/api/stream/${episode.id}${skinId ? `?skin=${skinId}` : ""}`}
+      src={hlsUrl || walled ? undefined : `/api/stream/${episode.id}${skinId ? `?skin=${skinId}` : ""}`}
       className={clsx("absolute inset-0 h-full w-full select-none [-webkit-touch-callout:none]", vertical ? "object-cover" : "object-contain")}
       playsInline
       preload="auto"
@@ -627,6 +648,8 @@ export function Player(props: PlayerProps) {
   // Horizontal / widescreen layout
   return (
     <div className="min-h-dvh overflow-x-clip bg-bg">
+      {walled && <div aria-hidden className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-[16px]" />}
+      <HardLoginWall open={walled} />
       <div className="mx-auto max-w-[1400px] md:px-6 md:pt-6">
         <div className="relative z-10 flex items-center gap-3 px-4 py-3 md:px-0">
           <Link href={`/series/${series.slug}`} aria-label={t.common.back} className={btn("ghost", "icon")}>

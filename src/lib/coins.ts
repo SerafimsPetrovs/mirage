@@ -18,6 +18,8 @@ export async function getEpisodeAccess(user: AccessUser, episodeId: string) {
     include: { series: { select: { freeEpisodes: true, defaultCoinPrice: true, creatorId: true, status: true, isFamilySafe: true, isAdult: true } } },
   });
   if (!ep) return null;
+  // Scheduled release: not out yet for anyone but the creator and admins.
+  if (ep.publishAt && ep.publishAt > new Date() && !(user && (user.role === "ADMIN" || user.id === ep.series.creatorId))) return null;
   const unlocked = user
     ? !!(await prisma.unlock.findUnique({ where: { userId_episodeId: { userId: user.id, episodeId } } }))
     : false;
@@ -106,6 +108,7 @@ export async function unlockEpisode(userId: string, episodeId: string) {
       where: { id: episodeId },
       include: { series: { select: { id: true, freeEpisodes: true, defaultCoinPrice: true, creatorId: true } } },
     });
+    if (ep.publishAt && ep.publishAt > new Date() && ep.series.creatorId !== userId) throw new Error("NOT_RELEASED");
     const existing = await tx.unlock.findUnique({ where: { userId_episodeId: { userId, episodeId } } });
     if (existing || ep.number <= ep.series.freeEpisodes || ep.series.creatorId === userId) {
       const u = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { paidCoins: true, bonusCoins: true } });
@@ -138,7 +141,7 @@ const PAID_REASONS = new Set<CoinReason>(["PURCHASE"]);
 export async function grantCoins(
   userId: string,
   amount: number,
-  reason: "PURCHASE" | "CHECKIN" | "BONUS" | "REFUND" | "ADMIN" | "PROMO",
+  reason: "PURCHASE" | "CHECKIN" | "BONUS" | "REFUND" | "ADMIN" | "PROMO" | "BOUNTY",
   extra: { note?: string; orderId?: string } = {},
   tx: Tx = prisma,
 ) {

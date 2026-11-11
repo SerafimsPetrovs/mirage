@@ -37,8 +37,14 @@ export function resetRateLimit(key: string) {
 }
 
 /** Best-effort client IP behind a proxy (first X-Forwarded-For hop), for rate-limit keys only. */
+/**
+ * The visitor's IP for rate limits. The first X-Forwarded-For entry is whatever the client typed, so a
+ * spoofed header used to give every request a fresh "IP" (unlimited login/sign-up attempts). Prefer what
+ * the proxy itself sets: Cloudflare's CF-Connecting-IP, nginx's X-Real-IP, else the last hop it appended.
+ */
 export function clientIp(h: Headers) {
-  return (h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip") ?? "local").trim().slice(0, 64);
+  const xff = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean);
+  return (h.get("cf-connecting-ip") ?? h.get("x-real-ip") ?? xff?.at(-1) ?? "local").trim().slice(0, 64);
 }
 
 export const LIMITS = {

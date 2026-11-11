@@ -7,13 +7,13 @@ import { btn, inputCls } from "@/components/ui/button";
 import { Modal, PinInput } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
-import { enterKidsModeAction, exitKidsModeAction, resetKidsPinAction } from "@/app/actions/kids";
+import { enterKidsModeAction, exitKidsModeAction, resetKidsPinAction, setFamilyPinAction } from "@/app/actions/kids";
 
 type EnterProps = {
   loggedIn: boolean;
   hasPin: boolean;
   /** header = compact pill (short label on phones); hero = large CTA */
-  variant?: "header" | "hero";
+  variant?: "header" | "hero" | "mega" | "soft";
   autoOpen?: boolean;
   className?: string;
 };
@@ -36,15 +36,15 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
       if (r.ok) {
         setOpen(false);
         toast(t.kids.welcome);
-        router.push("/");
+        router.push("/library");
         router.refresh();
       } else if (r.error === "needPin") setOpen(true);
-      else if (r.error === "auth") router.push(`/login?next=${encodeURIComponent("/?family=on")}`);
+      else if (r.error === "auth") router.push(`/login?next=${encodeURIComponent("/library?family=on")}`);
       else toast(t.common.error, "error");
     });
 
   const click = () => {
-    if (!loggedIn) return router.push(`/login?next=${encodeURIComponent("/?family=on")}`);
+    if (!loggedIn) return router.push(`/login?next=${encodeURIComponent("/library?family=on")}`);
     if (hasPin) turnOn();
     else setOpen(true);
   };
@@ -67,19 +67,34 @@ export function KidsEnterButton({ loggedIn, hasPin, variant = "header", autoOpen
       <button
         onClick={click}
         disabled={pending}
+        title={variant === "mega" || variant === "soft" ? t.v3.nav.familyHint : undefined}
+        aria-label={variant === "soft" ? t.kids.enter : undefined}
         className={clsx(
-          variant === "hero" ? btn("kids", "lg") : btn("kids", "sm", "h-10 px-3.5 text-[15px] md:px-4"),
-          "kids-glow relative",
+          variant === "hero"
+            ? btn("kids", "lg")
+            : variant === "soft"
+              ? btn("glass", "sm", "h-10 gap-1.5 px-2.5 md:px-3.5")
+              : variant === "mega"
+              ? btn("kids", "md", "h-10 gap-1.5 px-2.5 text-sm font-bold tracking-tight sm:h-11 sm:px-3 sm:text-[15px] md:h-12 md:px-5 md:text-base")
+              : btn("kids", "sm", "h-10 px-3.5 text-[15px] md:px-4"),
+          variant !== "soft" && "kids-glow",
+          "relative",
           className,
         )}
       >
-        <Users size={variant === "hero" ? 20 : 17} className="shrink-0" />
+        {variant === "soft" ? (
+          <span aria-hidden className="text-base leading-none">🧸</span>
+        ) : variant === "mega" ? (
+          <span aria-hidden className="text-lg leading-none sm:text-xl md:text-2xl">🧸</span>
+        ) : (
+          <Users size={variant === "hero" ? 20 : 17} className="shrink-0" />
+        )}
         {variant === "hero" ? (
           t.kids.promoCta
         ) : (
           <>
-            <span className="sm:hidden">{t.kids.enterShort}</span>
-            <span className="max-sm:hidden">{t.kids.enter}</span>
+            <span className={variant === "soft" ? "max-md:hidden" : "sm:hidden"}>{variant === "soft" ? t.kids.enter : t.kids.enterShort}</span>
+            {variant !== "soft" && <span className="max-sm:hidden">{t.kids.enter}</span>}
           </>
         )}
       </button>
@@ -128,7 +143,7 @@ export function KidsExitButton({ className }: { className?: string }) {
 
   const done = () => {
     close();
-    router.push("/");
+    router.push("/library");
     router.refresh();
   };
 
@@ -211,5 +226,57 @@ export function KidsExitButton({ className }: { className?: string }) {
         )}
       </Modal>
     </>
+  );
+}
+
+/** Profile card: the family mode PIN (set or change with the account password). */
+export function FamilyPinCard({ hasPin }: { hasPin: boolean }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pin.length !== 4) return;
+    start(async () => {
+      const r = await setFamilyPinAction(password, pin);
+      if (r.ok) {
+        toast(t.v3.family.saved, "ok");
+        setOpen(false);
+        setPassword("");
+        setPin("");
+      } else setErr(r.error === "wrong" ? t.v3.family.wrongPassword : t.common.error);
+    });
+  };
+  return (
+    <div className="rounded-3xl bg-surface p-5 ring-1 ring-line md:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3ec5ff,#7b6cff,#ff7eb6)] text-2xl">🧸</span>
+          <div>
+            <h2 className="font-semibold">{t.v3.family.title}</h2>
+            <p className="text-sm text-muted">{hasPin ? t.v3.family.isSet : t.v3.family.notSet}</p>
+          </div>
+        </div>
+        <button type="button" onClick={() => setOpen((o) => !o)} className={btn("glass", "sm")}>
+          <KeyRound size={15} /> {hasPin ? t.v3.family.change : t.v3.family.set}
+        </button>
+      </div>
+      {open && (
+        <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+          <div className="space-y-3">
+            <input type="password" required value={password} onChange={(e) => (setPassword(e.target.value), setErr(null))} placeholder={t.v3.family.password} aria-label={t.v3.family.password} autoComplete="current-password" className={inputCls} />
+            <PinInput value={pin} onChange={(v) => (setPin(v), setErr(null))} label={t.v3.family.newPin} />
+            {err && <p className="text-sm text-red-300">{err}</p>}
+          </div>
+          <button disabled={pending || pin.length !== 4 || !password} className={btn("primary", "md")}>
+            {t.common.save}
+          </button>
+        </form>
+      )}
+    </div>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { HardLoginWall, useGuestWall } from "@/components/auth/guest-wall";
 import { useHls } from "@/components/player/use-hls";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -26,9 +27,11 @@ export type FeedItem = {
   inList: boolean;
 };
 
-export function Feed({ items }: { items: FeedItem[] }) {
+export function Feed({ items, loggedIn = true }: { items: FeedItem[]; loggedIn?: boolean }) {
   const { t, locale } = useI18n();
   const [active, setActive] = useState(0);
+  // Guests: 60 s of free watching, then the hard login wall.
+  const walled = useGuestWall(!loggedIn, true);
   const [muted, setMuted] = useState(true);
   const [hint, setHint] = useState(true);
   const refs = useRef<(HTMLElement | null)[]>([]);
@@ -54,6 +57,8 @@ export function Feed({ items }: { items: FeedItem[] }) {
 
   return (
     <div className="no-scrollbar h-dvh snap-y snap-mandatory overflow-y-scroll bg-black">
+      {walled && <div aria-hidden className="fixed inset-0 z-[80] bg-black/30 backdrop-blur-[16px]" />}
+      <HardLoginWall open={walled} />
       {items.map((it, idx) => (
         <section
           key={it.seriesId}
@@ -68,11 +73,11 @@ export function Feed({ items }: { items: FeedItem[] }) {
           <div className="relative h-full w-full overflow-hidden md:h-[calc(100%-32px)] md:w-auto md:aspect-[9/16] md:rounded-3xl md:ring-1 md:ring-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={it.poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            {Math.abs(idx - active) <= 1 && <FeedVideo src={`/api/stream/${it.episodeId}`} hlsUrl={it.hls ? `/api/hls/${it.episodeId}` : null} active={idx === active} muted={muted} />}
+            {Math.abs(idx - active) <= 1 && <FeedVideo src={`/api/stream/${it.episodeId}`} hlsUrl={it.hls ? `/api/hls/${it.episodeId}` : null} active={idx === active && !walled} muted={muted} frozen={walled} />}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-black/40" />
 
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(14px,env(safe-area-inset-top))]">
-              <Link href="/" className="font-display text-lg font-bold tracking-wider text-mirage">MIRAGE</Link>
+              <Link href="/library" className="font-display text-lg font-bold tracking-wider text-mirage">MIRAGE</Link>
               <button
                 onClick={() => setMuted((m) => !m)}
                 aria-label={muted ? t.player.unmute : t.player.mute}
@@ -118,9 +123,9 @@ export function Feed({ items }: { items: FeedItem[] }) {
   );
 }
 
-function FeedVideo({ src, hlsUrl, active, muted }: { src: string; hlsUrl: string | null; active: boolean; muted: boolean }) {
+function FeedVideo({ src, hlsUrl, active, muted, frozen }: { src: string; hlsUrl: string | null; active: boolean; muted: boolean; frozen: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
-  useHls(ref, hlsUrl);
+  useHls(ref, hlsUrl, frozen);
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
@@ -133,8 +138,8 @@ function FeedVideo({ src, hlsUrl, active, muted }: { src: string; hlsUrl: string
   return (
     <video
       ref={ref}
-      src={hlsUrl ? undefined : src}
-      muted={muted}
+      src={hlsUrl || frozen ? undefined : src}
+      muted={muted || frozen}
       loop
       playsInline
       preload={active ? "auto" : "metadata"}

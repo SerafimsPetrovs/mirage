@@ -1,4 +1,7 @@
+import { buddyEn } from "./buddy.en";
 import type { Dict } from "./ru";
+import { gateEn, tvEn } from "./tv.en";
+import { v3En } from "./v3.en";
 
 export const en: Dict = {
   meta: {
@@ -35,7 +38,8 @@ export const en: Dict = {
     horizontal: "Horizontal",
   },
   nav: {
-    home: "Home",
+    home: "Library",
+    tv: "Live TV",
     feed: "Stream",
     browse: "Browse",
     search: "Search",
@@ -274,6 +278,12 @@ export const en: Dict = {
       PHOTO: "Private photo",
       PROMO: "Promo code",
       CAMEO: "Cameo in the series",
+      TV_ORDER: "TV clip order",
+      TV_TICKER: "Ticker shout-out",
+      TV_SUPERCHAT: "TV super chat",
+      APP: "AI app",
+      BOUNTY: "Bounty reward",
+      BUDDY: "Buddy: character or outfit",
     },
   },
   checkin: {
@@ -319,6 +329,8 @@ export const en: Dict = {
     becomeCreator: "Become a creator",
     becomeCreatorText: "Making videos with AI? Publish them on MIRAGE as series and earn: viewers unlock episodes with coins and half goes to you.",
     apply2: {
+      open: "Details & apply",
+      close: "Collapse",
       getTitle: "What you get",
       get: [
         "The Studio: upload episodes and posters, write descriptions in two languages, see stats",
@@ -760,6 +772,10 @@ export const en: Dict = {
       WATCH: "Watch an episode to the end",
       VOTE: "Vote in “What's next?”",
       RATE: "Rate a series",
+      TV_WATCH: "Watch TV for 10 minutes",
+      TV_QUIZ: "Answer the TV quiz right",
+      TV_VOTE: "Pick what airs next on TV",
+      TV_GAME: "Score in “Catch the UFO”",
     },
     perTask: "+{n} each",
     progress: "{d} of {m}",
@@ -770,7 +786,7 @@ export const en: Dict = {
       "Unlocking paid episodes: the gold price is lower than the coin price (a 30-coin episode costs 12 gold)",
     ],
     history: "Recent activity",
-    reasons: { WELCOME: "Sign-up gift", CHECKIN: "Daily bonus", WATCH: "Episode watched", VOTE: "Poll vote", RATE: "Series rated", BET: "Prediction", WIN: "Prediction win", REFUND: "Stake refund", UNLOCK: "Episode unlock", ADMIN: "Admin grant" },
+    reasons: { WELCOME: "Sign-up gift", CHECKIN: "Daily bonus", WATCH: "Episode watched", VOTE: "Poll vote", RATE: "Series rated", TV_WATCH: "TV watching", TV_QUIZ: "TV quiz", TV_VOTE: "TV vote", TV_GAME: "“Catch the UFO” game", BET: "Prediction", WIN: "Prediction win", REFUND: "Stake refund", UNLOCK: "Episode unlock", BUDDY: "Buddy purchase", ACHIEVEMENT: "Achievement", ADMIN: "Admin grant" },
     earned: "+{n} gold",
     openFor: "Unlock for {n} gold",
     unlocked: "Episode unlocked with gold",
@@ -1294,4 +1310,16 @@ export const en: Dict = {
       tooMany: "Too many notices from this address. Try again in an hour",
     },
   },
+  pwa: {
+    install: "Install the app",
+    installHint: "MIRAGE on your home screen: opens straight into the broadcast, no browser tabs",
+    iosTitle: "Install on iPhone",
+    iosSteps: ["Tap Share at the bottom of Safari", "Choose “Add to Home Screen”", "Tap Add — Mr. Static will appear among your apps"],
+    gotIt: "Got it",
+    installed: "Done! MIRAGE is on your home screen",
+  },
+  gate: gateEn,
+  tv: tvEn,
+  v3: v3En,
+  buddy: buddyEn,
 };

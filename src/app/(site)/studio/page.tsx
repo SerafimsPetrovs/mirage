@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Banknote, Bookmark, Coins, Eye, Film, Plus, Unlock, Wand2 } from "lucide-react";
+import { Banknote, Bookmark, Coins, Eye, Film, Plus, Unlock, Tv, Wand2 } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireRole } from "@/lib/auth";
 import { CREATOR_SHARE } from "@/lib/access";
@@ -66,6 +66,9 @@ export default async function StudioPage() {
           <Link href="/studio/payouts" className={btn("coin", "md")}>
             <Banknote size={18} /> {t.payouts.withdraw}
           </Link>
+          <Link href="/studio/tv" className={btn("glass", "md")}>
+            <Tv size={18} className="text-[#7dffb2]" /> {t.tv.studio.nav}
+          </Link>
           <Link href="/studio/generate" className={btn("vip", "md")}>
             <Wand2 size={18} /> {t.gen.nav}
           </Link>
@@ -114,7 +117,7 @@ export default async function StudioPage() {
 
       <h2 className="mb-4 mt-10 font-display text-xl font-semibold">{t.studio.mySeries}</h2>
       {series.length === 0 ? (
-        <EmptyState icon={<Film size={24} />} title={t.studio.noSeries} action={<Link href="/studio/series/new" className={btn("primary", "md")}><Plus size={18} /> {t.studio.newSeries}</Link>} />
+        <EmptyState mascot="want-you" icon={<Film size={24} />} title={t.studio.noSeries} action={<Link href="/studio/series/new" className={btn("primary", "md")}><Plus size={18} /> {t.studio.newSeries}</Link>} />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {series.map((s) => (

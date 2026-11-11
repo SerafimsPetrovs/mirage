@@ -101,6 +101,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
           <SeriesGrid items={items} t={t} locale={locale} />
         ) : (
           <EmptyState
+            mascot="shrug"
             icon={<SearchX size={24} />}
             title={t.browse.empty}
             action={filtered && <Link href="/browse" className={btn("glass", "md")}>{t.browse.reset}</Link>}

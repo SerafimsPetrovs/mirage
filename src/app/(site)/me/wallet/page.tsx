@@ -14,6 +14,9 @@ import { PromoForm } from "@/components/wallet/promo-form";
 import { GoldPanel } from "@/components/wallet/gold-panel";
 import { earnGold, getGoldState } from "@/lib/gold";
 
+/** Latest operations shown right away; the rest are one tap away (the list used to be 40 rows). */
+const TX_SHOWN = 8;
+
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
   return { title: t.wallet.title };
@@ -37,6 +40,26 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   ]);
   const mockMode = process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENTS === "1";
   const df = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  const row = (tx: (typeof txs)[number]) => (
+    <div key={tx.id} className="flex items-center gap-4 px-4 py-3.5 md:px-5">
+      <span className={clsx("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", tx.amount > 0 ? "bg-ok/12 text-ok" : "bg-white/6 text-muted")}>
+        {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-medium">
+          {{ ...t.wallet.reasons, ...t.wallet.extraReasons }[tx.reason]}
+          {tx.note && tx.reason === "POLL_BOOST" && <span className="text-muted"> {tx.note}</span>}
+          {tx.episode && <span className="text-muted"> · {pick(tx.episode.series, "title", locale)}, {tx.episode.number}</span>}
+        </p>
+        <p className="text-xs text-muted">{df.format(tx.createdAt)}</p>
+      </div>
+      <span className={clsx("font-semibold tabular-nums", tx.amount > 0 ? "text-ok" : "text-text")}>
+        {tx.amount > 0 ? "+" : ""}
+        {tx.amount}
+      </span>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 pt-[calc(var(--header-h)+24px)] md:px-10">
@@ -62,14 +85,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
-      <div className="mt-6 space-y-4">
-        <CheckInWidget state={checkIn} compact />
-        <PromoForm initial={promo?.slice(0, 32) ?? ""} />
-      </div>
-
-      <GoldPanel state={goldState} t={t} df={df} />
-
-      <h2 className="mb-4 mt-10 font-display text-xl font-semibold">{t.wallet.buy}</h2>
+      <h2 className="mb-4 mt-8 font-display text-xl font-semibold">{t.wallet.buy}</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {COIN_PACKS.map((p) => {
           const price = formatMoney(p.eur, CURRENCY, locale);
@@ -97,30 +113,29 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         </p>
       )}
 
+      <div className="mt-10 space-y-4">
+        <CheckInWidget state={checkIn} compact />
+        <PromoForm initial={promo?.slice(0, 32) ?? ""} />
+      </div>
+
+      <GoldPanel state={goldState} t={t} df={df} />
+
       <h2 className="mb-4 mt-12 font-display text-xl font-semibold">{t.wallet.history}</h2>
       {txs.length === 0 ? (
-        <EmptyState icon={<Receipt size={24} />} title={t.wallet.empty} />
+        <EmptyState mascot="shrug" icon={<Receipt size={24} />} title={t.wallet.empty} />
       ) : (
         <div className="divide-y divide-line overflow-hidden rounded-3xl bg-surface ring-1 ring-line">
-          {txs.map((tx) => (
-            <div key={tx.id} className="flex items-center gap-4 px-4 py-3.5 md:px-5">
-              <span className={clsx("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", tx.amount > 0 ? "bg-ok/12 text-ok" : "bg-white/6 text-muted")}>
-                {tx.amount > 0 ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium">
-                  {{ ...t.wallet.reasons, ...t.wallet.extraReasons }[tx.reason]}
-                  {tx.note && tx.reason === "POLL_BOOST" && <span className="text-muted"> {tx.note}</span>}
-                  {tx.episode && <span className="text-muted"> · {pick(tx.episode.series, "title", locale)}, {tx.episode.number}</span>}
-                </p>
-                <p className="text-xs text-muted">{df.format(tx.createdAt)}</p>
+          {txs.slice(0, TX_SHOWN).map(row)}
+          {txs.length > TX_SHOWN && (
+            <details className="group">
+              <summary className="cursor-pointer list-none px-4 py-3.5 text-center text-sm font-semibold text-accent hover:bg-white/[.03] group-open:hidden md:px-5">
+                {t.common.seeAll} ({txs.length})
+              </summary>
+              <div className="divide-y divide-line">
+                {txs.slice(TX_SHOWN).map(row)}
               </div>
-              <span className={clsx("font-semibold tabular-nums", tx.amount > 0 ? "text-ok" : "text-text")}>
-                {tx.amount > 0 ? "+" : ""}
-                {tx.amount}
-              </span>
-            </div>
-          ))}
+            </details>
+          )}
         </div>
       )}
     </div>

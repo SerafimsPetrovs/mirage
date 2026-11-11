@@ -20,7 +20,7 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
       {ok ? <CheckCircle2 size={44} className="mx-auto text-ok" /> : <XCircle size={44} className="mx-auto text-red-300" />}
       <h1 className="mt-4 font-display text-2xl font-bold">{ok ? t.auth.verifyOkTitle : t.auth.verifyBadTitle}</h1>
       <p className="mt-2 text-sm text-muted">{ok ? t.auth.verifyOkText : t.auth.verifyBadText}</p>
-      <Link href={ok ? "/" : "/me"} className={btn("primary", "lg", "mt-6 w-full")}>
+      <Link href={ok ? "/library" : "/me"} className={btn("primary", "lg", "mt-6 w-full")}>
         {ok ? t.nav.home : t.nav.profile}
       </Link>
     </div>

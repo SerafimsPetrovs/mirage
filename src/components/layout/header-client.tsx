@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import { APPS_ENABLED } from "@/lib/features";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
+import { Boxes, LibraryBig, Radio } from "lucide-react";
 
 export function HeaderShell({ children }: { children: React.ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
@@ -24,27 +26,36 @@ export function HeaderShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function NavLinks({ links }: { links: { href: string; label: string }[] }) {
+/** Live TV / Catalog / AI apps — one click between the three worlds of MIRAGE. */
+export function SectionSwitch({ labels }: { labels: { live: string; catalog: string; apps: string } }) {
   const path = usePathname();
+  const items = [
+    { href: "/", label: labels.live, icon: Radio, active: path === "/" || path.startsWith("/tv") },
+    {
+      href: "/library",
+      label: labels.catalog,
+      icon: LibraryBig,
+      active: ["/library", "/browse", "/series", "/feed", "/search", "/watch"].some((p) => path.startsWith(p)),
+    },
+    ...(APPS_ENABLED ? [{ href: "/apps", label: labels.apps, icon: Boxes, active: path.startsWith("/apps") }] : []),
+  ];
   return (
-    <nav className="hidden items-center gap-1 md:flex">
-      {links.map((l) => {
-        const base = l.href.split("#")[0];
-        const active = base === "/" || base === "/me" ? path === base : path.startsWith(base);
-        return (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={clsx(
-              "rounded-full px-3.5 py-2 text-[15px] font-medium transition-colors",
-              active ? "text-text" : "text-muted hover:text-text",
-            )}
-          >
-            {l.label}
-            {active && <span className="mx-auto mt-0.5 block h-0.5 w-4 rounded-full bg-accent" />}
-          </Link>
-        );
-      })}
+    <nav className="hidden items-center gap-1 rounded-full bg-white/[.06] p-1 ring-1 ring-white/10 backdrop-blur md:flex" aria-label="MIRAGE">
+      {items.map(({ href, label, icon: Icon, active }) => (
+        <Link
+          key={href}
+          href={href}
+          aria-current={active ? "page" : undefined}
+          className={clsx(
+            "flex h-9 items-center gap-2 rounded-full px-3.5 text-[14px] font-semibold transition-colors lg:px-4",
+            active ? "bg-white text-black" : "text-muted hover:text-text",
+          )}
+        >
+          <Icon size={16} className={clsx(active && href === "/" && "text-accent")} />
+          {label}
+          {href === "/" && <span className={clsx("h-1.5 w-1.5 rounded-full bg-accent", !active && "animate-pulse")} />}
+        </Link>
+      ))}
     </nav>
   );
 }

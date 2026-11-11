@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#07070b" />
+<title>MIRAGE · No signal</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: radial-gradient(60% 50% at 50% 35%, rgba(255,173,66,.14), transparent 70%), #07070b;
+    color: #f4f4f8; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center; }
+  .bars { position: fixed; inset: 0; display: flex; opacity: .07; pointer-events: none; }
+  .bars i { flex: 1; }
+  main { position: relative; max-width: 360px; }
+  img { width: 168px; height: 168px; border-radius: 36px; box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.08); }
+  h1 { margin: 22px 0 6px; font-size: 26px; letter-spacing: .04em; font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
+  p { margin: 0; color: #9a9ab0; }
+  button { margin-top: 24px; border: 0; border-radius: 16px; padding: 14px 26px; font: 600 16px/1 inherit;
+    background: #ff2e63; color: #fff; cursor: pointer; box-shadow: 0 10px 30px rgba(255,46,99,.35); }
+  button:focus-visible { outline: 3px solid rgba(255,46,99,.6); outline-offset: 3px; }
+  @media (prefers-reduced-motion: no-preference) { img { animation: bob 3.6s ease-in-out infinite; } }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+</style>
+</head>
+<body>
+  <div class="bars" aria-hidden="true"><i style="background:#c0c0c0"></i><i style="background:#c0c000"></i><i style="background:#00c0c0"></i><i style="background:#00c000"></i><i style="background:#c000c0"></i><i style="background:#c00000"></i><i style="background:#0000c0"></i></div>
+  <main>
+    <img src="/icons/icon-512.png" alt="Mr. Static" />
+    <h1 id="t">NO SIGNAL</h1>
+    <p id="d">You're offline. Mr. Static is holding the broadcast — reconnect and we're back on air.</p>
+    <button id="b" type="button">Try again</button>
+  </main>
+<script>
+  if ((navigator.language || "").toLowerCase().startsWith("ru") || document.cookie.includes("locale=ru")) {
+    document.documentElement.lang = "ru";
+    document.getElementById("t").textContent = "НЕТ СИГНАЛА";
+    document.getElementById("d").textContent = "Нет подключения к интернету. Мистер Статик держит эфир — подключитесь, и мы снова в эфире.";
+    document.getElementById("b").textContent = "Попробовать снова";
+    document.title = "MIRAGE · Нет сигнала";
+  }
+  document.getElementById("b").onclick = () => location.reload();
+  addEventListener("online", () => location.reload());
+</script>
+</body>
+</html>

@@ -62,7 +62,7 @@ export async function spinSkin(user: { id: string; role: string }, episodeId: st
         creatorId: ep.series.creatorId,
         price: ROULETTE_PRICE,
         reason: "SKIN",
-        source: "SKIN",
+        source: "LOOT",
         episodeId,
         seriesId: ep.seriesId,
         note: "roulette",

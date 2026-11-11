@@ -1,10 +1,10 @@
 import clsx from "clsx";
-import { CalendarCheck, Check, Gem, PlayCircle, Sparkles, Star, Vote } from "lucide-react";
+import { CalendarCheck, Check, Gamepad2, Gem, HelpCircle, ListChecks, PlayCircle, Sparkles, Star, Tv, Vote } from "lucide-react";
 import type { getGoldState } from "@/lib/gold";
 import type { Dict } from "@/i18n/ru";
 import { fmt } from "@/i18n/shared";
 
-const ICON = { CHECKIN: CalendarCheck, WATCH: PlayCircle, VOTE: Vote, RATE: Star } as const;
+const ICON = { CHECKIN: CalendarCheck, WATCH: PlayCircle, VOTE: Vote, RATE: Star, TV_WATCH: Tv, TV_QUIZ: HelpCircle, TV_VOTE: ListChecks, TV_GAME: Gamepad2 } as const;
 
 /** Wallet section: gold balance, today's ways to earn it (with progress) and what it's for. */
 export function GoldPanel({ state, t, df }: { state: Awaited<ReturnType<typeof getGoldState>>; t: Dict; df: Intl.DateTimeFormat }) {
@@ -62,7 +62,7 @@ export function GoldPanel({ state, t, df }: { state: Awaited<ReturnType<typeof g
               <div>
                 <p className="mb-2 text-sm font-semibold">{t.gold.history}</p>
                 <ul className="divide-y divide-white/6 rounded-2xl bg-black/20 ring-1 ring-white/8">
-                  {state.recent.map((r) => (
+                  {state.recent.slice(0, 5).map((r) => (
                     <li key={r.id} className="flex items-center justify-between gap-3 px-3.5 py-2 text-sm">
                       <span className="min-w-0 truncate">
                         {t.gold.reasons[r.reason as keyof typeof t.gold.reasons] ?? r.reason}

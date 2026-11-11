@@ -53,25 +53,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className={kids ? "relative z-10 mt-10 space-y-10 md:space-y-14" : "relative z-10 -mt-6 space-y-10 md:-mt-16 md:space-y-14"}>
         {kids && nothing && (
           <div className="px-4 md:px-10">
-            <EmptyState icon={<Sparkles size={24} />} title={t.kids.empty} text={t.kids.emptyText} />
+            <EmptyState mascot="shrug" icon={<Sparkles size={24} />} title={t.kids.empty} text={t.kids.emptyText} />
           </div>
         )}
 
-        {!kids && (
-          <section className="px-4 md:px-10">
-            <div
-              className="relative flex flex-col gap-5 overflow-hidden rounded-3xl p-6 ring-1 ring-white/10 md:flex-row md:items-center md:justify-between md:p-8"
-              style={{ background: "radial-gradient(70% 140% at 0% 0%, rgba(62,197,255,.38), transparent 60%), radial-gradient(70% 140% at 100% 100%, rgba(255,126,182,.36), transparent 60%), linear-gradient(120deg, #241f5c, #2b2266)" }}
-            >
-              <span aria-hidden className="pointer-events-none absolute -right-6 -top-8 select-none text-[120px] leading-none opacity-25 md:right-8 md:top-1/2 md:-translate-y-1/2 md:text-[150px]">🏡</span>
-              <div className="relative">
-                <h2 className="font-display text-2xl font-bold md:text-3xl">{t.kids.promoTitle}</h2>
-                <p className="mt-2 max-w-xl text-white/80">{t.kids.promoText}</p>
-              </div>
-              <KidsEnterButton variant="hero" loggedIn={!!user} hasPin={!!user?.kidsPinHash} autoOpen={sp.family === "on"} className="relative self-start md:mr-40 md:self-auto" />
-            </div>
-          </section>
-        )}
         {checkIn && !checkIn.doneToday && (
           <div className="px-4 md:px-10">
             <CheckInWidget state={checkIn} compact />
@@ -190,6 +175,23 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             ))}
           </Row>
         </section>}
+
+        {/* Family mode pitch: at the end — the header already has the Family mode button */}
+        {!kids && (
+          <section className="px-4 md:px-10">
+            <div
+              className="relative flex flex-col gap-5 overflow-hidden rounded-3xl p-6 ring-1 ring-white/10 md:flex-row md:items-center md:justify-between md:p-8"
+              style={{ background: "radial-gradient(70% 140% at 0% 0%, rgba(62,197,255,.38), transparent 60%), radial-gradient(70% 140% at 100% 100%, rgba(255,126,182,.36), transparent 60%), linear-gradient(120deg, #241f5c, #2b2266)" }}
+            >
+              <span aria-hidden className="pointer-events-none absolute -right-6 -top-8 select-none text-[120px] leading-none opacity-25 md:right-8 md:top-1/2 md:-translate-y-1/2 md:text-[150px]">🏡</span>
+              <div className="relative">
+                <h2 className="font-display text-2xl font-bold md:text-3xl">{t.kids.promoTitle}</h2>
+                <p className="mt-2 max-w-xl text-white/80">{t.kids.promoText}</p>
+              </div>
+              <KidsEnterButton variant="hero" loggedIn={!!user} hasPin={!!user?.kidsPinHash} autoOpen={sp.family === "on"} className="relative self-start md:mr-40 md:self-auto" />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

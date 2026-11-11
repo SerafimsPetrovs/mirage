@@ -10,6 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-tv": "tsx prisma/seed-tv.ts",
+    "tv:lite": "tsx --conditions=react-server prisma/make-lite.ts",
     "db:reset": "prisma migrate reset --force",
     "postinstall": "prisma generate"
   },

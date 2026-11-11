@@ -41,9 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 # mirage
-/storage
+# /storage — committed on purpose (owner, 2026-11-12): videos go through Git LFS, see .gitattributes
 /prisma/*.db
 /prisma/*.db-journal
+!/prisma/dev.db
 !.env.example
 .playwright-mcp
 /.next-*/

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Clapperboard, Crown, Gift, History, MessageCircleHeart, Shield, Wallet } from "lucide-react";
+import { Bookmark, Clapperboard, Crown, Gift, History, MessageCircleHeart, Shield, Smile, Wallet } from "lucide-react";
 import { isAdultMode } from "@/lib/spicy";
 import { prisma } from "@/lib/db";
 import { isVip, requireUser } from "@/lib/auth";
@@ -17,6 +17,7 @@ import { Row, RowItem } from "@/components/media/row";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
 import { CreatorApplyForm, ProfileForm } from "@/components/profile/profile-forms";
 import { LangSwitch } from "@/components/layout/lang-switch";
+import { FamilyPinCard } from "@/components/kids/kids-controls";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -57,6 +58,9 @@ export default async function MePage() {
             <Link href="/me/wallet" className={btn("glass", "md")}>
               <Wallet size={18} /> <CoinAmount value={user.coins} />
             </Link>
+            <Link href="/me/buddy" className={btn("glass", "md")}>
+              <Smile size={18} className="text-[#3ee6c8]" /> {t.buddy.menu}
+            </Link>
             <Link href="/me/invite" className={btn("glass", "md")}>
               <Gift size={18} className="text-accent" /> {t.invite.nav}
             </Link>
@@ -83,9 +87,12 @@ export default async function MePage() {
           </div>
         </div>
 
-        <div className="mt-5">
-          <CheckInWidget state={checkIn} compact />
-        </div>
+        {/* claimed today → it lives in the wallet; the profile stays short */}
+        {!checkIn.doneToday && (
+          <div className="mt-5">
+            <CheckInWidget state={checkIn} compact />
+          </div>
+        )}
       </div>
 
       <section className="mt-10">
@@ -102,10 +109,16 @@ export default async function MePage() {
           </Row>
         ) : (
           <div className="px-4 md:px-10">
-            <EmptyState icon={<History size={24} />} title={t.me.emptyHistory} action={<Link href="/feed" className={btn("primary", "md")}>{t.home.feedPromoCta}</Link>} />
+            <EmptyState mascot="want-you" icon={<History size={24} />} title={t.me.emptyHistory} action={<Link href="/feed" className={btn("primary", "md")}>{t.home.feedPromoCta}</Link>} />
           </div>
         )}
       </section>
+
+      {!user.kidsMode && (
+        <section id="family" className="mt-10 scroll-mt-24 px-4 md:px-10">
+          <FamilyPinCard hasPin={!!user.kidsPinHash} />
+        </section>
+      )}
 
       <section id="list" className="mt-10 scroll-mt-24 px-4 md:px-10">
         <h2 className="mb-4 flex items-center gap-2 font-display text-xl font-semibold">
@@ -114,7 +127,7 @@ export default async function MePage() {
         {list.length ? (
           <SeriesGrid items={list.map((l) => toCard(l.series, locale))} t={t} locale={locale} />
         ) : (
-          <EmptyState icon={<Bookmark size={24} />} title={t.me.emptyList} action={<Link href="/browse" className={btn("glass", "md")}>{t.nav.browse}</Link>} />
+          <EmptyState mascot="shrug" icon={<Bookmark size={24} />} title={t.me.emptyList} action={<Link href="/browse" className={btn("glass", "md")}>{t.nav.browse}</Link>} />
         )}
       </section>
 

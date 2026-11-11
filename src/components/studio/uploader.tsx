@@ -15,7 +15,7 @@ export function Uploader({
   preview,
   aspect = "aspect-[9/16]",
 }: {
-  kind: "video" | "image" | "private";
+  kind: "video" | "image" | "private" | "installer";
   accept: string;
   label: string;
   onDone: (ref: string) => void;

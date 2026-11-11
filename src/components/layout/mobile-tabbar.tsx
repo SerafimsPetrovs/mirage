@@ -1,20 +1,27 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Home, PlaySquare, Search, User } from "lucide-react";
+import { Boxes, LibraryBig, PlaySquare, Radio, Search, User } from "lucide-react";
 import clsx from "clsx";
 import { useI18n } from "@/i18n/client";
+import { APPS_ENABLED } from "@/lib/features";
 
 export function MobileTabBar({ overlay = false, kids = false }: { overlay?: boolean; kids?: boolean }) {
   const { t } = useI18n();
   const path = usePathname();
-  const tabs = [
-    { href: "/", label: t.nav.home, icon: Home },
-    { href: "/feed", label: t.nav.feed, icon: PlaySquare },
-    { href: "/browse", label: t.nav.browse, icon: Compass },
-    { href: "/search", label: t.nav.search, icon: Search },
-    ...(kids ? [] : [{ href: "/me", label: t.nav.profile, icon: User }]),
-  ];
+  const tabs = kids
+    ? [
+        { href: "/library", label: t.v3.nav.catalog, icon: LibraryBig },
+        { href: "/feed", label: t.nav.feed, icon: PlaySquare },
+        { href: "/search", label: t.nav.search, icon: Search },
+      ]
+    : [
+        { href: "/", label: t.v3.nav.live, icon: Radio },
+        { href: "/library", label: t.v3.nav.catalog, icon: LibraryBig },
+        { href: "/feed", label: t.nav.feed, icon: PlaySquare },
+        ...(APPS_ENABLED ? [{ href: "/apps", label: t.v3.nav.apps, icon: Boxes }] : []),
+        { href: "/me", label: t.nav.profile, icon: User },
+      ];
   return (
     <nav
       className={clsx(
@@ -23,7 +30,7 @@ export function MobileTabBar({ overlay = false, kids = false }: { overlay?: bool
       )}
     >
       {tabs.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? path === "/" : path.startsWith(href);
+        const active = href === "/" ? path === "/" || path.startsWith("/tv") : path.startsWith(href);
         return (
           <Link
             key={href}

@@ -18,6 +18,10 @@ const MIME: Record<string, string> = {
   ".webp": "image/webp",
   ".avif": "image/avif",
   ".gif": "image/gif",
+  ".mp3": "audio/mpeg",
+  ".exe": "application/vnd.microsoft.portable-executable",
+  ".dmg": "application/x-apple-diskimage",
+  ".zip": "application/zip",
 };
 
 export function mimeOf(file: string) {
@@ -90,6 +94,31 @@ export function sniffMedia(head: Uint8Array, kind: "video" | "image"): boolean {
     );
   }
   return ascii(4, "ftyp") || (b(0) === 0x1a && b(1) === 0x45 && b(2) === 0xdf && b(3) === 0xa3); // MP4/MOV, WebM
+}
+
+const INSTALLER_EXT = new Set([".exe", ".msi", ".dmg", ".zip"]);
+
+/** App installers (admin only): Windows PE "MZ", OLE (msi), ZIP "PK"; .dmg has no fixed header (checked by extension). */
+export function sniffInstaller(head: Uint8Array, ext: string) {
+  const b = (i: number) => head[i] ?? -1;
+  if (ext === ".exe") return b(0) === 0x4d && b(1) === 0x5a;
+  if (ext === ".msi") return b(0) === 0xd0 && b(1) === 0xcf && b(2) === 0x11 && b(3) === 0xe0;
+  if (ext === ".zip") return b(0) === 0x50 && b(1) === 0x4b;
+  return ext === ".dmg";
+}
+
+/** Installer of an AI app (admin upload) → `storage:files/…`, served only by the access-checked download route. */
+export async function saveInstaller(file: File, maxBytes: number) {
+  const ext = path.extname(file.name).toLowerCase();
+  if (!INSTALLER_EXT.has(ext)) throw new Error("BAD_FILE_TYPE");
+  if (file.size > maxBytes) throw new Error("FILE_TOO_LARGE");
+  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (!sniffInstaller(head, ext)) throw new Error("BAD_FILE_TYPE");
+  const dir = path.join(STORAGE_DIR, "files");
+  fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
+  const name = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+  await fs.promises.writeFile(/*turbopackIgnore: true*/ path.join(dir, name), Readable.fromWeb(file.stream() as import("stream/web").ReadableStream));
+  return `storage:files/${name}`;
 }
 
 /** kind "private" = images served only through access-checked routes (character photos). */

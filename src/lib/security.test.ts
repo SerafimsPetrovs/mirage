@@ -150,3 +150,23 @@ describe("rate limiting", () => {
     expect(rateLimit(k, 5, 60_000, { peek: true }).allowed).toBe(true);
   });
 });
+
+describe("clientIp", () => {
+  it("ignores a spoofed first X-Forwarded-For entry and prefers proxy-set headers", async () => {
+    const { clientIp } = await import("./rate-limit");
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.1.1.1, 203.0.113.7" }))).toBe("203.0.113.7");
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.1.1.1", "cf-connecting-ip": "198.51.100.2" }))).toBe("198.51.100.2");
+    expect(clientIp(new Headers({ "x-forwarded-for": "1.1.1.1", "x-real-ip": "198.51.100.3" }))).toBe("198.51.100.3");
+    expect(clientIp(new Headers())).toBe("local");
+  });
+});
+
+describe("public image route", () => {
+  it("never serves files outside storage/images, even with an encoded slash or dots in a segment", async () => {
+    const { GET } = await import("@/app/api/media/[...path]/route");
+    const call = (path: string[]) => GET(new Request("http://x/api/media"), { params: Promise.resolve({ path }) });
+    for (const path of [["images", "../videos/a.mp4"], ["images", "..", "videos", "a.mp4"], ["images", "..%5Cprivate"], ["images", "a\\..\\..\\private"],["videos", "a.mp4"], ["images"], ["images", ".env"]]) {
+      expect((await call(path)).status).toBe(404);
+    }
+  });
+});

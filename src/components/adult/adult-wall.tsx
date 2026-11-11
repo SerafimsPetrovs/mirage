@@ -53,7 +53,7 @@ export function AdultWall({ title, poster, reason, next }: { title: string; post
             </p>
           </>
         )}
-        <Link href="/" className={btn("ghost", "md", "mt-3 w-full")}>
+        <Link href="/library" className={btn("ghost", "md", "mt-3 w-full")}>
           <EyeOff size={18} /> {t.adult.home}
         </Link>
       </div>

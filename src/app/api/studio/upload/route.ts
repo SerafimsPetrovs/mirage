@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
-import { saveUpload } from "@/lib/files";
+import { saveInstaller, saveUpload } from "@/lib/files";
 
 const LIMITS = { video: 500 * 1024 * 1024, image: 8 * 1024 * 1024, private: 8 * 1024 * 1024 };
 
@@ -12,6 +12,17 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file");
   const k = form.get("kind");
+  // AI app installers: admins only, stored outside the public media folders.
+  if (k === "installer") {
+    if (user.role !== "ADMIN") return Response.json({ error: "forbidden" }, { status: 403 });
+    if (!(file instanceof File)) return Response.json({ error: "no_file" }, { status: 400 });
+    try {
+      return Response.json({ ref: await saveInstaller(file, 2 * 1024 * 1024 * 1024) });
+    } catch (e) {
+      const code = e instanceof Error && ["BAD_FILE_TYPE", "FILE_TOO_LARGE"].includes(e.message) ? e.message : "upload_failed";
+      return Response.json({ error: code }, { status: 400 });
+    }
+  }
   const kind = k === "image" ? "image" : k === "private" ? "private" : "video";
   if (!(file instanceof File)) return Response.json({ error: "no_file" }, { status: 400 });
   try {

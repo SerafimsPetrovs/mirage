@@ -68,7 +68,7 @@ export async function stitchClips(refs: string[], orientation: "VERTICAL" | "HOR
 }
 
 /** Audio presence and duration of a media file (ffmpeg prints stream info to stderr and exits 1 without an output). */
-async function probe(file: string) {
+export async function probe(file: string) {
   let info = "";
   try {
     await run(ffmpegPath!, ["-hide_banner", "-i", file], { timeout: 20_000, windowsHide: true });
