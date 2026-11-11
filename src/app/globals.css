@@ -211,3 +211,12 @@ input, textarea, select {
   background-attachment: fixed;
 }
 [data-theme="kids"] .rounded-3xl { border-radius: 28px; }
+
+/* Mr. Static puppet: blinking lids, swaying lure, breathing */
+.mascot-lid-blink { transform-box: fill-box; transform-origin: top; animation: mascot-lid-blink 4.6s infinite; transform: scaleY(0); }
+@keyframes mascot-lid-blink { 0%, 93%, 100% { transform: scaleY(0); } 96% { transform: scaleY(1); } }
+.mascot-lure { animation: mascot-lure 3.2s ease-in-out infinite; }
+@keyframes mascot-lure { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+.mascot-breathe { animation: mascot-breathe 3.6s ease-in-out infinite; transform-origin: 200px 480px; }
+@keyframes mascot-breathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.012); } }
+@media (prefers-reduced-motion: reduce) { .mascot-lid-blink, .mascot-lure, .mascot-breathe { animation: none; } }
