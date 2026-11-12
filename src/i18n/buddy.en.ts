@@ -1,4 +1,5 @@
-import type { buddyRu } from "./buddy.ru";
+import { joinLines, type buddyRu } from "./buddy.ru";
+import { CHAOS_EN, MORE_EN } from "./buddy-more.en";
 
 export const buddyEn: typeof buddyRu = {
   title: "Buddy",
@@ -55,6 +56,15 @@ export const buddyEn: typeof buddyRu = {
     laurel: "Laurel wreath",
     starshades: "Star glasses",
     medal: "Medal",
+    fedora: "Adventurer's fedora",
+    wizard: "Grey wizard hat",
+    headband: "First-blood headband",
+    hockeymask: "Friday-the-13th hockey mask",
+    matrix: "Red-or-blue-pill shades",
+    yellowsuit: "Yellow revenge tracksuit",
+    cape: "Superhero cape",
+    flugegeheimen: "Flugegeheimen",
+    sixseven: "67 pendant",
   },
   rewardOnly: "Achievement reward",
   rewardShort: "Reward",
@@ -86,7 +96,7 @@ export const buddyEn: typeof buddyRu = {
       stylist: "Buy 3 things for your buddy",
     },
   },
-  lines: {
+  lines: joinLines({
     blip: {
       hello: ["Hi! Can I sit here?", "Watching together? Yay!"],
       night: ["Night TV is the most mysterious…", "Can't sleep? Me neither."],
@@ -219,5 +229,6 @@ export const buddyEn: typeof buddyRu = {
       sleep: ["Geese don't sleep. Geese… zzz…", "Zzz… honk… zzz…"],
       gold: ["Gold? Mine. HONK!", "+{n}. I'll guard it. HONK."],
     },
-  },
+  }, MORE_EN),
+  chaos: CHAOS_EN,
 };

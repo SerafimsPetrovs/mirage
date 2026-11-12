@@ -17,6 +17,7 @@ import { Row, RowItem } from "@/components/media/row";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
 import { CreatorApplyForm, ProfileForm } from "@/components/profile/profile-forms";
 import { LangSwitch } from "@/components/layout/lang-switch";
+import { Mode67Switch } from "@/components/layout/mode67-switch";
 import { FamilyPinCard } from "@/components/kids/kids-controls";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -138,6 +139,10 @@ export default async function MePage() {
           <div className="mt-6 flex items-center justify-between border-t border-line pt-5">
             <span className="text-sm text-muted">{t.nav.language}</span>
             <LangSwitch />
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <span className="text-sm text-muted">{t.m67.hint}</span>
+            <Mode67Switch kids={!!user.kidsMode} className="shrink-0" />
           </div>
         </div>
         {user.role === "VIEWER" && (

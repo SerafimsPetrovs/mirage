@@ -1,4 +1,5 @@
 import type { BuddyEvent, BuddyId } from "@/lib/buddy-catalog";
+import { CHAOS_RU, MORE_RU } from "./buddy-more.ru";
 
 type Lines = Record<BuddyEvent, string[]>;
 
@@ -57,6 +58,15 @@ export const buddyRu = {
     laurel: "Лавровый венок",
     starshades: "Очки-звёзды",
     medal: "Медаль",
+    fedora: "Шляпа искателя приключений",
+    wizard: "Шляпа серого мага",
+    headband: "Повязка «Первая кровь»",
+    hockeymask: "Хоккейная маска (пятница, 13-е)",
+    matrix: "Очки «красная или синяя?»",
+    yellowsuit: "Жёлтый костюм мести",
+    cape: "Плащ супергероя",
+    flugegeheimen: "Флюгегехаймен",
+    sixseven: "Кулон «67»",
   } as Record<string, string>,
   rewardOnly: "За достижение",
   rewardShort: "Награда",
@@ -88,7 +98,7 @@ export const buddyRu = {
       stylist: "Купить бади 3 вещи",
     } as Record<string, string>,
   },
-  lines: {
+  lines: joinLines({
     blip: {
       hello: ["Привет! Я тут посижу, ладно?", "О, смотрим вместе? Ура!"],
       night: ["Ночной эфир — самый загадочный…", "Не спится? Мне тоже."],
@@ -221,5 +231,18 @@ export const buddyRu = {
       sleep: ["Гуси не спят. Гуси… zzz…", "Хр… га… хр…"],
       gold: ["Золото? Моё. ГА!", "+{n}. Буду охранять. ГА."],
     },
-  } satisfies Record<BuddyId, Lines>,
+  } satisfies Record<BuddyId, Lines>, MORE_RU),
+  /** 67 mode: unhinged lines mixed into what the buddy says. */
+  chaos: CHAOS_RU as Record<BuddyId, string[]>,
 };
+
+/** Adds extra lines to the pools (more variety, fewer repeats). */
+export function joinLines<T extends Record<BuddyId, Lines>>(base: T, more: Record<BuddyId, Partial<Record<BuddyEvent, string[]>>>): T {
+  const out = { ...base };
+  for (const id of Object.keys(base) as BuddyId[]) {
+    const merged = { ...base[id] };
+    for (const [ev, extra] of Object.entries(more[id] ?? {}) as [BuddyEvent, string[]][]) merged[ev] = [...merged[ev], ...extra];
+    out[id] = merged;
+  }
+  return out;
+}

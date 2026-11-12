@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUDDIES, OUTFITS, itemDef, parseOutfit, pickLine, reactionEvent, sanitizeLook, slotEvent } from "./buddy-catalog";
+import { ACT_MS, ACTS, BUDDIES, CHAOS_ACTS, OUTFITS, itemDef, outfitDef, parseOutfit, pickAct, pickFresh, pickLine, reactionEvent, sanitizeLook, slotEvent } from "./buddy-catalog";
 import { buddyRu } from "@/i18n/buddy.ru";
 import { buddyEn } from "@/i18n/buddy.en";
 
@@ -54,5 +54,34 @@ describe("buddy catalog", () => {
       }
       for (const o of OUTFITS) expect(dict.outfitNames[o.id]).toBeTruthy();
     }
+  });
+});
+
+describe("pickFresh / acts", () => {
+  it("does not repeat recent lines while fresh ones remain", () => {
+    const lines = ["a", "b", "c", "d"];
+    const said: string[] = [];
+    for (let i = 0; i < 4; i++) said.push(pickFresh(lines, said));
+    expect(new Set(said).size).toBe(4);
+  });
+  it("falls back to anything but the last line once the pool is used up", () => {
+    expect(pickFresh(["a", "b"], ["a", "b"], () => 0)).toBe("a");
+    expect(pickFresh(["a", "b"], ["b", "a"], () => 0)).toBe("b");
+    expect(pickFresh([], [])).toBe("");
+  });
+  it("only does chaos acts in 67 mode", () => {
+    for (let i = 0; i < 50; i++) expect((ACTS as readonly string[]).includes(pickAct(false, "blip"))).toBe(true);
+    const seen = new Set(Array.from({ length: 200 }, () => pickAct(true, "kex")));
+    expect([...seen].some((a) => (CHAOS_ACTS as readonly string[]).includes(a))).toBe(true);
+  });
+  it("every act has a duration", () => {
+    for (const a of [...ACTS, ...CHAOS_ACTS]) expect(ACT_MS[a]).toBeGreaterThan(0);
+  });
+  it("new film-reference outfits are sellable and slotted", () => {
+    for (const id of ["fedora", "wizard", "headband", "hockeymask", "matrix", "yellowsuit", "cape", "flugegeheimen", "sixseven"]) {
+      const d = outfitDef(id);
+      expect(d && d.cur !== "reward" && d.price > 0).toBe(true);
+    }
+    expect(outfitDef("sixseven")?.price).toBe(67);
   });
 });

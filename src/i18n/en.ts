@@ -1322,4 +1322,10 @@ export const en: Dict = {
   tv: tvEn,
   v3: v3En,
   buddy: buddyEn,
+  m67: {
+    label: "67 mode",
+    on: "67 mode is on",
+    off: "67 mode is off",
+    hint: "The site's texts turn into memes and absurdity. Everything still works; your brain might not. Buddies lose it too.",
+  },
 };

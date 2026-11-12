@@ -37,11 +37,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [{ locale }, kids] = await Promise.all([getI18n(), getKidsMode()]);
+  const [{ locale, mode67 }, kids] = await Promise.all([getI18n(), getKidsMode()]);
   return (
-    <html lang={locale} className={`${inter.variable} ${unbounded.variable} ${vt.variable}`} data-theme={kids ? "kids" : undefined}>
+    <html lang={locale} className={`${inter.variable} ${unbounded.variable} ${vt.variable}`} data-theme={kids ? "kids" : undefined} data-mode67={mode67 ? "" : undefined}>
       <body className="min-h-dvh">
-        <I18nProvider locale={locale}>
+        <I18nProvider locale={locale} mode67={mode67}>
           <ToastProvider>
             {children}
             <CommandPalette kids={kids} />

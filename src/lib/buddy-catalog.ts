@@ -40,6 +40,16 @@ export const OUTFITS: OutfitDef[] = [
   { id: "scarf", slot: "neck", cur: "gold", price: 25 },
   { id: "bowtie", slot: "neck", cur: "coins", price: 29 },
   { id: "chain", slot: "neck", cur: "coins", price: 99 },
+  // film & meme references
+  { id: "fedora", slot: "hat", cur: "coins", price: 79 },
+  { id: "wizard", slot: "hat", cur: "coins", price: 89 },
+  { id: "headband", slot: "hat", cur: "gold", price: 40 },
+  { id: "hockeymask", slot: "face", cur: "coins", price: 66 },
+  { id: "matrix", slot: "face", cur: "gold", price: 50 },
+  { id: "yellowsuit", slot: "neck", cur: "coins", price: 129 },
+  { id: "cape", slot: "neck", cur: "gold", price: 55 },
+  { id: "flugegeheimen", slot: "neck", cur: "coins", price: 101 },
+  { id: "sixseven", slot: "neck", cur: "gold", price: 67 },
   // achievement rewards — can't be bought
   { id: "halo", slot: "hat", cur: "reward", price: 0 },
   { id: "laurel", slot: "hat", cur: "reward", price: 0 },
@@ -171,6 +181,44 @@ export function reactionEvent(emoji: string): BuddyEvent | null {
   if (["❤️", "😍", "🥰", "💖"].includes(emoji)) return "love";
   if (["🔥", "😱", "🤯", "😮", "👏"].includes(emoji)) return "wow";
   return null;
+}
+
+/**
+ * Picks a line the buddy hasn't said recently (`recent` = the last lines said, newest last).
+ * Falls back to anything but the very last line once the whole pool has been used.
+ */
+export function pickFresh(lines: readonly string[], recent: readonly string[], rnd = Math.random): string {
+  if (lines.length === 0) return "";
+  const fresh = lines.filter((l) => !recent.includes(l));
+  if (fresh.length) return fresh[Math.floor(rnd() * fresh.length) % fresh.length];
+  return pickLine(lines, recent.at(-1) ?? null, rnd);
+}
+
+/** Little things the buddy does on its own between lines. 67 mode adds the unhinged ones. */
+export const ACTS = ["hop", "look", "wave", "peek", "squash", "spin"] as const;
+export const CHAOS_ACTS = ["flip", "zoomies", "big", "sixseven", "spin3", "glitch"] as const;
+export type BuddyAct = (typeof ACTS)[number] | (typeof CHAOS_ACTS)[number];
+/** How long each act plays, ms (matches the CSS animations). */
+export const ACT_MS: Record<BuddyAct, number> = {
+  hop: 1400,
+  look: 2400,
+  wave: 1600,
+  peek: 2600,
+  squash: 1200,
+  spin: 900,
+  flip: 4200,
+  zoomies: 3000,
+  big: 3200,
+  sixseven: 3000,
+  spin3: 1600,
+  glitch: 1500,
+};
+
+/** The next act: normal ones, plus (often) chaos ones in 67 mode; the goose prefers trouble. */
+export function pickAct(chaos: boolean, buddy: BuddyId, rnd = Math.random): BuddyAct {
+  const pool: readonly BuddyAct[] = chaos && rnd() < 0.65 ? CHAOS_ACTS : ACTS;
+  if (buddy === "goose" && !chaos && rnd() < 0.3) return "spin";
+  return pool[Math.floor(rnd() * pool.length) % pool.length];
 }
 
 /** Picks one line, avoiding the one said last time when possible. */

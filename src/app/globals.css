@@ -402,7 +402,35 @@ input, textarea, select {
 @keyframes buddy-walk { 50% { transform: translateY(-5px) rotate(3deg); } }
 .buddy-zzz { animation: buddy-zzz 2.4s ease-in-out infinite; }
 @keyframes buddy-zzz { 0% { opacity: 0; transform: translate(0, 4px); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(8px, -14px); } }
+/* things the buddy does on its own (class = buddy-act-<name>, durations match ACT_MS) */
+.buddy-act-hop { animation: b-hop 0.7s cubic-bezier(.3,.7,.4,1) 2; transform-origin: 50% 100%; }
+@keyframes b-hop { 0%, 100% { transform: none; } 15% { transform: scale(1.12, 0.86); } 50% { transform: translateY(-26px) scale(0.94, 1.06); } 85% { transform: scale(1.08, 0.9); } }
+.buddy-act-look { animation: b-look 2.4s ease-in-out; transform-origin: 50% 100%; }
+@keyframes b-look { 20%, 40% { transform: rotate(-11deg); } 60%, 80% { transform: rotate(11deg); } }
+.buddy-act-wave { animation: b-wave 0.4s ease-in-out 4; transform-origin: 50% 100%; }
+@keyframes b-wave { 50% { transform: rotate(-8deg) translateY(-3px); } }
+.buddy-act-peek { animation: b-peek 2.6s ease-in-out; }
+@keyframes b-peek { 25%, 70% { transform: translateY(62%); } }
+.buddy-act-squash { animation: b-squash 1.2s ease-in-out; transform-origin: 50% 100%; }
+@keyframes b-squash { 40%, 60% { transform: scale(1.3, 0.68); } }
+.buddy-act-spin { animation: b-spin 0.9s ease-in-out; }
+@keyframes b-spin { to { transform: rotate(360deg); } }
+/* 67 mode: unhinged */
+.buddy-act-flip { animation: b-flip 4.2s ease-in-out; }
+@keyframes b-flip { 15%, 85% { transform: rotate(180deg) translateY(-18px); } }
+.buddy-act-big { animation: b-big 3.2s cubic-bezier(.3,1.5,.5,1); transform-origin: 100% 100%; }
+@keyframes b-big { 15%, 80% { transform: scale(1.9); } }
+.buddy-act-sixseven { animation: b-67 0.3s ease-in-out 10; transform-origin: 50% 100%; }
+@keyframes b-67 { 25% { transform: translateY(-9px) rotate(-6deg); } 75% { transform: translateY(-2px) rotate(6deg); } }
+.buddy-act-spin3 { animation: b-spin3 1.6s cubic-bezier(.5,0,.3,1); }
+@keyframes b-spin3 { to { transform: rotate(1080deg); } }
+.buddy-act-glitch { animation: b-glitch 1.5s steps(2); }
+@keyframes b-glitch { 0%, 100% { transform: none; filter: none; } 20% { transform: translate(-6px, 2px) skewX(12deg); filter: hue-rotate(90deg); } 40% { transform: translate(5px, -3px); filter: hue-rotate(200deg) saturate(3); } 60% { transform: translate(-3px, 0) scaleX(1.3); filter: invert(1); } 80% { transform: translate(4px, 3px) skewX(-15deg); filter: hue-rotate(300deg); } }
+.buddy-act-zoomies > * { animation: buddy-walk 0.18s ease-in-out infinite; transform-origin: 50% 100%; }
+/* the 67 switch label */
+.m67-wobble { animation: b-67 0.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .buddy-blink, .buddy-glow, .buddy-tail, .buddy-float, .buddy-jitter, .buddy-pop, .buddy-bob > *, .buddy-breathe > *,
-  .buddy-dance > *, .buddy-shake > *, .buddy-walk > *, .buddy-zzz { animation: none; }
+  .buddy-dance > *, .buddy-shake > *, .buddy-walk > *, .buddy-zzz,
+  [class*="buddy-act-"], .buddy-act-zoomies > *, .m67-wobble { animation: none; }
 }

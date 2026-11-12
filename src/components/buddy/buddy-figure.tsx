@@ -447,4 +447,89 @@ const PIECES: Record<string, React.ReactNode> = {
       <text x="0" y="15.5" textAnchor="middle" fontSize="9" fontWeight="900" fill="#8a6410">M</text>
     </g>
   ),
+  // ───── film & meme references ─────
+  /** An adventurer's fedora (whip not included). */
+  fedora: (
+    <g>
+      <ellipse cx="0" cy="1" rx="31" ry="6.5" fill="#6e4726" />
+      <path d="M-17,0 C-19,-21 -7,-23 0,-16 C7,-23 19,-21 17,0Z" fill="#8d6038" />
+      <rect x="-17.5" y="-7" width="35" height="5.5" fill="#33200f" />
+      <path d="M-4,-17 Q0,-13 4,-17" stroke="#6e4726" strokeWidth="1.6" fill="none" />
+    </g>
+  ),
+  /** A grey wizard's pointy hat with a bent tip. */
+  wizard: (
+    <g>
+      <ellipse cx="0" cy="2" rx="29" ry="5.5" fill="#666b77" />
+      <path d="M-16,1 L16,1 L5,-26 Q3,-37 14,-42 Q-1,-40 -4,-27Z" fill="#8a909c" />
+      <path d="M-14,-3 L14,-3" stroke="#5a5f6a" strokeWidth="3" />
+    </g>
+  ),
+  /** A red action-hero headband, tails flying. */
+  headband: (
+    <g transform="translate(0 7)">
+      <rect x="-24" y="-3" width="48" height="7" rx="3" fill="#e0243a" />
+      <path d="M22,0 Q31,3 36,13 M22,2 Q29,8 29,18" stroke="#e0243a" strokeWidth="4" fill="none" strokeLinecap="round" />
+    </g>
+  ),
+  /** A Friday-night slasher hockey mask. */
+  hockeymask: (
+    <g>
+      <ellipse cx="0" cy="2" rx="20" ry="17" fill="#f2efe6" stroke="#bdb8aa" strokeWidth="1.2" />
+      <ellipse cx="-8" cy="-3" rx="5" ry="3.5" fill="#1b1626" />
+      <ellipse cx="8" cy="-3" rx="5" ry="3.5" fill="#1b1626" />
+      <path d="M-3,-13 L0,-9 L3,-13 M-15,5 L-11,9 M15,5 L11,9" stroke="#d12a2a" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <circle cx="-5" cy="11" r="1.3" fill="#1b1626" />
+      <circle cx="0" cy="12.5" r="1.3" fill="#1b1626" />
+      <circle cx="5" cy="11" r="1.3" fill="#1b1626" />
+    </g>
+  ),
+  /** Tiny oval shades: red pill or blue pill? */
+  matrix: (
+    <g>
+      <ellipse cx="-9" cy="0" rx="8" ry="5" fill="#0b0b0b" />
+      <ellipse cx="9" cy="0" rx="8" ry="5" fill="#0b0b0b" />
+      <path d="M-1,-0.5 h2" stroke="#0b0b0b" strokeWidth="2" />
+      <path d="M-13,-1.5 l4,-1 M5,-1.5 l4,-1" stroke="#3dff7a" strokeWidth="1.3" opacity=".75" strokeLinecap="round" />
+    </g>
+  ),
+  /** The yellow tracksuit with a black stripe — dressed for revenge. */
+  yellowsuit: (
+    <g>
+      <path d="M-26,-4 Q0,6 26,-4 L24,24 Q0,30 -24,24Z" fill="#f7d417" />
+      <path d="M-15,0 L-11,27 M15,0 L11,27" stroke="#111" strokeWidth="4" />
+      <path d="M-8,-1 L0,8 L8,-1" stroke="#c9a80d" strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+    </g>
+  ),
+  /** A superhero cape (flying not included). */
+  cape: (
+    <g>
+      <path d="M-25,-3 Q-35,20 -31,37 L-20,31 Q-22,12 -17,3Z" fill="#b30f2a" />
+      <path d="M25,-3 Q35,20 31,37 L20,31 Q22,12 17,3Z" fill="#b30f2a" />
+      <path d="M-26,-6 Q0,6 26,-6 L22,2 Q0,12 -22,2Z" fill="#e2263f" />
+      <circle cx="0" cy="4" r="4" fill="#ffcd3c" stroke="#c9961a" />
+    </g>
+  ),
+  /** Nobody knows what a flugegeheimen is. But now you own one. */
+  flugegeheimen: (
+    <g>
+      <path d="M-20,-6 Q0,12 20,-6" stroke="#9aa3b5" strokeWidth="2" fill="none" />
+      <g transform="translate(0 15)">
+        <path d="M-11,-2 l-5,-4 M11,-2 l5,-4 M0,8 v5" stroke="#7c5cff" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M-8,-7 L8,-7 L5,8 L-5,8Z" fill="#7c5cff" />
+        <circle cx="0" cy="0" r="3.4" fill="#3ee6c8" className="buddy-glow" />
+        <path d="M-4,-4 Q0,-8 4,-4" stroke="#fff" strokeWidth="1" fill="none" opacity=".6" />
+      </g>
+    </g>
+  ),
+  /** The "67" pendant. Six. Seven. */
+  sixseven: (
+    <g>
+      <path d="M-22,-6 Q0,14 22,-6" stroke="#c0c6d4" strokeWidth="3" fill="none" strokeDasharray="3 2" />
+      <rect x="-12" y="6" width="24" height="14" rx="4" fill="#ff2e63" stroke="#c4134a" />
+      <text x="0" y="17" textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">
+        67
+      </text>
+    </g>
+  ),
 };

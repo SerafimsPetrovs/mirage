@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Shirt, X } from "lucide-react";
 import clsx from "clsx";
 import { useI18n } from "@/i18n/client";
-import { EVENT_MOOD, pickLine, reactionEvent, slotEvent, type BuddyEvent, type BuddyId, type BuddyMood, type Outfit } from "@/lib/buddy-catalog";
+import { ACT_MS, EVENT_MOOD, pickAct, pickFresh, reactionEvent, slotEvent, type BuddyAct, type BuddyEvent, type BuddyId, type BuddyMood, type Outfit } from "@/lib/buddy-catalog";
 import { BuddyFigure } from "./buddy-figure";
 
 type SlotLike = { id: string; kind: string; clipKind: string | null; title: string; info: { tags: string[] } | null };
@@ -13,7 +13,15 @@ type SlotLike = { id: string; kind: string; clipKind: string | null; title: stri
 const URGENT: BuddyEvent[] = ["poke", "annoyed", "laugh", "love", "wow", "gold"];
 /** Quiet gap between unprompted lines, so the buddy never chatters over the show. */
 const GAP_MS = 9000;
-const IDLE_LINE_MS = [80_000, 140_000] as const;
+const IDLE_LINE_MS = [60_000, 120_000] as const;
+/** 67 mode: chattier and much more restless. */
+const IDLE_LINE_MS_67 = [25_000, 50_000] as const;
+const ACT_EVERY_MS = [16_000, 32_000] as const;
+const ACT_EVERY_MS_67 = [6_000, 13_000] as const;
+/** How many recent lines the buddy avoids repeating. */
+const RECENT = 14;
+/** Chance a line comes from the 67 "chaos" pool instead of the normal one. */
+const CHAOS_SHARE: Partial<Record<BuddyEvent, number>> = { idle: 0.7, poke: 0.5, hello: 0.5, show: 0.35, ads: 0.4, chat: 0.4, wow: 0.3, laugh: 0.3 };
 const SLEEP_AFTER_MS = 6 * 60_000;
 
 /**
@@ -52,16 +60,21 @@ export function BuddyCompanion({
   onHide: () => void;
   className?: string;
 }) {
-  const { t } = useI18n();
+  const { t, mode67: chaos } = useI18n();
   const lines = t.buddy.lines[buddy];
+  const chaosLines = t.buddy.chaos[buddy];
   const [mood, setMood] = useState<BuddyMood>("idle");
   const [line, setLine] = useState<string | null>(null);
   const [talking, setTalking] = useState(false);
   const [bounce, setBounce] = useState(0);
   const [walk, setWalk] = useState({ x: 0, left: false, moving: false });
   const [asleep, setAsleep] = useState(false);
+  const [act, setAct] = useState<{ name: BuddyAct; n: number } | null>(null);
+  const [walkMs, setWalkMs] = useState(3000);
   const root = useRef<HTMLDivElement>(null);
   const last = useRef<{ line: string | null; at: number }>({ line: null, at: 0 });
+  const recent = useRef<string[]>([]);
+  const busy = useRef({ walking: false, talking: false });
   const timers = useRef<number[]>([]);
   const activity = useRef(0);
   const pokes = useRef<number[]>([]);
@@ -85,10 +98,12 @@ export function BuddyCompanion({
     (ev: BuddyEvent, vars: Record<string, string | number> = {}) => {
       const now = Date.now();
       if (!URGENT.includes(ev) && now - last.current.at < GAP_MS) return;
-      let text = pickLine(lines[ev], last.current.line).replace("{title}", titleRef.current);
+      const wild = chaos && Math.random() < (CHAOS_SHARE[ev] ?? 0);
+      let text = pickFresh(wild ? chaosLines : lines[ev], recent.current).replace("{title}", titleRef.current);
       for (const [k, v] of Object.entries(vars)) text = text.replace(`{${k}}`, String(v));
       if (!text) return;
       last.current = { line: text, at: now };
+      recent.current = [...recent.current, text].slice(-RECENT);
       setAsleep(ev === "sleep");
       setMood(EVENT_MOOD[ev]);
       setLine(text);
@@ -101,12 +116,13 @@ export function BuddyCompanion({
         if (ev !== "sleep") setMood((m) => (m === EVENT_MOOD[ev] ? "idle" : m));
       });
     },
-    [lines, later],
+    [lines, chaosLines, chaos, later],
   );
 
   // mouth flap while talking
   const [flap, setFlap] = useState(false);
   useEffect(() => {
+    busy.current.talking = talking;
     if (!talking) return;
     const id = window.setInterval(() => setFlap((f) => !f), 130);
     return () => {
@@ -187,7 +203,8 @@ export function BuddyCompanion({
     };
     const evs = ["pointerdown", "keydown", "mousemove", "touchstart"] as const;
     evs.forEach((e) => window.addEventListener(e, wake, { passive: true }));
-    let next = Date.now() + rand(...IDLE_LINE_MS);
+    const gap: readonly [number, number] = chaos ? IDLE_LINE_MS_67 : IDLE_LINE_MS;
+    let next = Date.now() + rand(...gap);
     const id = window.setInterval(() => {
       const now = Date.now();
       if (now - activity.current > SLEEP_AFTER_MS) {
@@ -195,7 +212,7 @@ export function BuddyCompanion({
         return;
       }
       if (now > next) {
-        next = now + rand(...IDLE_LINE_MS);
+        next = now + rand(...gap);
         say("idle");
       }
     }, 5000);
@@ -203,12 +220,43 @@ export function BuddyCompanion({
       clearInterval(id);
       evs.forEach((e) => window.removeEventListener(e, wake));
     };
-  }, [say]);
+  }, [say, chaos]);
+
+  // doing little things on its own: hops, looks around, waves, peeks, spins; in 67 mode — flips, zoomies, grows huge
+  useEffect(() => {
+    if (reduceMotion()) return;
+    const every = chaos ? ACT_EVERY_MS_67 : ACT_EVERY_MS;
+    let id = 0;
+    const go = () => {
+      id = window.setTimeout(() => {
+        if (!asleepRef.current && !busy.current.walking && !busy.current.talking) {
+          const name = pickAct(chaos, buddy);
+          if (name === "zoomies") {
+            // sprint across the screen and back
+            const w = root.current?.parentElement?.clientWidth ?? 0;
+            setWalkMs(700);
+            setWalk({ x: -Math.round(w * 0.8), left: true, moving: true });
+            later(900, () => setWalk({ x: 0, left: false, moving: true }));
+            later(1800, () => {
+              setWalk({ x: 0, left: false, moving: false });
+              setWalkMs(3000);
+            });
+          }
+          setAct((a) => ({ name, n: (a?.n ?? 0) + 1 }));
+          later(ACT_MS[name], () => setAct(null));
+          if (chaos && Math.random() < 0.35) say("idle");
+        }
+        go();
+      }, rand(every[0], every[1]));
+    };
+    go();
+    return () => clearTimeout(id);
+  }, [chaos, buddy, later, say]);
 
   // wandering along the bottom (the goose roams far and often)
   useEffect(() => {
-    const roam = buddy === "goose" ? 0.6 : 0.28;
-    const every = buddy === "goose" ? [18_000, 35_000] : [45_000, 90_000];
+    const roam = buddy === "goose" || chaos ? 0.6 : 0.3;
+    const every = chaos ? [12_000, 24_000] : buddy === "goose" ? [18_000, 35_000] : [30_000, 60_000];
     let id = 0;
     const go = () => {
       id = window.setTimeout(() => {
@@ -218,14 +266,18 @@ export function BuddyCompanion({
             const target = cur.x < 0 ? 0 : -Math.round(w * roam * (0.5 + Math.random() * 0.5));
             return { x: target, left: target < cur.x, moving: true };
           });
-          later(3200, () => setWalk((cur) => ({ ...cur, moving: false })));
+          busy.current.walking = true;
+          later(3200, () => {
+            busy.current.walking = false;
+            setWalk((cur) => ({ ...cur, moving: false }));
+          });
         }
         go();
       }, rand(every[0], every[1]));
     };
     go();
     return () => clearTimeout(id);
-  }, [buddy, later]);
+  }, [buddy, chaos, later]);
 
   // make room for the host's picture-in-picture
   useEffect(() => {
@@ -250,7 +302,7 @@ export function BuddyCompanion({
     <div
       ref={root}
       className={clsx("pointer-events-none absolute right-2 z-[19] md:right-5", className)}
-      style={{ transform: `translateX(${walk.x}px)`, transition: "transform 3s cubic-bezier(.45,0,.55,1)" }}
+      style={{ transform: `translateX(${walk.x}px)`, transition: `transform ${walkMs}ms cubic-bezier(.45,0,.55,1)` }}
     >
       {line && (
         <div className="animate-pop absolute bottom-full right-0 mb-1 w-max max-w-[min(220px,60vw)] origin-bottom-right rounded-2xl rounded-br-md bg-white px-3 py-2 text-[13px] font-semibold leading-snug text-[#17121f] shadow-xl md:max-w-[260px] md:text-sm">
@@ -274,9 +326,11 @@ export function BuddyCompanion({
         title={t.buddy.tapHint}
         className="pointer-events-auto block touch-manipulation"
       >
-        <div key={bounce} className={clsx("buddy-pop", walk.moving && "buddy-walk", !walk.moving && moodAnim(shownMood))}>
-          <div style={{ transform: walk.left ? "scaleX(-1)" : undefined }}>
-            <BuddyFigure id={buddy} mood={shownMood} outfit={outfit} talking={flap} className="h-[78px] w-[78px] drop-shadow-[0_6px_14px_rgba(0,0,0,.55)] md:h-[118px] md:w-[118px]" />
+        <div key={act ? `act${act.n}` : "still"} className={act ? `buddy-act-${act.name}` : undefined}>
+          <div key={bounce} className={clsx("buddy-pop", walk.moving && "buddy-walk", !walk.moving && moodAnim(shownMood))}>
+            <div style={{ transform: walk.left ? "scaleX(-1)" : undefined }}>
+              <BuddyFigure id={buddy} mood={act?.name === "sixseven" || act?.name === "zoomies" ? "hype" : shownMood} outfit={outfit} talking={flap} className="h-[78px] w-[78px] drop-shadow-[0_6px_14px_rgba(0,0,0,.55)] md:h-[118px] md:w-[118px]" />
+            </div>
           </div>
         </div>
       </button>

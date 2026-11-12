@@ -12,12 +12,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { createSession, destroySession, getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { createSession, destroySession, getCurrentUser, getKidsMode, hashPassword, verifyPassword } from "@/lib/auth";
 import { grantCoins } from "@/lib/coins";
 import { getI18n } from "@/i18n/server";
 import { mailOrigin, safePath } from "@/lib/url";
 import { clientIp, hit, LIMITS, rateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { isLocale, LOCALE_COOKIE } from "@/i18n/shared";
+import { MODE67_COOKIE } from "@/i18n/mode67";
 
 /** `values` echoes what the user typed (never passwords) so the form is not wiped after an error. */
 export type FormState = { error?: string; ok?: boolean; message?: string; values?: Record<string, string> } | undefined;
@@ -157,6 +158,15 @@ export async function resetPasswordAction(_: FormState, form: FormData): Promise
 export async function logoutAction() {
   await destroySession();
   redirect("/");
+}
+
+/** Turns the "67" meme mode on or off (a cookie; refused in family mode). */
+export async function setMode67Action(on: boolean) {
+  if (await getKidsMode()) return;
+  const jar = await cookies();
+  if (on) jar.set(MODE67_COOKIE, "1", { path: "/", maxAge: 365 * 86400, sameSite: "lax" });
+  else jar.delete(MODE67_COOKIE);
+  revalidatePath("/", "layout");
 }
 
 export async function setLocaleAction(locale: string) {

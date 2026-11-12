@@ -32,7 +32,7 @@ import { btn } from "@/components/ui/button";
 import { Avatar, CoinAmount, VipBadge } from "@/components/ui/misc";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
-import { logoutAction, setLocaleAction } from "@/app/actions/auth";
+import { logoutAction, setLocaleAction, setMode67Action } from "@/app/actions/auth";
 import { setAdultContentAction } from "@/app/actions/extras";
 import { InstallAppItem } from "@/components/pwa/pwa";
 
@@ -43,7 +43,7 @@ type Props = { user: { name: string; email: string; hue: number; role: string; v
  * the TV studio for creators and the control room for admins. The series catalog is one small section.
  */
 export function UserMenu({ user, hot = 0 }: Props) {
-  const { t, locale } = useI18n();
+  const { t, locale, mode67 } = useI18n();
   const m = t.v3.menu;
   const n = t.v3.nav;
   const [open, setOpen] = useState(false);
@@ -161,6 +161,13 @@ export function UserMenu({ user, hot = 0 }: Props) {
           <div className="py-1">
             <button className={ITEM} onClick={() => start(() => setLocaleAction(locale === "ru" ? "en" : "ru"))}>
               <Languages size={18} /> {locale === "ru" ? "English" : "Русский"}
+            </button>
+            <button className={ITEM} role="switch" aria-checked={mode67} title={t.m67.hint} onClick={() => start(() => setMode67Action(!mode67))}>
+              <span className={clsx("flex w-[18px] justify-center font-display text-[13px] font-black", mode67 ? "text-accent" : "text-muted")}>67</span>
+              <span className="flex-1 text-left">{t.m67.label}</span>
+              <span className={clsx("relative h-5 w-9 rounded-full transition", mode67 ? "bg-accent" : "bg-white/15")} aria-hidden>
+                <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", mode67 ? "left-[18px]" : "left-0.5")} />
+              </span>
             </button>
             <button
               className={ITEM}
