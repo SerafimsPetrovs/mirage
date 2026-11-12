@@ -25,7 +25,7 @@ export default async function AboutPage() {
           </div>
         ))}
       </div>
-      <div className="mt-10 flex gap-3">
+      <div className="mt-10 flex flex-wrap gap-3">
         <Link href="/feed" className={btn("primary", "lg")}>{t.home.feedPromoCta}</Link>
         <Link href="/creators" className={btn("glass", "lg")}>{t.footer.creators}</Link>
       </div>

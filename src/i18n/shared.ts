@@ -4,6 +4,8 @@ import { ru67 } from "./ru67";
 import { en67 } from "./en67";
 import { ru67more } from "./ru67.more";
 import { en67more } from "./en67.more";
+import { ru67rest } from "./ru67.rest";
+import { en67rest } from "./en67.rest";
 import { deepMerge } from "./mode67";
 
 export const LOCALES = ["ru", "en"] as const;
@@ -15,8 +17,8 @@ export const DEFAULT_LOCALE: Locale = "en";
 export const dictionaries: Record<Locale, Dict> = { ru, en };
 /** The same dictionaries with the "67" overlay (memes and absurdity instead of plain texts). */
 const dictionaries67: Record<Locale, Dict> = {
-  ru: deepMerge(deepMerge(ru, ru67), ru67more),
-  en: deepMerge(deepMerge(en, en67), en67more),
+  ru: [ru67, ru67more, ru67rest].reduce<Dict>((d, o) => deepMerge(d, o), ru),
+  en: [en67, en67more, en67rest].reduce<Dict>((d, o) => deepMerge(d, o), en),
 };
 
 export function dictFor(locale: Locale, mode67 = false): Dict {
