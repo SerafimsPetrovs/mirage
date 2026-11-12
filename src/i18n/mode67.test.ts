@@ -19,7 +19,7 @@ describe("67 mode", () => {
       expect(wild.common.cancel).toBe(plain.common.cancel);
       expect(wild.buddy.lines.blip.idle).toBe(plain.buddy.lines.blip.idle);
     }
-    expect(dictFor("ru", true).v3.club.wantYou).toContain("200 метров");
+    expect(dictFor("ru", true).v3.club.wantYou).toContain("200 метрах");
   });
   it("buddies have enough lines not to loop, and chaos lines for 67 mode", () => {
     for (const l of ["en", "ru"] as const) {
