@@ -16,7 +16,7 @@ describe("67 mode", () => {
       const plain = dictFor(l);
       const wild = dictFor(l, true);
       expect(wild.v3.club.wantYou).not.toBe(plain.v3.club.wantYou);
-      expect(wild.common.cancel).toBe(plain.common.cancel);
+      expect(wild.common.min).toBe(plain.common.min);
       expect(wild.buddy.lines.blip.idle).toBe(plain.buddy.lines.blip.idle);
     }
     expect(dictFor("ru", true).v3.club.wantYou).toContain("200 метрах");
@@ -34,5 +34,20 @@ describe("67 mode", () => {
       expect(CHAOS_RU[id].length).toBe(CHAOS_EN[id].length);
       expect(MORE_RU[id].idle?.length).toBe(MORE_EN[id].idle?.length);
     }
+  });
+  it("keeps every {placeholder} of the original text", () => {
+    const vars = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
+    const bad: string[] = [];
+    const walk = (a: unknown, b: unknown, path: string) => {
+      if (typeof a === "string" && typeof b === "string") {
+        if (a !== b && vars(a) !== vars(b)) bad.push(`${path}: ${b}`);
+      } else if (Array.isArray(a) || Array.isArray(b)) {
+        return;
+      } else if (a && b && typeof a === "object" && typeof b === "object") {
+        for (const k of Object.keys(a)) walk((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], `${path}.${k}`);
+      }
+    };
+    for (const l of ["en", "ru"] as const) walk(dictFor(l), dictFor(l, true), l);
+    expect(bad).toEqual([]);
   });
 });
