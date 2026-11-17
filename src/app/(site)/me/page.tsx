@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bookmark, Clapperboard, Crown, Gift, History, MessageCircleHeart, Shield, Smile, Wallet } from "lucide-react";
+import { Bookmark, Clapperboard, Download, Crown, Gift, History, MessageCircleHeart, Shield, Smile, Wallet } from "lucide-react";
 import { isAdultMode } from "@/lib/spicy";
 import { prisma } from "@/lib/db";
 import { isVip, requireUser } from "@/lib/auth";
@@ -151,7 +151,16 @@ export default async function MePage() {
       </section>
 
       {!user.kidsMode && (
-        <section className="mt-5 px-4 md:px-10">
+        <section className="mt-5 grid gap-5 px-4 md:grid-cols-2 md:px-10">
+          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line md:p-6">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Download size={18} /> {t.gdpr.exportTitle}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{t.gdpr.exportText}</p>
+            <a href="/api/me/export" download className={btn("glass", "md", "mt-4")}>
+              <Download size={17} /> {t.gdpr.exportButton}
+            </a>
+          </div>
           <DeleteAccountForm />
         </section>
       )}

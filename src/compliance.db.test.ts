@@ -146,3 +146,19 @@ describe("bot comments (admin)", () => {
     await prisma.user.deleteMany({ where: { email: { endsWith: "@bots.mirage.local" } } });
   });
 });
+
+describe("data export (GDPR access/portability)", () => {
+  it("contains the user's records but no password hash, sessions or tokens", async () => {
+    const { exportUserData } = await import("@/lib/data-export");
+    const u = await mk("VIEWER", "exporter");
+    await prisma.session.create({ data: { id: `exp-sess-${tag}`, userId: u.id, expiresAt: new Date(Date.now() + 86400_000) } });
+    await prisma.coinTransaction.create({ data: { userId: u.id, amount: 10, type: "BONUS" } }).catch(() => null);
+    const d = await exportUserData(u.id);
+    expect(d?.account.email).toBe(u.email);
+    expect(JSON.stringify(d)).not.toContain(u.passwordHash);
+    expect(d?.account).not.toHaveProperty("passwordHash");
+    expect(d?.data).not.toHaveProperty("Session");
+    expect(JSON.stringify(d)).not.toContain(`exp-sess-${tag}`);
+    expect(await exportUserData("nope")).toBeNull();
+  });
+});

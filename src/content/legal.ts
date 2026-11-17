@@ -138,7 +138,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "7. Your rights",
         p: [
-          "You can delete your account yourself at any time in Profile → Delete account: the account and everything linked to it are erased immediately. You can request access, correction, restriction, portability of your data and object to processing at [privacy email]. You can also complain to your data protection authority.",
+          "You can delete your account yourself at any time in Profile → Delete account: the account and everything linked to it are erased immediately. Profile → Download my data gives you a copy of everything we store as a JSON file. You can request access, correction, restriction, portability of your data and object to processing at [privacy email]. You can also complain to your data protection authority.",
         ],
       },
       {
@@ -383,7 +383,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "7. Ваши права",
         p: [
-          "Удалить аккаунт можно самостоятельно в любой момент: Профиль → Удалить аккаунт — аккаунт и всё, что с ним связано, стираются сразу. Вы можете запросить доступ, исправление, ограничение обработки, перенос данных и возразить против обработки: [email по вопросам данных]. Также можно подать жалобу в надзорный орган по защите данных.",
+          "Удалить аккаунт можно самостоятельно в любой момент: Профиль → Удалить аккаунт — аккаунт и всё, что с ним связано, стираются сразу. Профиль → «Скачать мои данные» — копия всего, что мы храним, в файле JSON. Вы можете запросить доступ, исправление, ограничение обработки, перенос данных и возразить против обработки: [email по вопросам данных]. Также можно подать жалобу в надзорный орган по защите данных.",
         ],
       },
       {
