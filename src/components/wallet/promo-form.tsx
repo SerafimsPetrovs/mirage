@@ -23,7 +23,7 @@ export function PromoForm({ initial = "" }: { initial?: string }) {
       const r = await redeemPromoAction(code);
       if (!r.ok) return setErr(t.promo.errors[r.error]);
       setCode("");
-      toast(fmt(r.kind === "COINS" ? t.promo.gotCoins : t.promo.gotVip, { n: r.value }), r.kind === "COINS" ? "coin" : "ok");
+      toast(fmt(r.kind === "COINS" ? t.promo.gotCoins : r.kind === "DISCOUNT" ? t.promo.gotDiscount : t.promo.gotVip, { n: r.value }), r.kind === "COINS" ? "coin" : "ok");
       router.refresh();
     });
   };

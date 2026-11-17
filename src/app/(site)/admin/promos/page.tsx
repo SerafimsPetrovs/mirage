@@ -35,7 +35,7 @@ export default async function AdminPromosPage() {
                       {expired ? t.promo.expired : p.active ? t.promo.on : t.promo.off}
                     </span>
                     <span className="rounded-full bg-coin/15 px-2 py-0.5 text-xs font-semibold text-coin">
-                      {fmt(t.promo.reward[p.kind as "COINS" | "VIP_DAYS"], { n: p.value })}
+                      {fmt(t.promo.reward[p.kind as "COINS" | "VIP_DAYS" | "DISCOUNT"], { n: p.value })}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-muted">

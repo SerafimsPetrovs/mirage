@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "../db";
 import { grantCoins } from "../coins";
 import { findSku, priceFor } from "./catalog";
+import { discountedCents, pendingDiscount } from "../promo";
 
 /**
  * Payment provider contract. A real provider (Stripe, YooKassa) creates a hosted
@@ -33,9 +34,15 @@ export async function createOrder(userId: string, sku: string) {
   if (!item) throw new Error("UNKNOWN_SKU");
   const price = priceFor(item.kind === "COINS" ? item.pack : item.plan);
   const provider = getProvider();
+  // Promo discount (DISCOUNT codes) applies to coin packs only; the same price was shown on the wallet before paying.
+  const discount = item.kind === "COINS" ? await pendingDiscount(userId) : null;
+  if (discount) price.amountCents = discountedCents(price.amountCents, discount.pct);
   const order = await prisma.order.create({
-    data: { userId, kind: item.kind, sku, provider: provider.name, ...price },
+    data: { userId, kind: item.kind, sku, provider: provider.name, ...price, discountPct: discount?.pct ?? 0 },
   });
+  if (discount) {
+    await prisma.promoRedemption.update({ where: { promoId_userId: { promoId: discount.promoId, userId } }, data: { orderId: order.id } });
+  }
   const redirectUrl = await provider.checkout({
     id: order.id,
     ...price,

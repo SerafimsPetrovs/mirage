@@ -13,7 +13,7 @@ export function PromoCreateForm() {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
-  const [kind, setKind] = useState<"COINS" | "VIP_DAYS">("COINS");
+  const [kind, setKind] = useState<"COINS" | "VIP_DAYS" | "DISCOUNT">("COINS");
   const [err, setErr] = useState<string | null>(null);
 
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -44,11 +44,12 @@ export function PromoCreateForm() {
           <select id="pc-kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)} className={inputCls}>
             <option value="COINS">{t.promo.kinds.COINS}</option>
             <option value="VIP_DAYS">{t.promo.kinds.VIP_DAYS}</option>
+            <option value="DISCOUNT">{t.promo.kinds.DISCOUNT}</option>
           </select>
         </div>
         <div>
           <label className={labelCls} htmlFor="pc-value">{t.promo.value}</label>
-          <input id="pc-value" name="value" type="number" min={1} max={kind === "VIP_DAYS" ? 365 : 100000} required defaultValue={kind === "VIP_DAYS" ? 7 : 100} key={kind} className={inputCls} />
+          <input id="pc-value" name="value" type="number" min={kind === "DISCOUNT" ? 5 : 1} max={kind === "VIP_DAYS" ? 365 : kind === "DISCOUNT" ? 90 : 100000} required defaultValue={kind === "VIP_DAYS" ? 7 : kind === "DISCOUNT" ? 20 : 100} key={kind} className={inputCls} />
         </div>
         <div>
           <label className={labelCls} htmlFor="pc-max">{t.promo.maxUses}</label>

@@ -71,3 +71,43 @@ describe("promo codes", () => {
     expect(await code(redeemPromo(await user(), `N-${tag}`))).toBe("ok");
   });
 });
+
+describe("discount codes", () => {
+  it("take a percent off the next coin pack only, once, and are visible before paying", async () => {
+    const { createOrder } = await import("./payments");
+    const { pendingDiscount } = await import("./promo");
+    await createPromo({ code: `DSC-${tag}`, kind: "DISCOUNT", value: 20, maxUses: null, expiresAt: null, newUsersOnly: false });
+    await createPromo({ code: `DSC2-${tag}`, kind: "DISCOUNT", value: 50, maxUses: null, expiresAt: null, newUsersOnly: false });
+    const u = await user();
+    expect(await redeemPromo(u, `DSC-${tag}`)).toEqual({ kind: "DISCOUNT", value: 20 });
+    // a second discount while one is unused would silently replace it
+    expect(await code(redeemPromo(u, `DSC2-${tag}`))).toBe("ALREADY");
+    expect((await pendingDiscount(u))?.pct).toBe(20);
+
+    // VIP is not discounted and does not spend the code
+    const vip = await createOrder(u, "vip_week");
+    expect(vip.order.amountCents).toBe(199);
+    expect((await pendingDiscount(u))?.pct).toBe(20);
+
+    const { order } = await createOrder(u, "coins_600"); // €5.49 → €4.39
+    expect(order.amountCents).toBe(439);
+    expect(order.discountPct).toBe(20);
+    expect(await pendingDiscount(u)).toBeNull();
+    const next = await createOrder(u, "coins_600");
+    expect(next.order.amountCents).toBe(549);
+    // the coins themselves are not reduced
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: u } })).paidCoins).toBe(2 * 690);
+  });
+
+  it("an unpaid (abandoned) order does not burn the discount", async () => {
+    const { pendingDiscount } = await import("./promo");
+    await createPromo({ code: `DSC3-${tag}`, kind: "DISCOUNT", value: 30, maxUses: null, expiresAt: null, newUsersOnly: false });
+    const u = await user();
+    const r = await redeemPromo(u, `DSC3-${tag}`);
+    expect(r.kind).toBe("DISCOUNT");
+    const pending = await prisma.order.create({ data: { userId: u, kind: "COINS", sku: "coins_100", amountCents: 69, currency: "EUR", provider: "mock", discountPct: 30 } });
+    const promo = await prisma.promoCode.findUniqueOrThrow({ where: { code: `DSC3-${tag}` } });
+    await prisma.promoRedemption.update({ where: { promoId_userId: { promoId: promo.id, userId: u } }, data: { orderId: pending.id } });
+    expect((await pendingDiscount(u))?.pct).toBe(30);
+  });
+});

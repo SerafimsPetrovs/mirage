@@ -317,6 +317,8 @@ model Order {
   currency    String
   status      OrderStatus @default(PENDING)
   provider    String
+  /// Promo discount applied to this order, percent (0 = none). amountCents is already discounted.
+  discountPct Int         @default(0)
   createdAt   DateTime    @default(now())
   paidAt      DateTime?
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -663,7 +665,7 @@ model PromoCode {
   id           String            @id @default(cuid())
   /// Upper-case, unique.
   code         String            @unique
-  /// COINS | VIP_DAYS
+  /// COINS | VIP_DAYS | DISCOUNT (value = percent off the next coin pack)
   kind         String
   value        Int
   /// null = unlimited
@@ -681,6 +683,8 @@ model PromoCode {
 model PromoRedemption {
   promoId   String
   userId    String
+  /// DISCOUNT codes: the coin-pack order the discount went to (null = not used yet; reassigned while that order is unpaid).
+  orderId   String?
   createdAt DateTime  @default(now())
   promo     PromoCode @relation(fields: [promoId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

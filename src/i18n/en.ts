@@ -1020,6 +1020,8 @@ export const en: Dict = {
     apply: "Apply",
     gotCoins: "+{n} bonus coins!",
     gotVip: "VIP extended by {n} days",
+    gotDiscount: "{n}% off your next coin pack",
+    discountBadge: "{n}% off with code {code}",
     errors: {
       NOT_FOUND: "No such promo code",
       EXPIRED: "This promo code has expired",
@@ -1038,7 +1040,7 @@ export const en: Dict = {
     code: "Code",
     codeHint: "Leave empty to generate a random one",
     kind: "Reward",
-    kinds: { COINS: "Bonus coins", VIP_DAYS: "VIP days" },
+    kinds: { COINS: "Bonus coins", VIP_DAYS: "VIP days", DISCOUNT: "Coin pack discount, %" },
     value: "Amount",
     maxUses: "Max redemptions",
     maxUsesHint: "Empty — unlimited",
@@ -1059,7 +1061,7 @@ export const en: Dict = {
     off: "Disabled",
     disable: "Disable",
     enable: "Enable",
-    reward: { COINS: "{n} coins", VIP_DAYS: "{n} VIP days" },
+    reward: { COINS: "{n} coins", VIP_DAYS: "{n} VIP days", DISCOUNT: "{n}% off coins" },
   },
   ads: {
     watch: "Watch ads · {done}/{need}",

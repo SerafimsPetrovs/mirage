@@ -13,6 +13,7 @@ import { CheckInWidget } from "@/components/wallet/checkin-widget";
 import { PromoForm } from "@/components/wallet/promo-form";
 import { GoldPanel } from "@/components/wallet/gold-panel";
 import { earnGold, getGoldState } from "@/lib/gold";
+import { discountedCents, pendingDiscount } from "@/lib/promo";
 
 /** Latest operations shown right away; the rest are one tap away (the list used to be 40 rows). */
 const TX_SHOWN = 8;
@@ -28,7 +29,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const { t, locale } = await getI18n();
   // Accounts created before gold existed get the sign-up gift once, on their first wallet visit.
   await earnGold(user.id, "WELCOME").catch(() => 0);
-  const [txs, checkIn, goldState] = await Promise.all([
+  const [txs, checkIn, goldState, discount] = await Promise.all([
     prisma.coinTransaction.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -37,6 +38,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     }),
     getCheckInState(user.id),
     getGoldState(user.id),
+    pendingDiscount(user.id),
   ]);
   const mockMode = process.env.NODE_ENV !== "production" || process.env.ALLOW_MOCK_PAYMENTS === "1";
   const df = new Intl.DateTimeFormat(locale === "en" ? "en-US" : "ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -86,9 +88,16 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       </div>
 
       <h2 className="mb-4 mt-8 font-display text-xl font-semibold">{t.wallet.buy}</h2>
+      {discount && (
+        <p className="-mt-2 mb-4 inline-flex rounded-full bg-ok/15 px-3 py-1 text-sm font-semibold text-ok ring-1 ring-ok/30">
+          {fmt(t.promo.discountBadge, { n: discount.pct, code: discount.code })}
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         {COIN_PACKS.map((p) => {
-          const price = formatMoney(p.eur, CURRENCY, locale);
+          // With a redeemed discount code the button shows the exact amount that will be charged.
+          const cents = discount ? discountedCents(Math.round(p.eur * 100), discount.pct) : Math.round(p.eur * 100);
+          const price = formatMoney(cents / 100, CURRENCY, locale);
           return (
             <div
               key={p.sku}
@@ -102,6 +111,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               <CoinAmount value={p.coins} size={22} className="font-display text-2xl" />
               <p className="mt-1 h-5 text-sm font-semibold text-ok">{p.bonus > 0 && fmt(t.wallet.bonus, { n: p.bonus })}</p>
               <div className="mt-4 flex-1" />
+              {discount && <p className="mb-1 text-center text-xs text-muted line-through">{formatMoney(p.eur, CURRENCY, locale)}</p>}
               <BuyButton sku={p.sku} label={price} successText={t.wallet.paid} next={next} className="w-full" variant={p.badge ? "coin" : "glass"} />
             </div>
           );

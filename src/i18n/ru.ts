@@ -1018,6 +1018,8 @@ export const ru = {
     apply: "Применить",
     gotCoins: "+{n} бонусных монет!",
     gotVip: "VIP продлён на {n} дн.",
+    gotDiscount: "Скидка {n}% на следующий пакет монет",
+    discountBadge: "Скидка {n}% по промокоду {code}",
     errors: {
       NOT_FOUND: "Такого промокода нет",
       EXPIRED: "Срок действия промокода истёк",
@@ -1036,7 +1038,7 @@ export const ru = {
     code: "Код",
     codeHint: "Пусто — сгенерируем случайный",
     kind: "Что даёт",
-    kinds: { COINS: "Бонусные монеты", VIP_DAYS: "Дни VIP" },
+    kinds: { COINS: "Бонусные монеты", VIP_DAYS: "Дни VIP", DISCOUNT: "Скидка на пакет монет, %" },
     value: "Сколько",
     maxUses: "Лимит активаций",
     maxUsesHint: "Пусто — без лимита",
@@ -1057,7 +1059,7 @@ export const ru = {
     off: "Выключен",
     disable: "Выключить",
     enable: "Включить",
-    reward: { COINS: "{n} монет", VIP_DAYS: "{n} дн. VIP" },
+    reward: { COINS: "{n} монет", VIP_DAYS: "{n} дн. VIP", DISCOUNT: "−{n}% на монеты" },
   },
   ads: {
     watch: "Смотреть рекламу · {done}/{need}",

@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance } from "@/lib/coins";
-import { createPromo, PROMO_KINDS, PromoError, redeemPromo } from "@/lib/promo";
+import { createPromo, DISCOUNT_MAX, DISCOUNT_MIN, PROMO_KINDS, PromoError, redeemPromo, type PromoKind } from "@/lib/promo";
 import { logAdmin } from "@/lib/admin-log";
 import { hit, LIMITS, rateLimit } from "@/lib/rate-limit";
 
 export type RedeemResult =
-  | { ok: true; kind: "COINS" | "VIP_DAYS"; value: number; balance: number }
+  | { ok: true; kind: PromoKind; value: number; balance: number }
   | { ok: false; error: PromoError["code"] | "kids" | "auth" | "tooMany" | "unknown" };
 
 export async function redeemPromoAction(code: string): Promise<RedeemResult> {
@@ -65,6 +65,7 @@ export async function createPromoAction(input: Record<string, unknown>): Promise
   const d = p.data;
   // VIP codes are capped at a year per redemption.
   if (d.kind === "VIP_DAYS" && d.value > 365) return { ok: false, error: "invalid" };
+  if (d.kind === "DISCOUNT" && (d.value < DISCOUNT_MIN || d.value > DISCOUNT_MAX)) return { ok: false, error: "invalid" };
   try {
     const promo = await createPromo({
       code: d.code || undefined,
