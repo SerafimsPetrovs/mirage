@@ -179,7 +179,7 @@ export function SongFeed({ initial, loggedIn }: { initial: FeedItem[]; loggedIn:
               </div>
 
               {/* title + author */}
-              <div className="absolute inset-x-0 bottom-0 px-5 pb-[max(28px,calc(env(safe-area-inset-bottom)+20px))] pr-20">
+              <div className="absolute inset-x-0 bottom-0 px-5 pb-[max(28px,calc(env(safe-area-inset-bottom)+20px))] pr-20 md:inset-x-[calc(50%-300px)]">
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {isAiMusic(it.aiTool) && (
                     <span className="flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-semibold backdrop-blur"><Sparkles size={12} /> {s.ai}</span>
@@ -196,7 +196,7 @@ export function SongFeed({ initial, loggedIn }: { initial: FeedItem[]; loggedIn:
               </div>
 
               {/* actions */}
-              <div className="absolute bottom-[max(36px,calc(env(safe-area-inset-bottom)+28px))] right-3 flex flex-col items-center gap-4">
+              <div className="absolute bottom-[max(36px,calc(env(safe-area-inset-bottom)+28px))] right-3 flex flex-col items-center gap-4 md:right-[calc(50%-300px)]">
                 <button type="button" onClick={() => save(it)} aria-pressed={it.saved} aria-label={it.saved ? s.saved : s.save} className="flex flex-col items-center gap-1">
                   <span className={clsx("flex h-12 w-12 items-center justify-center rounded-full backdrop-blur transition active:scale-90", it.saved ? "bg-accent" : "bg-white/15")}>
                     <Heart size={24} className={it.saved ? "fill-white" : ""} />
