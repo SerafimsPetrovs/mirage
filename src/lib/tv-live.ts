@@ -296,6 +296,19 @@ export async function finishGame(user: Viewer, gameId: string, score: number, no
 
 // ───────────── the live feed ─────────────
 
+/** Channel analytics: +1 watched minute for this hour and the concurrent-viewer peak (incl. guests). */
+export async function recordAudience(channelId: string, now = new Date()) {
+  const day = now.toISOString().slice(0, 10);
+  const hour = now.getUTCHours();
+  const viewers = viewersNow(channelId, now.getTime());
+  const row = await prisma.tvChannelStat.upsert({
+    where: { channelId_day_hour: { channelId, day, hour } },
+    create: { channelId, day, hour, minutes: 1, peak: viewers },
+    update: { minutes: { increment: 1 } },
+  });
+  if (viewers > row.peak) await prisma.tvChannelStat.update({ where: { channelId_day_hour: { channelId, day, hour } }, data: { peak: viewers } });
+}
+
 /** One poll request = chat + ticker + reactions + viewers + pinned super chat + poll + watch heartbeat. */
 export async function liveFeed(ch: TvChannel, user: Viewer, viewerKey: string, since: number, opts: { beat: boolean; titles: (o: PollOption) => string }): Promise<TvLiveDTO> {
   const now = new Date();
@@ -309,6 +322,7 @@ export async function liveFeed(ch: TvChannel, user: Viewer, viewerKey: string, s
     activeAlerts(ch.id, now),
     activePip(ch.id, now),
   ]);
+  if (opts.beat && user && !user.kidsMode) void recordAudience(ch.id, now).catch(() => {});
   const gold = user ? (await prisma.user.findUnique({ where: { id: user.id }, select: { gold: true } }))?.gold ?? null : null;
   return {
     serverNow: Date.now(),

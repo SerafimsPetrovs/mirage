@@ -15,6 +15,7 @@ export default async function AdminTvLayout({ children }: { children: React.Reac
       <TvSubnav
         items={[
           { href: "/admin/tv", label: tabs.overview },
+          { href: "/admin/tv/analytics", label: t.tvStats.tab },
           { href: "/admin/tv/moderation", label: tabs.moderation, badge: orders + clips },
           { href: "/admin/tv/channels", label: tabs.channels },
           { href: "/admin/tv/schedule", label: tabs.schedule },

@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useI18n } from "@/i18n/client";
 import type { TvChannelDTO, TvSlotDTO } from "@/lib/tv-types";
 import { useNow, type Clock } from "./tv-stage";
+import { ReminderBell } from "./reminders";
 
 type GuideItem = { channel: TvChannelDTO; slot: TvSlotDTO | null; program: TvSlotDTO | null };
 
@@ -117,9 +118,10 @@ export function Guide({
           </h3>
           <ol className="space-y-1">
             {programmes.map((s) => (
-              <li key={s.id} className="flex gap-3 rounded-xl px-3 py-2.5 odd:bg-white/[.03]">
+              <li key={s.id} className="flex items-center gap-3 rounded-xl px-3 py-2 odd:bg-white/[.03]">
                 <span className="tv-osd w-14 shrink-0 text-xl">{hhmm(s.startsAt)}</span>
-                <span className="min-w-0 truncate text-[15px] text-white/85">{slotLabel(s, t)}</span>
+                <span className="min-w-0 flex-1 truncate text-[15px] text-white/85">{slotLabel(s, t)}</span>
+                {s.startsAt - now > 3 * 60_000 && <ReminderBell reminder={{ id: s.id, slug: current.slug, channel: current.name, title: slotLabel(s, t), at: s.startsAt }} />}
               </li>
             ))}
           </ol>

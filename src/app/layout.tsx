@@ -9,6 +9,7 @@ import { CommandPalette } from "@/components/layout/command-palette";
 import { PosterMorph } from "@/components/media/poster-morph";
 import { PwaRegister } from "@/components/pwa/pwa";
 import { CookieNotice } from "@/components/legal/cookie-notice";
+import { ReminderWatcher } from "@/components/tv/reminders";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded", display: "swap" });
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PosterMorph />
             <PwaRegister />
             <CookieNotice />
+            <ReminderWatcher />
           </ToastProvider>
         </I18nProvider>
       </body>

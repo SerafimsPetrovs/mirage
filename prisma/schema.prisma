@@ -1522,3 +1522,16 @@ model TvMoment {
 
   @@index([userId])
 }
+
+/// Per-channel audience by hour (UTC): watched minutes of signed-in viewers (one per minute heartbeat)
+/// and the peak of concurrent viewers incl. guests. Feeds /admin/tv/analytics.
+model TvChannelStat {
+  channelId String
+  day       String
+  hour      Int
+  minutes   Int    @default(0)
+  peak      Int    @default(0)
+
+  @@id([channelId, day, hour])
+  @@index([day])
+}
