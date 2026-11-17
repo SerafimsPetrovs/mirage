@@ -208,7 +208,7 @@ export function ChatPanel({
                 <span className="mr-1 font-bold" style={{ color: "hsl(" + m.hue + " 85% 70%)" }}>
                   {m.name}
                 </span>
-                {m.mine && <span className="mr-1 text-[11px] text-white/40">({t.tv.chat.you})</span>}
+                {m.mine && <span className="mr-1 text-[11px] text-white/60">({t.tv.chat.you})</span>}
                 <span className="text-white/90">{m.text}</span>
               </p>
               {isAdmin && !m.mine && onMute && (
@@ -251,7 +251,7 @@ export function ChatPanel({
               placeholder={t.tv.chat.placeholder}
               aria-label={t.tv.chat.placeholder}
               className={clsx(
-                "h-11 w-full rounded-lg border bg-white/[.06] px-3 text-[15px] outline-none placeholder:text-white/40",
+                "h-11 w-full rounded-lg border bg-white/[.06] px-3 text-[15px] outline-none placeholder:text-white/55",
                 highlight ? "border-[#a78bfa] ring-2 ring-[#a78bfa]/30" : "border-white/10 focus:border-white/30",
               )}
             />

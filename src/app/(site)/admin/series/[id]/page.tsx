@@ -50,7 +50,7 @@ export default async function AdminSeriesDetail({ params }: { params: Promise<{ 
       <SeriesFlags seriesId={s.id} featured={s.featured} status={s.status} familySafe={s.isFamilySafe} adult={s.isAdult} interactive={s.interactive} />
       <p className="text-xs text-muted">{t.adm.chartHint}</p>
 
-      <SeriesAdminForm seriesId={s.id} views={s.views} price={s.defaultCoinPrice} free={s.freeEpisodes} />
+      <SeriesAdminForm seriesId={s.id} price={s.defaultCoinPrice} free={s.freeEpisodes} />
 
       <section className="rounded-3xl bg-surface p-5 ring-1 ring-line">
         <h3 className="mb-2 font-display text-lg font-semibold">

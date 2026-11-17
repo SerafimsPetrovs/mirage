@@ -3,17 +3,18 @@
  * Placeholders in [brackets] must be filled with the operator's real details.
  */
 import type { Locale } from "@/i18n/shared";
+import { fillCompany } from "@/lib/company";
 
 export type LegalDoc = { title: string; intro: string; sections: { h: string; p: string[] }[] };
-export const LEGAL_SLUGS = ["terms", "privacy", "creators", "copyright"] as const;
+export const LEGAL_SLUGS = ["terms", "privacy", "refunds", "cookies", "creators", "copyright"] as const;
 export type LegalSlug = (typeof LEGAL_SLUGS)[number];
-export const LEGAL_UPDATED = new Date("2026-11-06");
+export const LEGAL_UPDATED = new Date("2026-11-17");
 
 const en: Record<LegalSlug, LegalDoc> = {
   terms: {
     title: "Terms of Service",
     intro:
-      "These terms govern your use of MIRAGE, a streaming platform for series created with artificial intelligence, operated by [Company name, address, registration number] (\"we\"). By creating an account or using the site you accept them.",
+      "These terms govern your use of MIRAGE, a streaming platform for series created with artificial intelligence, operated by [Company name, address, registration number] (\"we\"). By creating an account or using the site you accept them. For paid features these terms are the contract offered to every customer on equal conditions (a public offer); paying for coins or VIP is its acceptance. The final price in EUR is shown before you pay; there are no other charges and nothing renews automatically.",
     sections: [
       {
         h: "1. Who can use MIRAGE",
@@ -104,7 +105,7 @@ const en: Record<LegalSlug, LegalDoc> = {
           "To provide the service and process purchases and payouts — performance of the contract.",
           "To keep the platform safe (rate limits, fraud and abuse prevention, moderation) — legitimate interest.",
           "To meet tax and accounting obligations — legal obligation.",
-          "Optional marketing emails — only with your consent.",
+          "We send only service emails (email confirmation, password reset, payout notices) and no marketing emails. If a newsletter is ever added, it will be opt-in only, with a one-click unsubscribe link in every email.",
         ],
       },
       {
@@ -119,7 +120,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "4. Cookies",
         p: [
-          "We use only necessary cookies: a session cookie (keeps you signed in), a language cookie and a referral cookie (remembers who invited you, 30 days). We do not use advertising or third-party tracking cookies.",
+          "We use only necessary cookies: a session cookie (keeps you signed in), a language cookie, a referral cookie (remembers who invited you, 30 days) and a guest viewing counter. We do not use advertising or third-party tracking cookies. Details: Cookie Policy.",
         ],
       },
       {
@@ -137,7 +138,7 @@ const en: Record<LegalSlug, LegalDoc> = {
       {
         h: "7. Your rights",
         p: [
-          "You can request access, correction, deletion, restriction, portability of your data and object to processing at [privacy email]. You can also complain to your data protection authority.",
+          "You can delete your account yourself at any time in Profile → Delete account: the account and everything linked to it are erased immediately. You can request access, correction, restriction, portability of your data and object to processing at [privacy email]. You can also complain to your data protection authority.",
         ],
       },
       {
@@ -146,6 +147,43 @@ const en: Record<LegalSlug, LegalDoc> = {
           "Passwords and session tokens are stored only as hashes; access to every action is checked on the server; the site uses HTTPS and security headers. See our security overview for details.",
         ],
       },
+    ],
+  },
+  refunds: {
+    title: "Refund Policy",
+    intro: "How refunds work for coins, VIP and add-ons on MIRAGE. Refund requests: [support email].",
+    sections: [
+      { h: "1. What you buy", p: ["You buy coin packs and VIP periods. Every price is a one-off payment in EUR shown in full before you pay. VIP does not renew automatically and there are no hidden fees or subscriptions."] },
+      {
+        h: "2. 14-day right of withdrawal",
+        p: [
+          "If you have not spent any of the paid coins from a pack, you can get a full refund within 14 days of purchase.",
+          "VIP: within 14 days you can ask for a refund; if you already watched episodes with VIP, we refund the unused part of the period proportionally.",
+          "Coins already spent (unlocked episodes, votes, cameos, add-ons) bought digital content that was delivered immediately at your request, so the right of withdrawal for it ends at delivery, as the law allows.",
+        ],
+      },
+      { h: "3. Faulty content", p: ["If an episode or add-on you paid for does not play or is not as described, tell us and we will fix it or return the coins — regardless of the 14 days."] },
+      { h: "4. Removed series", p: ["If a series is removed, coins spent on its episodes you have not watched yet are returned to your balance."] },
+      { h: "5. How to ask", p: ["Write to [support email] from your account email with the order date. We answer within 14 days and refund to the original payment method. Bonus coins (daily rewards, promo codes, referrals) have no cash value and are not refunded."] },
+    ],
+  },
+  cookies: {
+    title: "Cookie Policy",
+    intro: "MIRAGE uses only the cookies and browser storage that the site needs to work. We do not use advertising, analytics or third-party tracking cookies, so there is nothing to consent to; this page lists everything we store.",
+    sections: [
+      {
+        h: "1. Cookies",
+        p: [
+          "mirage_session — keeps you signed in. Until you sign out, at most 30 days.",
+          "locale — the site language you chose. 1 year.",
+          "mirage_67 — remembers that you switched the meme mode on. 1 year.",
+          "ref — who invited you (referral link), so the invite reward reaches them. 30 days.",
+          "mirage_gw — how many seconds a guest has watched, for the free preview limit. 1 year.",
+        ],
+      },
+      { h: "2. Browser storage", p: ["localStorage keeps interface settings only on your device: volume, last channel, closed tips, this cookie notice. It is not sent to us or anyone else."] },
+      { h: "3. Third parties", p: ["Pages do not load scripts, pixels or fonts from other companies; fonts are served from our own server. Share buttons are plain links: nothing is sent to a social network until you click one."] },
+      { h: "4. Control", p: ["You can delete cookies in your browser settings at any time. Without the session cookie you are signed out."] },
     ],
   },
   creators: {
@@ -221,7 +259,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
   terms: {
     title: "Условия использования",
     intro:
-      "Эти условия регулируют использование MIRAGE — стриминговой платформы сериалов, созданных с помощью искусственного интеллекта. Оператор: [название компании, адрес, регистрационный номер] («мы»). Создавая аккаунт или пользуясь сайтом, вы принимаете условия.",
+      "Эти условия регулируют использование MIRAGE — стриминговой платформы сериалов, созданных с помощью искусственного интеллекта. Оператор: [название компании, адрес, регистрационный номер] («мы»). Создавая аккаунт или пользуясь сайтом, вы принимаете условия. Для платных функций эти условия — публичная оферта: договор на одинаковых условиях для всех; оплата монет или VIP означает её акцепт. Итоговая цена в евро показывается до оплаты; других списаний нет, ничего не продлевается автоматически.",
     sections: [
       {
         h: "1. Кто может пользоваться MIRAGE",
@@ -312,7 +350,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
           "Работа сервиса, покупки и выплаты — исполнение договора.",
           "Безопасность платформы (лимиты, защита от мошенничества и злоупотреблений, модерация) — законный интерес.",
           "Налоговый и бухгалтерский учёт — требование закона.",
-          "Маркетинговые письма — только с вашего согласия.",
+          "Мы отправляем только служебные письма (подтверждение email, сброс пароля, выплаты) и не отправляем рекламных рассылок. Если рассылка появится, она будет только по согласию и со ссылкой «отписаться в один клик» в каждом письме.",
         ],
       },
       {
@@ -327,7 +365,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "4. Cookie",
         p: [
-          "Мы используем только необходимые cookie: сессия (чтобы вы оставались в аккаунте), язык и реферальная cookie (кто вас пригласил, 30 дней). Рекламных и сторонних отслеживающих cookie нет.",
+          "Мы используем только необходимые cookie: сессия (чтобы вы оставались в аккаунте), язык, реферальная cookie (кто вас пригласил, 30 дней) и счётчик гостевого просмотра. Рекламных и сторонних отслеживающих cookie нет. Подробно — в Политике cookie.",
         ],
       },
       {
@@ -345,7 +383,7 @@ const ru: Record<LegalSlug, LegalDoc> = {
       {
         h: "7. Ваши права",
         p: [
-          "Вы можете запросить доступ, исправление, удаление, ограничение обработки, перенос данных и возразить против обработки: [email по вопросам данных]. Также можно подать жалобу в надзорный орган по защите данных.",
+          "Удалить аккаунт можно самостоятельно в любой момент: Профиль → Удалить аккаунт — аккаунт и всё, что с ним связано, стираются сразу. Вы можете запросить доступ, исправление, ограничение обработки, перенос данных и возразить против обработки: [email по вопросам данных]. Также можно подать жалобу в надзорный орган по защите данных.",
         ],
       },
       {
@@ -354,6 +392,43 @@ const ru: Record<LegalSlug, LegalDoc> = {
           "Пароли и токены сессий хранятся только в виде хешей, права на каждое действие проверяются на сервере, сайт работает по HTTPS с защитными заголовками.",
         ],
       },
+    ],
+  },
+  refunds: {
+    title: "Условия возврата",
+    intro: "Как работают возвраты за монеты, VIP и дополнения в MIRAGE. Запросы на возврат: [email поддержки].",
+    sections: [
+      { h: "1. Что вы покупаете", p: ["Вы покупаете пакеты монет и периоды VIP. Каждая цена — разовый платёж в евро, полная сумма показывается до оплаты. VIP не продлевается автоматически, скрытых комиссий и подписок нет."] },
+      {
+        h: "2. 14 дней на отказ",
+        p: [
+          "Если вы не потратили ни одной платной монеты из пакета, всю сумму можно вернуть в течение 14 дней после покупки.",
+          "VIP: в течение 14 дней можно запросить возврат; если вы уже смотрели серии с VIP, вернём неиспользованную часть периода пропорционально.",
+          "Потраченные монеты (открытые серии, голоса, камео, дополнения) — это цифровой контент, доставленный сразу по вашей просьбе, поэтому право на отказ для него заканчивается в момент доставки, как это допускает закон.",
+        ],
+      },
+      { h: "3. Неисправный контент", p: ["Если оплаченная серия или дополнение не воспроизводится или не соответствует описанию — сообщите нам, и мы исправим или вернём монеты, независимо от 14 дней."] },
+      { h: "4. Удалённые сериалы", p: ["Если сериал удалён, монеты за серии, которые вы ещё не посмотрели, возвращаются на баланс."] },
+      { h: "5. Как запросить", p: ["Напишите на [email поддержки] с email аккаунта и укажите дату заказа. Ответим в течение 14 дней, деньги вернём тем же способом оплаты. Бонусные монеты (ежедневные награды, промокоды, приглашения) не имеют денежной стоимости и не возвращаются."] },
+    ],
+  },
+  cookies: {
+    title: "Политика cookie",
+    intro: "MIRAGE использует только те cookie и хранилище браузера, без которых сайт не работает. Рекламных, аналитических и сторонних отслеживающих cookie нет, поэтому соглашаться не на что; здесь перечислено всё, что мы храним.",
+    sections: [
+      {
+        h: "1. Cookie",
+        p: [
+          "mirage_session — держит вас в аккаунте. До выхода, максимум 30 дней.",
+          "locale — выбранный язык сайта. 1 год.",
+          "mirage_67 — помнит, что вы включили мем-режим. 1 год.",
+          "ref — кто вас пригласил (реферальная ссылка), чтобы он получил награду. 30 дней.",
+          "mirage_gw — сколько секунд гость посмотрел, для лимита бесплатного просмотра. 1 год.",
+        ],
+      },
+      { h: "2. Хранилище браузера", p: ["localStorage хранит настройки интерфейса только на вашем устройстве: громкость, последний канал, закрытые подсказки, это уведомление о cookie. Оно никуда не отправляется."] },
+      { h: "3. Третьи стороны", p: ["Страницы не загружают скрипты, пиксели и шрифты других компаний; шрифты отдаются с нашего сервера. Кнопки «Поделиться» — обычные ссылки: соцсеть ничего не получает, пока вы не нажмёте."] },
+      { h: "4. Управление", p: ["Cookie можно удалить в настройках браузера в любой момент. Без cookie сессии вы выйдете из аккаунта."] },
     ],
   },
   creators: {
@@ -426,5 +501,10 @@ const ru: Record<LegalSlug, LegalDoc> = {
 };
 
 export function getLegalDoc(slug: LegalSlug, locale: Locale): LegalDoc {
-  return (locale === "ru" ? ru : en)[slug];
+  const doc = (locale === "ru" ? ru : en)[slug];
+  return {
+    title: doc.title,
+    intro: fillCompany(doc.intro),
+    sections: doc.sections.map((s) => ({ h: s.h, p: s.p.map((p) => fillCompany(p)) })),
+  };
 }

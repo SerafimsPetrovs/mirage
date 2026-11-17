@@ -162,9 +162,9 @@ export function ChartRankSelect({ seriesId, rank }: { seriesId: string; rank: nu
   );
 }
 
-export function SeriesAdminForm({ seriesId, views, price, free }: { seriesId: string; views: number; price: number; free: number }) {
+export function SeriesAdminForm({ seriesId, price, free }: { seriesId: string; price: number; free: number }) {
   const { t, pending, run } = useAdmin();
-  const [f, setF] = useState({ views: String(views), defaultCoinPrice: String(price), freeEpisodes: String(free), ownerEmail: "" });
+  const [f, setF] = useState({ defaultCoinPrice: String(price), freeEpisodes: String(free), ownerEmail: "" });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
   return (
     <form
@@ -174,11 +174,7 @@ export function SeriesAdminForm({ seriesId, views, price, free }: { seriesId: st
         run(() => updateSeriesAdminAction(seriesId, f), () => setF((x) => ({ ...x, ownerEmail: "" })));
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div>
-          <label className={labelCls} htmlFor="sa-views">{t.adm.views}</label>
-          <input id="sa-views" type="number" min={0} value={f.views} onChange={set("views")} className={inputCls} />
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls} htmlFor="sa-price">{t.adm.price}</label>
           <input id="sa-price" type="number" min={1} max={500} value={f.defaultCoinPrice} onChange={set("defaultCoinPrice")} className={inputCls} />
@@ -187,7 +183,7 @@ export function SeriesAdminForm({ seriesId, views, price, free }: { seriesId: st
           <label className={labelCls} htmlFor="sa-free">{t.adm.free}</label>
           <input id="sa-free" type="number" min={0} value={f.freeEpisodes} onChange={set("freeEpisodes")} className={inputCls} />
         </div>
-        <div className="sm:col-span-3">
+        <div className="sm:col-span-2">
           <label className={labelCls} htmlFor="sa-owner">{t.adm.owner}</label>
           <input id="sa-owner" type="email" value={f.ownerEmail} onChange={set("ownerEmail")} placeholder={t.adm.ownerHint} className={inputCls} />
         </div>

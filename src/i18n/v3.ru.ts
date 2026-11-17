@@ -20,7 +20,7 @@ export const v3Ru = {
     write: "Написать в чат",
     breakIn: "Ворваться в эфир",
     breakInShort: "В эфир",
-    breakInHint: "Закажи шоу за монеты — его увидят все зрители",
+    breakInHint: "Закажи шоу за монеты — после модерации его увидят все зрители",
     sponsor: "Спонсор эфира: @{name}",
     captionsMusic: "♪ {title}",
     captionsNone: "[без слов]",

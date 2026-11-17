@@ -531,7 +531,7 @@ export const en67more: DeepPartial<Dict> = {
       showChat: "Let chat cook",
       write: "Yap in chat",
       breakInShort: "On air",
-      breakInHint: "Order a show for coins — every viewer sees it. 15 minutes of fame, guaranteed.",
+      breakInHint: "Order a show for coins — every viewer sees it once moderators approve. 15 minutes of fame (after the vibe check).",
       sponsor: "Sponsored by @{name} (legend)",
       alert: "ALERT",
       breaking: "BREAKING: something happened",

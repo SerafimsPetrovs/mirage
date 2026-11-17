@@ -73,11 +73,14 @@ export function AuthForm({ mode, next, promo = "", refCode = "" }: { mode: "logi
           {pending ? t.common.loading : mode === "login" ? t.auth.submitLogin : t.auth.submitRegister}
         </button>
         {mode === "register" && (
-          <p className="text-center text-xs leading-relaxed text-muted">
-            {t.legal.agree}{" "}
-            <Link href="/legal/terms" className="text-text underline">{t.legal.termsLink}</Link> {t.legal.and}{" "}
-            <Link href="/legal/privacy" className="text-text underline">{t.legal.privacyLink}</Link>.
-          </p>
+          <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted">
+            <input type="checkbox" name="accept" required className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+            <span>
+              {t.gdpr.ageConfirm}{" "}
+              <Link href="/legal/terms" target="_blank" className="text-text underline">{t.legal.termsLink}</Link> {t.legal.and}{" "}
+              <Link href="/legal/privacy" target="_blank" className="text-text underline">{t.legal.privacyLink}</Link>.
+            </span>
+          </label>
         )}
       </form>
 

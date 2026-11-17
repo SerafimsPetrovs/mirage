@@ -26,6 +26,8 @@ export default async function LegalPage({ params }: Props) {
   const nav: { slug: LegalSlug; label: string }[] = [
     { slug: "terms", label: t.legal.terms },
     { slug: "privacy", label: t.legal.privacy },
+    { slug: "refunds", label: t.gdpr.refunds },
+    { slug: "cookies", label: t.gdpr.cookies },
     { slug: "creators", label: t.legal.creatorRules },
     { slug: "copyright", label: t.legal.copyright },
   ];

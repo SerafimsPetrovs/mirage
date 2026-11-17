@@ -6,7 +6,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     environment: "node",
     // Tests never call a real LLM (Prisma would otherwise load CHAT_PROVIDER from .env).
-    env: { DATABASE_URL: "file:./test.db", CHAT_PROVIDER: "mock" },
+    env: { DATABASE_URL: "file:./test.db", CHAT_PROVIDER: "mock", NEXT_PUBLIC_ADULT_CONTENT: "on" },
     globalSetup: ["./vitest.setup.ts"],
     fileParallelism: false,
   },

@@ -4,9 +4,12 @@ import { Logo } from "@/components/ui/misc";
 import { LangSwitch } from "./lang-switch";
 import { Mode67Switch } from "./mode67-switch";
 import { getKidsMode } from "@/lib/auth";
+import { getCompany } from "@/lib/company";
 
 export async function SiteFooter() {
   const [{ t }, kids] = await Promise.all([getI18n(), getKidsMode()]);
+  const c = getCompany();
+  const details = [c.name, c.address, c.regNo && `${t.gdpr.regNo} ${c.regNo}`, c.vat && `${t.gdpr.vat} ${c.vat}`, c.support].filter(Boolean);
   return (
     <footer className="mt-20 border-t border-line px-4 pb-[calc(var(--tabbar-h)+32px)] pt-10 md:px-10 md:pb-12">
       <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
@@ -20,6 +23,8 @@ export async function SiteFooter() {
           <Link href="/vip" className="hover:text-text">VIP</Link>
           <Link href="/legal/terms" className="hover:text-text">{t.footer.terms}</Link>
           <Link href="/legal/privacy" className="hover:text-text">{t.legal.privacy}</Link>
+          <Link href="/legal/refunds" className="hover:text-text">{t.gdpr.refunds}</Link>
+          <Link href="/legal/cookies" className="hover:text-text">{t.gdpr.cookies}</Link>
           <Link href="/legal/copyright" className="hover:text-text">{t.legal.copyright}</Link>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -27,7 +32,12 @@ export async function SiteFooter() {
           <LangSwitch />
         </div>
       </div>
-      <p className="mt-10 text-xs text-muted/70">© {new Date().getFullYear()} MIRAGE · {t.footer.rights}</p>
+      {details.length > 0 && (
+        <p className="mt-10 text-xs text-muted">
+          {t.gdpr.operator}: {details.join(" · ")}
+        </p>
+      )}
+      <p className={details.length ? "mt-2 text-xs text-muted" : "mt-10 text-xs text-muted"}>© {new Date().getFullYear()} MIRAGE · {t.footer.rights}</p>
     </footer>
   );
 }

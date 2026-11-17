@@ -88,8 +88,8 @@ export async function setChartRankAction(seriesId: string, rank: number | null):
   return ok(["/", "/admin/series", `/admin/series/${seriesId}`]);
 }
 
+// No "views" field on purpose: view counts come only from real plays — editing them by hand would be a fake metric.
 const seriesSchema = z.object({
-  views: z.coerce.number().int().min(0).max(2_000_000_000),
   defaultCoinPrice: z.coerce.number().int().min(1).max(500),
   freeEpisodes: z.coerce.number().int().min(0).max(500),
   ownerEmail: z.string().trim().toLowerCase().max(200),
@@ -109,7 +109,7 @@ export async function updateSeriesAdminAction(seriesId: string, input: unknown):
   }
   const s = await prisma.series.update({
     where: { id: seriesId },
-    data: { views: d.views, defaultCoinPrice: d.defaultCoinPrice, freeEpisodes: d.freeEpisodes, ...(creatorId ? { creatorId } : {}) },
+    data: { defaultCoinPrice: d.defaultCoinPrice, freeEpisodes: d.freeEpisodes, ...(creatorId ? { creatorId } : {}) },
   });
   await logAdmin(me.id, "series.update", "series", seriesId, d);
   return ok(["/", "/admin/series", `/admin/series/${seriesId}`, `/series/${s.slug}`]);

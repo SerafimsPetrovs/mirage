@@ -98,6 +98,8 @@ export async function registerAction(_: FormState, form: FormData): Promise<Form
   });
   const parsed = schema.safeParse({ name: form.get("name"), email: form.get("email"), password: form.get("password") });
   if (!parsed.success) return { error: parsed.error.issues[0].message, values: echo(form, ["name", "email", "promo"]) };
+  // Age (16+) and terms confirmation is required — the browser checks it too, the server is the real gate.
+  if (form.get("accept") !== "on") return { error: t.gdpr.ageRequired, values: echo(form, ["name", "email", "promo"]) };
   if (!rateLimit(`register:${clientIp(await headers())}`, LIMITS.register.limit, LIMITS.register.windowMs).allowed) {
     return { error: t.auth.tooMany, values: echo(form, ["name", "email", "promo"]) };
   }

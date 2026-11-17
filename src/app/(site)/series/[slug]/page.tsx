@@ -21,7 +21,7 @@ import { CameoBlock } from "@/components/series/cameo-block";
 import { getShowBlock } from "@/lib/show";
 import { CharacterStrip } from "@/components/player/spicy";
 import { getSeriesCharacters } from "@/lib/extras";
-import { spicyBlock } from "@/lib/spicy";
+import { adultEnabled, spicyBlock } from "@/lib/spicy";
 import { getOrCreateRefCode } from "@/lib/referrals";
 import { AdultWall } from "@/components/adult/adult-wall";
 
@@ -49,6 +49,8 @@ export default async function SeriesPage({ params }: Props) {
   const [{ t, locale }, user] = await Promise.all([getI18n(), getCurrentUser()]);
   const s = await getSeriesPage(slug, user, locale);
   if (!s) notFound();
+  // 18+ section switched off platform-wide: adult series simply do not exist for viewers.
+  if (s.adultBlock && !adultEnabled() && !s.owner) notFound();
   if (s.adultBlock) return <AdultWall title={s.title} poster={s.backdrop} reason={s.adultBlock} next={`/series/${s.slug}`} />;
   const block = spicyBlock(user, s);
   const showSpicy = block === null || (s.owner && !s.kids && !s.isFamilySafe);

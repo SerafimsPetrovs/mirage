@@ -15,7 +15,7 @@ import { ContinueCard } from "@/components/media/cards";
 import { SeriesGrid } from "@/components/media/grid";
 import { Row, RowItem } from "@/components/media/row";
 import { CheckInWidget } from "@/components/wallet/checkin-widget";
-import { CreatorApplyForm, ProfileForm } from "@/components/profile/profile-forms";
+import { CreatorApplyForm, DeleteAccountForm, ProfileForm } from "@/components/profile/profile-forms";
 import { LangSwitch } from "@/components/layout/lang-switch";
 import { Mode67Switch } from "@/components/layout/mode67-switch";
 import { FamilyPinCard } from "@/components/kids/kids-controls";
@@ -149,6 +149,12 @@ export default async function MePage() {
           <CreatorApplyForm status={application?.status === "PENDING" ? "PENDING" : application?.status === "REJECTED" ? "REJECTED" : null} />
         )}
       </section>
+
+      {!user.kidsMode && (
+        <section className="mt-5 px-4 md:px-10">
+          <DeleteAccountForm />
+        </section>
+      )}
     </div>
   );
 }

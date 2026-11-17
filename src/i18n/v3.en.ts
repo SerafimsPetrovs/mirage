@@ -19,7 +19,7 @@ export const v3En: typeof v3Ru = {
     write: "Write in chat",
     breakIn: "Break into the broadcast",
     breakInShort: "On air",
-    breakInHint: "Order a show for coins — every viewer will see it",
+    breakInHint: "Order a show for coins — after moderation every viewer will see it",
     sponsor: "Sponsored by @{name}",
     captionsMusic: "♪ {title}",
     captionsNone: "[no dialogue]",

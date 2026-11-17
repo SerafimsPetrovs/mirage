@@ -90,7 +90,7 @@ export function RatingStars({ seriesId, initial, loggedIn }: { seriesId: string;
             }}
             className="p-0.5 transition hover:scale-110"
           >
-            <Star size={26} strokeWidth={1.5} className={clsx((hover || value) >= n ? "fill-coin text-coin" : "text-muted/50")} />
+            <Star size={26} strokeWidth={1.5} className={clsx((hover || value) >= n ? "fill-coin text-coin" : "text-muted/80")} />
           </button>
         ))}
       </div>

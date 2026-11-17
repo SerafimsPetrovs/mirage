@@ -34,6 +34,7 @@ import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import { logoutAction, setLocaleAction, setMode67Action } from "@/app/actions/auth";
 import { setAdultContentAction } from "@/app/actions/extras";
+import { adultEnabled } from "@/lib/spicy";
 import { InstallAppItem } from "@/components/pwa/pwa";
 
 type Props = { user: { name: string; email: string; hue: number; role: string; vip: boolean; adult: boolean; coins: number; gold: number }; hot?: number };
@@ -169,6 +170,7 @@ export function UserMenu({ user, hot = 0 }: Props) {
                 <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", mode67 ? "left-[18px]" : "left-0.5")} />
               </span>
             </button>
+            {adultEnabled() && (
             <button
               className={ITEM}
               role="switch"
@@ -188,6 +190,7 @@ export function UserMenu({ user, hot = 0 }: Props) {
                 <span className={clsx("absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all", user.adult ? "left-[18px]" : "left-0.5")} />
               </span>
             </button>
+            )}
             <InstallAppItem className={ITEM} onDone={() => setOpen(false)} />
             <form action={logoutAction}>
               <button className={ITEM}>

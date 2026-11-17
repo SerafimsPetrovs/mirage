@@ -1,13 +1,13 @@
 "use client";
 import { useActionState, useEffect, useState } from "react";
 import clsx from "clsx";
-import { Check, ChevronDown, Clapperboard, Gift, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, Clapperboard, Gift, ShieldCheck, Trash2 } from "lucide-react";
 import { btn, inputCls, labelCls, textareaCls } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n/client";
 import { MascotCameo } from "@/components/mascot/mascot-cameo";
-import { applyCreatorAction, updateProfileAction } from "@/app/actions/profile";
+import { applyCreatorAction, deleteAccountAction, updateProfileAction } from "@/app/actions/profile";
 import type { FormState } from "@/app/actions/auth";
 
 const HUES = [0, 25, 45, 120, 165, 200, 230, 260, 290, 330];
@@ -140,5 +140,36 @@ export function CreatorApplyForm({ status }: { status: "PENDING" | "REJECTED" | 
         </>
       )}
     </div>
+  );
+}
+
+/** GDPR erasure: folded away at the bottom of the profile, password-confirmed, irreversible. */
+export function DeleteAccountForm() {
+  const { t } = useI18n();
+  const [state, action, pending] = useActionState<FormState, FormData>(deleteAccountAction, undefined);
+  return (
+    <details className="group rounded-3xl bg-surface p-5 ring-1 ring-line md:p-6">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-red-300 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2">
+          <Trash2 size={18} /> {t.gdpr.deleteTitle}
+        </span>
+        <ChevronDown size={18} className="text-muted transition group-open:rotate-180" />
+      </summary>
+      <form action={action} className="mt-4 space-y-3">
+        <p className="text-sm leading-relaxed text-muted">{t.gdpr.deleteText}</p>
+        <div>
+          <label htmlFor="del-pass" className={labelCls}>{t.gdpr.deletePassword}</label>
+          <input id="del-pass" name="password" type="password" required autoComplete="current-password" className={inputCls} />
+        </div>
+        {state?.error && (
+          <p role="alert" className="rounded-xl bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
+            {state.error}
+          </p>
+        )}
+        <button disabled={pending} className={clsx(btn("ghost", "md"), "text-red-300 ring-1 ring-red-400/40 hover:bg-red-500/10")}>
+          <Trash2 size={16} /> {pending ? t.common.loading : t.gdpr.deleteButton}
+        </button>
+      </form>
+    </details>
   );
 }

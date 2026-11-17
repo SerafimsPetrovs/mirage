@@ -423,6 +423,12 @@ function pickOne<T>(arr: T[], i: number) {
 }
 
 async function main() {
+  // Demo data only: invented view counts, bot fans with ratings and comments, demo accounts with a known
+  // password. Shown on a public site these would be fake reviews and fake popularity — never seed production.
+  if (process.env.NODE_ENV === "production") {
+    console.error("Refusing to seed: demo data (fake views, bot comments and ratings) must never reach a public site.");
+    process.exit(1);
+  }
   console.log("Clearing database…");
   await prisma.$transaction([
     prisma.pollVote.deleteMany(),

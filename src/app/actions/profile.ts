@@ -3,7 +3,11 @@ import { getI18n } from "@/i18n/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { getCurrentUser, SESSION_COOKIE } from "@/lib/auth";
+import { deleteAccount } from "@/lib/account";
+import { rateLimit } from "@/lib/rate-limit";
 import type { FormState } from "./auth";
 
 export async function updateProfileAction(_: FormState, form: FormData): Promise<FormState> {
@@ -20,6 +24,22 @@ export async function updateProfileAction(_: FormState, form: FormData): Promise
   await prisma.user.update({ where: { id: user.id }, data: { ...parsed.data, bio: parsed.data.bio || null } });
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** Deletes the signed-in account after a password check, then signs out and goes home. */
+export async function deleteAccountAction(_: FormState, form: FormData): Promise<FormState> {
+  const user = await getCurrentUser();
+  if (!user || user.kidsMode) return { error: "auth" };
+  const { t } = await getI18n();
+  if (!rateLimit(`delete-account:${user.id}`, 5, 15 * 60_000).allowed) return { error: t.auth.tooMany };
+  const problem = await deleteAccount(user.id, String(form.get("password") ?? "").slice(0, 200));
+  if (problem === "wrong") return { error: t.gdpr.deleteWrong };
+  if (problem === "admin") return { error: t.gdpr.deleteAdmin };
+  if (problem === "creator") return { error: t.gdpr.deleteCreator };
+  if (problem) return { error: t.common.error };
+  (await cookies()).delete(SESSION_COOKIE);
+  revalidatePath("/", "layout");
+  redirect("/");
 }
 
 export async function applyCreatorAction(_: FormState, form: FormData): Promise<FormState> {

@@ -176,17 +176,20 @@ function WallForm({ mode, next }: { mode: "register" | "login"; next: string }) 
         {pending ? t.common.loading : mode === "login" ? t.auth.submitLogin : t.v3.wall.register}
       </button>
       {mode === "register" && (
-        <p className="text-center text-xs leading-relaxed text-muted">
-          {t.legal.agree}{" "}
-          <a href="/legal/terms" target="_blank" className="text-text underline">
-            {t.legal.termsLink}
-          </a>{" "}
-          {t.legal.and}{" "}
-          <a href="/legal/privacy" target="_blank" className="text-text underline">
-            {t.legal.privacyLink}
-          </a>
-          .
-        </p>
+        <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted">
+          <input type="checkbox" name="accept" required className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]" />
+          <span>
+            {t.gdpr.ageConfirm}{" "}
+            <a href="/legal/terms" target="_blank" className="text-text underline">
+              {t.legal.termsLink}
+            </a>{" "}
+            {t.legal.and}{" "}
+            <a href="/legal/privacy" target="_blank" className="text-text underline">
+              {t.legal.privacyLink}
+            </a>
+            .
+          </span>
+        </label>
       )}
     </form>
   );

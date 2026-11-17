@@ -48,9 +48,18 @@ export type SpicyBlock = "auth" | "kids" | "age" | "family";
 
 type Viewer = { kidsMode: boolean; adultConfirmedAt: Date | null; showAdult: boolean } | null;
 
-/** The viewer confirmed 18+ AND switched 18+ content on, and is not in kids mode. */
+/**
+ * Platform switch for the whole 18+ section (adult series, channels, fan-service, character chats).
+ * OFF unless NEXT_PUBLIC_ADULT_CONTENT=on: 18+ needs real age verification, an adult-friendly payment
+ * provider and a lawyer's review before launch (docs/compliance.md). The code and data stay, hidden.
+ */
+export function adultEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ADULT_CONTENT === "on";
+}
+
+/** The 18+ section is enabled, the viewer confirmed 18+ AND switched 18+ content on, and is not in kids mode. */
 export function isAdultMode(user: Viewer): boolean {
-  return !!user && !user.kidsMode && user.showAdult && !!user.adultConfirmedAt;
+  return adultEnabled() && !!user && !user.kidsMode && user.showAdult && !!user.adultConfirmedAt;
 }
 
 /**

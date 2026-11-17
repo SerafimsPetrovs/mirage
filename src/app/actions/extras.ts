@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, type CurrentUser } from "@/lib/auth";
 import { getBalance, getEpisodeAccess, InsufficientCoinsError } from "@/lib/coins";
 import { boostPoll, buyScene, buySkin, ChatError, sendChatMessage, spinSkin, unlockPhoto } from "@/lib/extras";
-import { CHAT_MAX_LEN, spicyBlock, type SpicyBlock } from "@/lib/spicy";
+import { adultEnabled, CHAT_MAX_LEN, spicyBlock, type SpicyBlock } from "@/lib/spicy";
 import { getLocale } from "@/i18n/server";
 
 export type ExtraError = SpicyBlock | "insufficient" | "rate" | "locked" | "nothing" | "closed" | "owner" | "invalid" | "llm" | "unknown";
@@ -38,6 +38,7 @@ export async function confirmAdultAction(): Promise<{ ok: boolean }> {
 export async function setAdultContentAction(on: boolean): Promise<{ ok: boolean }> {
   const user = await getCurrentUser();
   if (!user || user.kidsMode) return { ok: false };
+  if (on && !adultEnabled()) return { ok: false };
   await prisma.user.update({
     where: { id: user.id },
     data: on ? { showAdult: true, adultConfirmedAt: user.adultConfirmedAt ?? new Date() } : { showAdult: false },

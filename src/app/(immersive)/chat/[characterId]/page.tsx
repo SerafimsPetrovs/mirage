@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { mediaUrl } from "@/lib/files";
 import { loadThread } from "@/lib/extras";
-import { spicyBlock } from "@/lib/spicy";
+import { adultEnabled, spicyBlock } from "@/lib/spicy";
 import { getI18n } from "@/i18n/server";
 import { pick } from "@/i18n/shared";
 import { CharacterChat } from "@/components/chat/character-chat";
@@ -34,6 +34,7 @@ export default async function ChatPage({ params }: Props) {
   if (block === "auth") redirect(`/login?next=${encodeURIComponent(`/chat/${characterId}`)}`);
 
   const owner = user!.role === "ADMIN" || user!.id === c.series.creatorId;
+  if (!adultEnabled() && !owner) notFound();
   const thread = await loadThread(user!.id, c.id, locale, owner);
 
   return (
