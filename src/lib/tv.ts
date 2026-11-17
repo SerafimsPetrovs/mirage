@@ -49,7 +49,7 @@ import type { TimelineItem } from "./mascot";
 export const MASCOT_NAME = { ru: "Мистер Помеха", en: "Mr. Static" } as const;
 
 export class TvError extends Error {
-  constructor(public code: "AUTH" | "KIDS" | "NOT_FOUND" | "STATE" | "LIMIT" | "RATE" | "NO_TICKER" | "MUTED" | TextProblem) {
+  constructor(public code: "AUTH" | "KIDS" | "NOT_FOUND" | "STATE" | "LIMIT" | "RATE" | "NO_TICKER" | "MUTED" | "RIGHTS" | TextProblem) {
     super(code);
   }
 }

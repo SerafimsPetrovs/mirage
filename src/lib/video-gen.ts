@@ -102,3 +102,21 @@ export async function failJob(jobId: string, error: string) {
     if (r.count === 1) await tx.user.update({ where: { id: j.userId }, data: { genCredits: { increment: j.cost } } });
   });
 }
+
+/**
+ * One AI clip outside the studio's credit system (music videos): generate → download into storage/videos/gen.
+ * Returns the storage ref. Throws when the Space is out of quota — callers fall back to pictures.
+ */
+export async function generateLtxClip(prompt: string, orientation: "VERTICAL" | "HORIZONTAL", seconds: number, name: string) {
+  if (!/^[\w-]{1,80}$/.test(name)) throw new Error("LTX_BAD_NAME");
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const url = await callLtx(`${prompt.trim()}. ${STYLE_HINT.cinematic}`.slice(0, 1200), orientation, seconds, seed);
+  const res = await fetch(url, { signal: AbortSignal.timeout(120_000), redirect: "error" });
+  if (!res.ok) throw new Error(`LTX_DOWNLOAD_${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length > MAX_CLIP_BYTES) throw new Error("LTX_TOO_BIG");
+  const dir = path.join(STORAGE_DIR, "videos", "gen");
+  fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
+  await fs.promises.writeFile(/*turbopackIgnore: true*/ path.join(dir, `${name}.mp4`), buf);
+  return `storage:videos/gen/${name}.mp4`;
+}

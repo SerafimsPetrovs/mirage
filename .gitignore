@@ -49,3 +49,6 @@ next-env.d.ts
 .playwright-mcp
 /.next-*/
 shadow.db*
+
+# render scratch space (music videos) — never committed
+/storage/tmp/

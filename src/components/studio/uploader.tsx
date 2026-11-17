@@ -14,8 +14,11 @@ export function Uploader({
   onFile,
   preview,
   aspect = "aspect-[9/16]",
+  endpoint = "/api/studio/upload",
 }: {
-  kind: "video" | "image" | "private" | "installer";
+  kind: "video" | "image" | "private" | "installer" | "audio";
+  /** Upload route (music uploads use /api/music/upload, open to viewers). */
+  endpoint?: string;
   accept: string;
   label: string;
   onDone: (ref: string) => void;
@@ -30,16 +33,17 @@ export function Uploader({
   const [error, setError] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
 
+  const isImage = kind === "image" || kind === "private";
   const upload = (file: File) => {
     setError(null);
     setDone(null);
     onFile?.(file);
-    if (kind !== "video") setLocalPreview(URL.createObjectURL(file));
+    if (isImage) setLocalPreview(URL.createObjectURL(file));
     const fd = new FormData();
     fd.append("file", file);
     fd.append("kind", kind);
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/studio/upload");
+    xhr.open("POST", endpoint);
     xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
     xhr.onload = () => {
       setProgress(null);
@@ -76,11 +80,11 @@ export function Uploader({
         }}
         className={clsx(
           "relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed border-line-strong bg-surface-2 text-center text-sm text-muted transition hover:border-accent/60",
-          kind !== "video" ? aspect : "h-28",
+          isImage ? aspect : "h-28",
         )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {shown && kind !== "video" && <img src={shown} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />}
+        {shown && isImage && <img src={shown} alt="" className="absolute inset-0 h-full w-full object-cover opacity-80" />}
         <span className="relative flex flex-col items-center gap-1.5 rounded-xl bg-black/40 px-3 py-2">
           {done ? <CheckCircle2 size={22} className="text-ok" /> : <UploadCloud size={22} />}
           {progress !== null ? fmt(t.studio.uploading, { p: progress }) : done ? <span className="max-w-[180px] truncate">{done}</span> : t.studio.upload}

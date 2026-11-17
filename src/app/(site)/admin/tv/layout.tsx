@@ -5,7 +5,11 @@ import { TvSubnav } from "@/components/tv/tv-subnav";
 export default async function AdminTvLayout({ children }: { children: React.ReactNode }) {
   const { t } = await getI18n();
   const tabs = t.tv.adm2.tabs;
-  const [orders, clips] = await Promise.all([prisma.tvOrder.count({ where: { status: "REVIEW" } }), prisma.tvClip.count({ where: { status: "PENDING" } })]);
+  const [orders, clips, music] = await Promise.all([
+    prisma.tvOrder.count({ where: { status: "REVIEW" } }),
+    prisma.tvClip.count({ where: { status: "PENDING" } }),
+    prisma.musicTrack.count({ where: { status: "REVIEW" } }),
+  ]);
   return (
     <>
       <TvSubnav
@@ -16,6 +20,7 @@ export default async function AdminTvLayout({ children }: { children: React.Reac
           { href: "/admin/tv/schedule", label: tabs.schedule },
           { href: "/admin/tv/clips", label: tabs.clips },
           { href: "/admin/tv/factory", label: tabs.factory },
+          { href: "/admin/tv/music", label: t.music.adminTitle, badge: music },
         ]}
       />
       {children}

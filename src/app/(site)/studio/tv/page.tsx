@@ -1,5 +1,6 @@
+import Link from "next/link";
 import clsx from "clsx";
-import { Tv } from "lucide-react";
+import { ArrowRight, Music2, Tv } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { getI18n } from "@/i18n/server";
@@ -29,6 +30,16 @@ export default async function StudioTvPage({ searchParams }: { searchParams: Pro
         </h1>
         <p className="mt-2 max-w-2xl text-muted">{t.v3.studio.pool.sub}</p>
       </header>
+      <Link href="/music" className="flex items-center gap-4 rounded-3xl bg-surface p-5 ring-1 ring-line transition hover:ring-accent/40">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+          <Music2 size={24} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{t.music.nav}</span>
+          <span className="block text-sm text-muted">{t.music.newSub}</span>
+        </span>
+        <ArrowRight size={18} className="text-muted" />
+      </Link>
       <ClipForm
         admin={user.role === "ADMIN"}
         channels={channels.map((c) => ({ id: c.id, name: `${c.number} · ${pick(c, "name", locale)}`, zone: zoneOf.get(c.id) }))}

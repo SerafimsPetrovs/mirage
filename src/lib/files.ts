@@ -19,6 +19,10 @@ const MIME: Record<string, string> = {
   ".avif": "image/avif",
   ".gif": "image/gif",
   ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".flac": "audio/flac",
   ".exe": "application/vnd.microsoft.portable-executable",
   ".dmg": "application/x-apple-diskimage",
   ".zip": "application/zip",
@@ -76,6 +80,15 @@ export function serveFile(full: string, req: Request, extraHeaders: Record<strin
 
 const VIDEO_EXT = new Set([".mp4", ".webm", ".mov"]);
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
+const AUDIO_EXT = new Set([".mp3", ".wav", ".m4a", ".ogg", ".flac"]);
+
+/** MP3 (ID3 tag or frame sync), WAV, M4A (ftyp), OGG, FLAC. */
+export function sniffAudio(head: Uint8Array): boolean {
+  const b = (i: number) => head[i] ?? -1;
+  const ascii = (from: number, s: string) => [...s].every((c, i) => b(from + i) === c.charCodeAt(0));
+  return ascii(0, "ID3") || (b(0) === 0xff && (b(1) & 0xe0) === 0xe0) || (ascii(0, "RIFF") && ascii(8, "WAVE")) || ascii(4, "ftyp") || ascii(0, "OggS") || ascii(0, "fLaC");
+}
+
 
 /**
  * Checks the file's real content by its magic bytes (the extension alone is attacker-controlled:
@@ -121,15 +134,15 @@ export async function saveInstaller(file: File, maxBytes: number) {
   return `storage:files/${name}`;
 }
 
-/** kind "private" = images served only through access-checked routes (character photos). */
-export async function saveUpload(file: File, kind: "video" | "image" | "private", maxBytes: number) {
+/** kind "private" = images served only through access-checked routes (character photos); "audio" = songs (served only to their owner). */
+export async function saveUpload(file: File, kind: "video" | "image" | "private" | "audio", maxBytes: number) {
   const ext = path.extname(file.name).toLowerCase();
-  const allowed = kind === "video" ? VIDEO_EXT : IMAGE_EXT;
+  const allowed = kind === "video" ? VIDEO_EXT : kind === "audio" ? AUDIO_EXT : IMAGE_EXT;
   if (!allowed.has(ext)) throw new Error("BAD_FILE_TYPE");
   if (file.size > maxBytes) throw new Error("FILE_TOO_LARGE");
   const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-  if (!sniffMedia(head, kind === "video" ? "video" : "image")) throw new Error("BAD_FILE_TYPE");
-  const folder = kind === "video" ? "videos" : kind === "private" ? "private" : "images";
+  if (!(kind === "audio" ? sniffAudio(head) : sniffMedia(head, kind === "video" ? "video" : "image"))) throw new Error("BAD_FILE_TYPE");
+  const folder = kind === "video" ? "videos" : kind === "private" ? "private" : kind === "audio" ? "audio" : "images";
   const dir = path.join(STORAGE_DIR, folder);
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const name = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}${ext}`;

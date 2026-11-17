@@ -147,6 +147,7 @@ model User {
   wmSessions       WatermarkSession[]
   predictionBets   PredictionBet[]
   tvClips          TvClip[]
+  musicTracks      MusicTrack[]
   tvMessages       TvMessage[]
   tvTickers        TvTicker[]
   tvOrders         TvOrder[]
@@ -959,6 +960,7 @@ model TvChannel {
   funnelClicks TvFunnelClick[]
   slots    TvSlot[]
   clips    TvClip[]
+  musicTracks MusicTrack[]
   messages TvMessage[]
   tickers  TvTicker[]
   orders   TvOrder[]
@@ -1330,4 +1332,66 @@ model BuddyItem {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, itemId])
+}
+
+/// Background job queue (one worker per server process, see src/lib/jobs.ts). Survives restarts: RUNNING jobs
+/// whose worker died are picked up again after JOB_STALE_MS.
+model Job {
+  id         String    @id @default(cuid())
+  /// e.g. "music.render"
+  kind       String
+  /// JSON
+  payload    String    @default("{}")
+  /// QUEUED | RUNNING | DONE | FAILED
+  status     String    @default("QUEUED")
+  attempts   Int       @default(0)
+  runAt      DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+
+  @@index([status, runAt])
+}
+
+/// A song turned into a music video for the MUSIC channel: audio + cover/images + lyrics → rendered mp4 → TvClip.
+model MusicTrack {
+  id          String      @id @default(cuid())
+  channelId   String
+  userId      String
+  title       String
+  artist      String      @default("")
+  /// storage:audio/…
+  audioRef    String
+  coverRef    String?
+  /// JSON array of storage:images/… refs for the slideshow style.
+  imagesJson  String      @default("[]")
+  lyrics      String      @default("")
+  /// JSON [{ "t": seconds, "text": "line" }] — line timings from the tap-sync tool or a pasted LRC.
+  lrcJson     String      @default("")
+  /// KARAOKE | BARS | WAVE | CIRCLE | CQT | VHS | SLIDESHOW | AI
+  style       String      @default("KARAOKE")
+  orientation Orientation @default(HORIZONTAL)
+  durationSec Int         @default(0)
+  bpm         Float       @default(0)
+  /// ADMIN | CREATOR | ORDER (a viewer paid to air their song)
+  source      String      @default("ADMIN")
+  /// Viewer orders: coins paid, returned on rejection.
+  coins       Int         @default(0)
+  /// The uploader confirmed they own or may use the song.
+  rightsOk    Boolean     @default(false)
+  /// DRAFT | REVIEW (viewer order waits for a moderator) | QUEUED | RENDERING | READY | FAILED | REJECTED
+  status      String      @default("DRAFT")
+  progress    Int         @default(0)
+  error       String?
+  videoRef    String?
+  clipId      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  channel TvChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
 }

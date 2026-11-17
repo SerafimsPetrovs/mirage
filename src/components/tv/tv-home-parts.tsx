@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { CalendarClock, Eye, Popcorn, Sparkles } from "lucide-react";
+import { CalendarClock, Eye, Music2, Popcorn, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import { slotOffset } from "@/lib/tv-rules";
@@ -113,6 +114,15 @@ export function TvInfoBar({
           <button type="button" onClick={onOrder} title={t.v3.live.breakInHint} className="flex h-9 items-center gap-1.5 rounded-full bg-white/[.07] px-3.5 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/[.12]">
             <Sparkles size={16} className="text-coin" /> {t.v3.home.order}
           </button>
+        )}
+        {social && channel.kind === "MUSIC" && (
+          <Link
+            href={`/music/new?order=1&ch=${encodeURIComponent(channel.slug)}`}
+            title={t.music.orderSub}
+            className="flex h-9 items-center gap-1.5 rounded-full bg-white/[.07] px-3.5 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/[.12]"
+          >
+            <Music2 size={16} className="text-accent" /> {t.music.orderTitle}
+          </Link>
         )}
         {slot.series && (
           <a
