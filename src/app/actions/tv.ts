@@ -165,3 +165,15 @@ export async function finishTvGameAction(gameId: string, score: number): Promise
     return fail(e);
   }
 }
+
+/** "Moment": cut the last ~20 s of the broadcast (at the viewer's — possibly rewound — clock) into a shareable clip. */
+export async function createMomentAction(slug: string, atMs: number): Promise<TvResult<{ id: string }>> {
+  try {
+    const { user, ch } = await ctx(slug);
+    const { createMoment } = await import("@/lib/moments");
+    const m = await createMoment(user, ch.slug, Number(atMs));
+    return { ok: true, id: m.id };
+  } catch (e) {
+    return fail(e);
+  }
+}

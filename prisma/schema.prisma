@@ -152,6 +152,7 @@ model User {
   partyMembers     PartyMember[]
   partyEvents      PartyEvent[]
   partyFood        PartyFood[]
+  tvMoments        TvMoment[]
   tvMessages       TvMessage[]
   tvTickers        TvTicker[]
   tvOrders         TvOrder[]
@@ -1499,4 +1500,25 @@ model PartyVote {
 
   @@id([pollId, userId])
   @@index([partyId])
+}
+
+/// "Moment": a viewer cuts the last ~20 s of the live broadcast into a shareable clip (/m/<id>).
+model TvMoment {
+  id          String   @id @default(cuid())
+  userId      String
+  channelSlug String
+  title       String
+  sourceRef   String
+  startSec    Float
+  durationSec Float
+  /// QUEUED | READY | FAILED
+  status      String   @default("QUEUED")
+  videoRef    String?
+  thumbRef    String?
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

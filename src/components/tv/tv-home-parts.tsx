@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { CalendarClock, Eye, Music2, Popcorn, Sparkles } from "lucide-react";
+import { CalendarClock, Eye, History, Music2, Popcorn, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { CreatePartyButton } from "@/components/party/create-party";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
-import { slotOffset } from "@/lib/tv-rules";
+import { slotOffset, TV_REWIND_MAX_SEC } from "@/lib/tv-rules";
 import type { TvChannelDTO, TvSlotDTO } from "@/lib/tv-types";
 import type { Clock } from "./tv-stage";
 import { InfoButton, trackFunnel } from "./tv-overlays";
@@ -189,5 +189,44 @@ export function ChannelStrip({ items, current, onPick }: { items: StripItem[]; c
         })}
       </div>
     </section>
+  );
+}
+
+/**
+ * "Rewind the broadcast": jump back up to 2 hours (the schedule of the last hours is kept), then watch on from
+ * there; "Live" returns to the shared broadcast. Chat and polls stay live.
+ */
+export function RewindBar({ back, onRewind, extra }: { back: number; onRewind: (sec: number) => void; extra?: React.ReactNode }) {
+  const { t } = useI18n();
+  const r = t.rewind;
+  const mm = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-4 pb-3 md:px-6">
+      <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+        <History size={14} /> {r.title}
+      </span>
+      {[60, 300, 900, 1800].map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onRewind(back + s)}
+          disabled={back >= TV_REWIND_MAX_SEC}
+          className="h-8 rounded-full bg-white/[.06] px-3 text-xs font-semibold ring-1 ring-white/10 hover:bg-white/[.12] disabled:opacity-40"
+        >
+          −{s / 60} {r.min}
+        </button>
+      ))}
+      {back > 0 && (
+        <>
+          <span className="rounded-full bg-coin/15 px-3 py-1 text-xs font-semibold text-coin" role="status">
+            {fmt(r.behind, { t: mm(back) })}
+          </span>
+          <button type="button" onClick={() => onRewind(0)} className="flex h-8 items-center gap-1.5 rounded-full bg-[#ff3b3b] px-3 text-xs font-bold text-white">
+            <span className="h-1.5 w-1.5 rounded-full bg-white" /> {r.live}
+          </button>
+        </>
+      )}
+      {extra && <span className="ml-auto">{extra}</span>}
+    </div>
   );
 }

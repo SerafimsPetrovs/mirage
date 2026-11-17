@@ -17,7 +17,9 @@ import { GameOverlay, PinnedBanner, PollCard, ReactionsLayer, SLEEP_STEPS, Sleep
 import { Guide } from "./tv-guide";
 import { OrderSheet, TickerSheet } from "./tv-sheets";
 import { AlertsBar, FunnelCta, LiveCaptions, PipMascot, UnmuteButton } from "./tv-overlays";
-import { ChannelStrip, TvInfoBar, type StripItem } from "./tv-home-parts";
+import { ChannelStrip, RewindBar, TvInfoBar, type StripItem } from "./tv-home-parts";
+import { TV_REWIND_MAX_SEC } from "@/lib/tv-rules";
+import { MomentButton } from "./moment-view";
 import { BuddyCompanion } from "@/components/buddy/buddy-companion";
 import { buddyDef, type Outfit } from "@/lib/buddy-catalog";
 
@@ -122,7 +124,10 @@ export function TvScreen({
   const channel = data.channel;
   const slot = data.slot;
   const social = !viewer.kids && !channel.familyOnly;
-  const clock: Clock = useCallback(() => Date.now() + skew.current, []);
+  // Rewind: the whole screen runs on a clock shifted into the past (chat and polls stay live).
+  const [back, setBack] = useState(0);
+  const backRef = useRef(0);
+  const clock: Clock = useCallback(() => Date.now() + skew.current - backRef.current * 1000, []);
   // Hard login wall: a guest watches 60 s for free, then the picture freezes until sign-in.
   const walled = useGuestWall(!viewer.loggedIn, !asleep);
   const [goldPing, setGoldPing] = useState<{ amount: number; n: number } | null>(null);
@@ -177,7 +182,7 @@ export function TvScreen({
   }, []);
 
   const load = useCallback(async (slug: string) => {
-    const res = await fetch(`/api/tv/${slug}/now`, { cache: "no-store" });
+    const res = await fetch(`/api/tv/${slug}/now${backRef.current ? `?back=${backRef.current}` : ""}`, { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
     const d = (await res.json()) as TvNowDTO;
     skew.current = d.serverNow - Date.now();
@@ -241,9 +246,24 @@ export function TvScreen({
     };
   }, [channel.slug]);
 
+  /** Jump `sec` seconds into the past (0 = back to live). */
+  const rewind = useCallback(
+    async (sec: number) => {
+      const nb = Math.max(0, Math.min(TV_REWIND_MAX_SEC, Math.round(sec)));
+      backRef.current = nb;
+      setBack(nb);
+      try {
+        setData(await load(channel.slug));
+      } catch {}
+    },
+    [channel.slug, load],
+  );
+
   const tune = useCallback(
     async (slug: string) => {
       if (slug === channel.slug) return;
+      backRef.current = 0; // another channel starts live
+      setBack(0);
       setSwitching(true);
       setGuideOpen(false);
       try {
@@ -604,6 +624,15 @@ export function TvScreen({
             </div>
           </div>
           <TvInfoBar channel={channel} slot={slot} next={data.next} clock={clock} viewers={chat.viewers} onOrder={openOrder} onGuide={() => setGuideOpen(true)} social={social} loggedIn={viewer.loggedIn} />
+          <RewindBar
+            back={back}
+            onRewind={rewind}
+            extra={
+              social && viewer.loggedIn ? (
+                <MomentButton slug={channel.slug} clock={clock} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[.06] px-3 text-xs font-semibold ring-1 ring-white/10 hover:bg-white/[.12]" />
+              ) : null
+            }
+          />
           {viewer.kids && <p className="px-4 pb-3 text-sm text-muted md:px-6">{t.tv.familyHint}</p>}
           <ChannelStrip items={items} current={channel.slug} onPick={(s) => void tune(s)} />
           {below}

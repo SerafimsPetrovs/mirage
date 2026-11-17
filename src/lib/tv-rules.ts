@@ -364,6 +364,9 @@ const LINK_RE = /(https?:\/\/|www\.|\b[\w-]+\.(com|ru|net|org|io|me|tv|xyz|link|
 const SLUR_RE = /(пидор|нигг|nigg|faggot|nazi|нацист|зиг хайл|sieg heil)/i;
 const PROFANITY_RE = /(хуй|хуе|пизд|ебат|ебан|бляд|сука|fuck|cunt)/i;
 
+/** "Rewind the broadcast": how far back a viewer can go (the grid of the last hours is kept). */
+export const TV_REWIND_MAX_SEC = 2 * 3600;
+
 export type TextProblem = "empty" | "too_long" | "links" | "banned";
 
 export function normalizeText(raw: string) {
