@@ -434,3 +434,18 @@ input, textarea, select {
   .buddy-dance > *, .buddy-shake > *, .buddy-walk > *, .buddy-zzz,
   [class*="buddy-act-"], .buddy-act-zoomies > *, .m67-wobble { animation: none; }
 }
+
+/* watch party: countdown digits and reactions flying up the screen */
+@keyframes party-pop {
+  0% { transform: scale(1.8); opacity: 0; }
+  30% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0.2; }
+}
+@keyframes party-float {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  12% { transform: translateY(-6vh) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-62vh) scale(1) rotate(var(--party-rot, 8deg)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .party-float { animation-duration: 0.01s !important; }
+}

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import clsx from "clsx";
-import { BarChart3, Bookmark, CalendarClock, Clapperboard, Crown, Flame, Gem, Gift, KeyRound, Languages, LibraryBig, LogOut, MessageCircleHeart, Music2, Plus, Radio, ShieldCheck, Smile, Sparkles, Upload, User, Wallet, Wrench } from "lucide-react";
+import { BarChart3, Bookmark, CalendarClock, Clapperboard, Crown, Flame, Gem, Gift, KeyRound, Languages, LibraryBig, LogOut, MessageCircleHeart, Music2, Plus, Radio, ShieldCheck, Smile, Sparkles, Upload, User, Users, Wallet, Wrench } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
 import { btn } from "@/components/ui/button";
@@ -103,6 +103,7 @@ export function UserMenu({ user, hot = 0 }: Props) {
             <L onClick={close} href="/library" icon={<LibraryBig size={18} />}>{m.catalogLink}</L>
             <L onClick={close} href="/me#list" icon={<Bookmark size={18} />}>{n.shelf}</L>
             <L onClick={close} href="/music" icon={<Music2 size={18} className="text-accent" />}>{t.music.myTracks}</L>
+            <L onClick={close} href="/party" icon={<Users size={18} className="text-[#7dffb2]" />}>{t.party.nav}</L>
             {user.adult && <L onClick={close} href="/me/chats" icon={<MessageCircleHeart size={18} />}>{t.me.myChats}</L>}
           </Section>
 

@@ -603,7 +603,7 @@ export function TvScreen({
               </div>
             </div>
           </div>
-          <TvInfoBar channel={channel} slot={slot} next={data.next} clock={clock} viewers={chat.viewers} onOrder={openOrder} onGuide={() => setGuideOpen(true)} social={social} />
+          <TvInfoBar channel={channel} slot={slot} next={data.next} clock={clock} viewers={chat.viewers} onOrder={openOrder} onGuide={() => setGuideOpen(true)} social={social} loggedIn={viewer.loggedIn} />
           {viewer.kids && <p className="px-4 pb-3 text-sm text-muted md:px-6">{t.tv.familyHint}</p>}
           <ChannelStrip items={items} current={channel.slug} onPick={(s) => void tune(s)} />
           {below}

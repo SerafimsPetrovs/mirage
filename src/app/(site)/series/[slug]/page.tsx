@@ -24,6 +24,7 @@ import { getSeriesCharacters } from "@/lib/extras";
 import { adultEnabled, spicyBlock } from "@/lib/spicy";
 import { getOrCreateRefCode } from "@/lib/referrals";
 import { AdultWall } from "@/components/adult/adult-wall";
+import { CreatePartyButton } from "@/components/party/create-party";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -120,6 +121,7 @@ export default async function SeriesPage({ params }: Props) {
                   {s.hasProgress ? fmt(t.series.continue, { n: s.resume.number }) : t.series.play}
                 </Link>
               )}
+              {s.resume && !user?.kidsMode && <CreatePartyButton episodeId={s.resume.id} loggedIn={!!user} />}
               <ListButton seriesId={s.id} initial={s.inList} />
               <ShareButton title={s.title} slug={s.slug} refCode={refCode} />
               {!user?.kidsMode && user?.id !== s.creatorId && <ReportButton targetType="SERIES" targetId={s.id} loggedIn={!!user} />}

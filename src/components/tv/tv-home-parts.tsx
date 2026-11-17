@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { CalendarClock, Eye, Music2, Popcorn, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { CreatePartyButton } from "@/components/party/create-party";
 import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import { slotOffset } from "@/lib/tv-rules";
@@ -50,6 +51,7 @@ export function TvInfoBar({
   onOrder,
   onGuide,
   social,
+  loggedIn = false,
 }: {
   channel: TvChannelDTO;
   slot: TvSlotDTO;
@@ -59,6 +61,7 @@ export function TvInfoBar({
   onOrder: () => void;
   onGuide: () => void;
   social: boolean;
+  loggedIn?: boolean;
 }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -115,6 +118,7 @@ export function TvInfoBar({
             <Sparkles size={16} className="text-coin" /> {t.v3.home.order}
           </button>
         )}
+        {social && <CreatePartyButton channelSlug={channel.slug} loggedIn={loggedIn} compact className="flex h-9 items-center gap-1.5 rounded-full bg-white/[.07] px-3.5 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/[.12]" />}
         {social && channel.kind === "MUSIC" && (
           <Link
             href={`/music/new?order=1&ch=${encodeURIComponent(channel.slug)}`}

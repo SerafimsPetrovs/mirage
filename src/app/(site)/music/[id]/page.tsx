@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Music2 } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser, requireUser } from "@/lib/auth";
 import { getTrackFor } from "@/lib/music";
 import { cleanLrc, isMusicStyle, type LrcLine } from "@/lib/music-rules";
 import { mediaUrl } from "@/lib/files";
@@ -12,7 +12,12 @@ import { fmt, pick } from "@/i18n/shared";
 import { TapSync } from "@/components/music/tap-sync";
 import { TrackPanel } from "@/components/music/track-panel";
 
-export const metadata: Metadata = { robots: { index: false } };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const [{ t }, user] = await Promise.all([getI18n(), getCurrentUser()]);
+  const tr = user ? await getTrackFor(user, id) : null;
+  return { title: tr?.title ?? t.music.myTracks, robots: { index: false } };
+}
 
 export default async function TrackPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

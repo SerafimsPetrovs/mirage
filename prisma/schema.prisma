@@ -148,6 +148,10 @@ model User {
   predictionBets   PredictionBet[]
   tvClips          TvClip[]
   musicTracks      MusicTrack[]
+  partiesHosted    Party[]       @relation("PartyHost")
+  partyMembers     PartyMember[]
+  partyEvents      PartyEvent[]
+  partyFood        PartyFood[]
   tvMessages       TvMessage[]
   tvTickers        TvTicker[]
   tvOrders         TvOrder[]
@@ -1394,4 +1398,105 @@ model MusicTrack {
 
   @@index([status])
   @@index([userId])
+}
+
+/// Watch party: friends watch a TV channel (already in sync for everyone) or a catalog episode in sync,
+/// with a private chat, flying reactions, the shared remote, polls, a ready check and a group food order.
+model Party {
+  id           String    @id @default(cuid())
+  /// Invite code in the link /party/CODE (6 chars, no look-alikes).
+  code         String    @unique
+  hostId       String
+  /// Who holds the remote (switches channel/episode, play/pause/seek). Defaults to the host.
+  remoteId     String
+  title        String    @default("")
+  /// TV | EPISODE
+  mode         String    @default("TV")
+  channelSlug  String?
+  episodeId    String?
+  /// EPISODE mode playback: position at stateAt; playing = advancing since then.
+  playing      Boolean   @default(false)
+  positionSec  Float     @default(0)
+  stateAt      DateTime  @default(now())
+  /// CINEMA | NEON | COZY | SPACE
+  theme        String    @default("CINEMA")
+  /// Ready check started (members answer); countdown → playback starts at countdownTo.
+  readyCheckAt DateTime?
+  countdownTo  DateTime?
+  /// Food: who orders, where, when it arrives.
+  foodById     String?
+  foodService  String?
+  foodEtaAt    DateTime?
+  foodArrivedAt DateTime?
+  /// Active poll: JSON { id, question, options: string[] }; votes in PartyVote.
+  pollJson     String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  endedAt      DateTime?
+
+  host    User          @relation("PartyHost", fields: [hostId], references: [id], onDelete: Cascade)
+  members PartyMember[]
+  events  PartyEvent[]
+  food    PartyFood[]
+  votes   PartyVote[]
+}
+
+model PartyMember {
+  partyId    String
+  userId     String
+  joinedAt   DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  readyAt    DateTime?
+  kicked     Boolean   @default(false)
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([partyId, userId])
+  @@index([userId])
+}
+
+/// One stream for everything that happens in the room: CHAT | REACTION | MOMENT | SYSTEM.
+model PartyEvent {
+  id        String   @id @default(cuid())
+  partyId   String
+  userId    String?
+  kind      String
+  body      String
+  /// MOMENT: position in the episode / wall-clock for TV.
+  atSec     Float?
+  createdAt DateTime @default(now())
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([partyId, createdAt])
+}
+
+/// Group food order: what each member wants (price optional, for the split).
+model PartyFood {
+  id         String   @id @default(cuid())
+  partyId    String
+  userId     String
+  item       String
+  priceCents Int?
+  qty        Int      @default(1)
+  createdAt  DateTime @default(now())
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([partyId])
+}
+
+model PartyVote {
+  partyId String
+  pollId  String
+  userId  String
+  option  Int
+
+  party Party @relation(fields: [partyId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId])
+  @@index([partyId])
 }
