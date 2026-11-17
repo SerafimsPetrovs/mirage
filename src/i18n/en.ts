@@ -1175,6 +1175,12 @@ export const en: Dict = {
     openStudio: "Open AI studio",
   },
   adm: {
+    botTitle: "Comment from a bot",
+    botHint: "The comment appears under the episode from a viewer with this name (the bot account is created automatically and cannot sign in).",
+    botName: "Name",
+    botText: "Text",
+    botEpisode: "Episode",
+    botSend: "Publish",
     manage: "Manage",
     back: "Back",
     info: "Details",

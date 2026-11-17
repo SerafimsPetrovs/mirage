@@ -22,6 +22,7 @@ import { hashPassword } from "@/lib/auth";
 import { deleteAccountAction } from "@/app/actions/profile";
 import { registerAction } from "@/app/actions/auth";
 import { setAdultContentAction } from "@/app/actions/extras";
+import { botCommentAction } from "@/app/actions/admin-tools";
 import { adultEnabled, isAdultMode } from "@/lib/spicy";
 import { fillCompany, getCompany } from "@/lib/company";
 import { getLegalDoc, LEGAL_SLUGS } from "@/content/legal";
@@ -121,5 +122,27 @@ describe("operator details and legal pages", () => {
       expect(getLegalDoc(slug, "en").sections.length).toBeGreaterThan(2);
       expect(getLegalDoc(slug, "ru").sections.length).toBe(getLegalDoc(slug, "en").sections.length);
     }
+  });
+});
+
+describe("bot comments (admin)", () => {
+  it("admin posts a comment as a named bot that cannot sign in; others are refused", async () => {
+    const a = await mk("ADMIN", "mod");
+    const c = await mk("CREATOR", "author");
+    const s = await prisma.series.create({
+      data: { slug: `bot-${tag}`, titleRu: "x", titleEn: "x", descriptionRu: "x", descriptionEn: "x", creatorId: c.id, status: "PUBLISHED" },
+    });
+    const ep = await prisma.episode.create({ data: { seriesId: s.id, number: 1, titleRu: "1", titleEn: "1", videoUrl: "x.mp4", durationSec: 60 } });
+    as(c);
+    expect((await botCommentAction(ep.id, "Anna", "wow")).ok).toBe(false);
+    as(a);
+    expect((await botCommentAction(ep.id, "Anna", "wow")).ok).toBe(true);
+    expect((await botCommentAction(ep.id, "anna", "again")).ok).toBe(true);
+    const comments = await prisma.comment.findMany({ where: { episodeId: ep.id }, include: { user: true } });
+    expect(comments).toHaveLength(2);
+    expect(new Set(comments.map((x) => x.userId)).size).toBe(1);
+    expect(comments[0].user.email).toMatch(/@bots\.mirage\.local$/);
+    await prisma.series.delete({ where: { id: s.id } });
+    await prisma.user.deleteMany({ where: { email: { endsWith: "@bots.mirage.local" } } });
   });
 });

@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n/client";
 import { fmt } from "@/i18n/shared";
 import {
   adjustCoinsAction,
+  botCommentAction,
   deleteEpisodeAction,
   deleteSeriesAction,
   fulfillOrderAction,
@@ -162,9 +163,9 @@ export function ChartRankSelect({ seriesId, rank }: { seriesId: string; rank: nu
   );
 }
 
-export function SeriesAdminForm({ seriesId, price, free }: { seriesId: string; price: number; free: number }) {
+export function SeriesAdminForm({ seriesId, views, price, free }: { seriesId: string; views: number; price: number; free: number }) {
   const { t, pending, run } = useAdmin();
-  const [f, setF] = useState({ defaultCoinPrice: String(price), freeEpisodes: String(free), ownerEmail: "" });
+  const [f, setF] = useState({ views: String(views), defaultCoinPrice: String(price), freeEpisodes: String(free), ownerEmail: "" });
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.target.value }));
   return (
     <form
@@ -174,7 +175,11 @@ export function SeriesAdminForm({ seriesId, price, free }: { seriesId: string; p
         run(() => updateSeriesAdminAction(seriesId, f), () => setF((x) => ({ ...x, ownerEmail: "" })));
       }}
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label className={labelCls} htmlFor="sa-views">{t.adm.views}</label>
+          <input id="sa-views" type="number" min={0} value={f.views} onChange={set("views")} className={inputCls} />
+        </div>
         <div>
           <label className={labelCls} htmlFor="sa-price">{t.adm.price}</label>
           <input id="sa-price" type="number" min={1} max={500} value={f.defaultCoinPrice} onChange={set("defaultCoinPrice")} className={inputCls} />
@@ -183,7 +188,7 @@ export function SeriesAdminForm({ seriesId, price, free }: { seriesId: string; p
           <label className={labelCls} htmlFor="sa-free">{t.adm.free}</label>
           <input id="sa-free" type="number" min={0} value={f.freeEpisodes} onChange={set("freeEpisodes")} className={inputCls} />
         </div>
-        <div className="sm:col-span-2">
+        <div className="sm:col-span-3">
           <label className={labelCls} htmlFor="sa-owner">{t.adm.owner}</label>
           <input id="sa-owner" type="email" value={f.ownerEmail} onChange={set("ownerEmail")} placeholder={t.adm.ownerHint} className={inputCls} />
         </div>
@@ -252,5 +257,45 @@ export function FulfillOrderButton({ orderId }: { orderId: string }) {
     <button disabled={pending} onClick={() => run(() => fulfillOrderAction(orderId))} className={btn("coin", "sm")}>
       {t.adm.fulfill}
     </button>
+  );
+}
+
+/** Post a comment under an episode from a named bot viewer. */
+export function BotCommentForm({ episodes }: { episodes: { id: string; label: string }[] }) {
+  const { t, pending, run } = useAdmin();
+  const [f, setF] = useState({ episodeId: episodes[0]?.id ?? "", name: "", body: "" });
+  if (!episodes.length) return null;
+  return (
+    <form
+      className={box}
+      onSubmit={(e) => {
+        e.preventDefault();
+        run(() => botCommentAction(f.episodeId, f.name, f.body), () => setF((x) => ({ ...x, name: "", body: "" })));
+      }}
+    >
+      <h3 className="font-display text-lg font-semibold">{t.adm.botTitle}</h3>
+      <p className="mt-1 text-xs text-muted">{t.adm.botHint}</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className={labelCls} htmlFor="bot-ep">{t.adm.botEpisode}</label>
+          <select id="bot-ep" value={f.episodeId} onChange={(e) => setF((x) => ({ ...x, episodeId: e.target.value }))} className={inputCls}>
+            {episodes.map((e) => (
+              <option key={e.id} value={e.id}>{e.label}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="bot-name">{t.adm.botName}</label>
+          <input id="bot-name" required maxLength={40} value={f.name} onChange={(e) => setF((x) => ({ ...x, name: e.target.value }))} className={inputCls} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className={labelCls} htmlFor="bot-text">{t.adm.botText}</label>
+          <textarea id="bot-text" required maxLength={1000} rows={3} value={f.body} onChange={(e) => setF((x) => ({ ...x, body: e.target.value }))} className={inputCls + " h-auto py-3"} />
+        </div>
+      </div>
+      <button disabled={pending} className={btn("primary", "md", "mt-4")}>
+        {t.adm.botSend}
+      </button>
+    </form>
   );
 }

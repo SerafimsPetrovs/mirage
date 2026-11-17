@@ -9,7 +9,7 @@ import { formatNumber, pick } from "@/i18n/shared";
 import { btn } from "@/components/ui/button";
 import { StatusBadge } from "@/components/studio/status-badge";
 import { SeriesFlags } from "@/components/admin/admin-actions";
-import { ChartRankSelect, DeleteSeries, EpisodeAdminRow, SeriesAdminForm } from "@/components/admin/admin-tools";
+import { BotCommentForm, ChartRankSelect, DeleteSeries, EpisodeAdminRow, SeriesAdminForm } from "@/components/admin/admin-tools";
 
 export default async function AdminSeriesDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,7 +50,7 @@ export default async function AdminSeriesDetail({ params }: { params: Promise<{ 
       <SeriesFlags seriesId={s.id} featured={s.featured} status={s.status} familySafe={s.isFamilySafe} adult={s.isAdult} interactive={s.interactive} />
       <p className="text-xs text-muted">{t.adm.chartHint}</p>
 
-      <SeriesAdminForm seriesId={s.id} price={s.defaultCoinPrice} free={s.freeEpisodes} />
+      <SeriesAdminForm seriesId={s.id} views={s.views} price={s.defaultCoinPrice} free={s.freeEpisodes} />
 
       <section className="rounded-3xl bg-surface p-5 ring-1 ring-line">
         <h3 className="mb-2 font-display text-lg font-semibold">
@@ -62,6 +62,8 @@ export default async function AdminSeriesDetail({ params }: { params: Promise<{ 
           ))}
         </ul>
       </section>
+
+      <BotCommentForm episodes={s.episodes.map((e) => ({ id: e.id, label: `${e.number}. ${pick(e, "title", locale) || "—"}` }))} />
 
       <DeleteSeries seriesId={s.id} slug={s.slug} />
     </div>

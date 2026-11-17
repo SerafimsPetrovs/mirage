@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { adminAdjustCoins } from "@/lib/coins";
 import { extendVip, fulfillOrder } from "@/lib/payments";
 import { logAdmin } from "@/lib/admin-log";
+import { createHash, randomBytes } from "crypto";
+import { hashPassword } from "@/lib/auth";
 
 export type AdminResult = { ok: true } | { ok: false; error: string };
 
@@ -88,8 +90,8 @@ export async function setChartRankAction(seriesId: string, rank: number | null):
   return ok(["/", "/admin/series", `/admin/series/${seriesId}`]);
 }
 
-// No "views" field on purpose: view counts come only from real plays — editing them by hand would be a fake metric.
 const seriesSchema = z.object({
+  views: z.coerce.number().int().min(0).max(2_000_000_000),
   defaultCoinPrice: z.coerce.number().int().min(1).max(500),
   freeEpisodes: z.coerce.number().int().min(0).max(500),
   ownerEmail: z.string().trim().toLowerCase().max(200),
@@ -109,7 +111,7 @@ export async function updateSeriesAdminAction(seriesId: string, input: unknown):
   }
   const s = await prisma.series.update({
     where: { id: seriesId },
-    data: { defaultCoinPrice: d.defaultCoinPrice, freeEpisodes: d.freeEpisodes, ...(creatorId ? { creatorId } : {}) },
+    data: { views: d.views, defaultCoinPrice: d.defaultCoinPrice, freeEpisodes: d.freeEpisodes, ...(creatorId ? { creatorId } : {}) },
   });
   await logAdmin(me.id, "series.update", "series", seriesId, d);
   return ok(["/", "/admin/series", `/admin/series/${seriesId}`, `/series/${s.slug}`]);
@@ -161,4 +163,31 @@ export async function fulfillOrderAction(orderId: string): Promise<AdminResult> 
   if (!done) return { ok: false, error: "state" };
   await logAdmin(me.id, "order.fulfill", "order", orderId);
   return ok(["/admin/orders"]);
+}
+
+// ---------------------------------------------------------------- bot comments
+
+const BOT_DOMAIN = "bots.mirage.local";
+
+/**
+ * Admin posts a comment under an episode as a "viewer" with the given name. The bot account is reused per name,
+ * has an unusable random password and a non-deliverable email, so nobody can sign in as it.
+ */
+export async function botCommentAction(episodeId: string, name: string, body: string): Promise<AdminResult> {
+  const me = await admin();
+  if (!me) return { ok: false, error: "forbidden" };
+  const p = z.object({ name: z.string().trim().min(1).max(40), body: z.string().trim().min(1).max(1000) }).safeParse({ name, body });
+  if (!p.success) return { ok: false, error: "invalid" };
+  const ep = await prisma.episode.findUnique({ where: { id: String(episodeId) }, select: { id: true, series: { select: { id: true, slug: true } } } });
+  if (!ep) return { ok: false, error: "invalid" };
+  const email = `bot-${createHash("sha256").update(p.data.name.toLowerCase()).digest("hex").slice(0, 16)}@${BOT_DOMAIN}`;
+  const bot =
+    (await prisma.user.findUnique({ where: { email }, select: { id: true } })) ??
+    (await prisma.user.create({
+      data: { email, name: p.data.name, passwordHash: await hashPassword(randomBytes(32).toString("hex")), avatarHue: Math.floor(Math.random() * 360) },
+      select: { id: true },
+    }));
+  await prisma.comment.create({ data: { userId: bot.id, episodeId: ep.id, body: p.data.body } });
+  await logAdmin(me.id, "comment.bot", "series", ep.series.id, { name: p.data.name, episodeId: ep.id });
+  return ok([`/admin/series/${ep.series.id}`, `/series/${ep.series.slug}`]);
 }
