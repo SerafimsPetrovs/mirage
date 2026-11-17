@@ -153,6 +153,8 @@ model User {
   partyEvents      PartyEvent[]
   partyFood        PartyFood[]
   tvMoments        TvMoment[]
+  songs            Song[]
+  songSaves        SongSave[]
   tvMessages       TvMessage[]
   tvTickers        TvTicker[]
   tvOrders         TvOrder[]
@@ -1550,4 +1552,59 @@ model OutboundClick {
   createdAt DateTime @default(now())
 
   @@index([kind, createdAt])
+}
+
+/// A song in the music feed: the author picks a 15 s hook; the feed plays hooks, a ♥ saves the whole song.
+model Song {
+  id           String     @id @default(cuid())
+  userId       String
+  title        String
+  artist       String     @default("")
+  genre        String     @default("")
+  audioRef     String
+  coverRef     String?
+  lyrics       String     @default("")
+  durationSec  Int        @default(0)
+  bpm          Float      @default(0)
+  hookStart    Float      @default(0)
+  hookLen      Float      @default(15)
+  /// HUMAN | SUNO_PAID | UDIO_PAID | OTHER_AI — shown as an "AI music" label; free-plan Suno songs are refused.
+  aiTool       String     @default("HUMAN")
+  /// PUBLISHED | HIDDEN (taken down by a moderator)
+  status       String     @default("PUBLISHED")
+  hookPlays    Int        @default(0)
+  plays        Int        @default(0)
+  saves        Int        @default(0)
+  /// Sent to a music channel (the MusicTrack that renders its video).
+  airedTrackId String?
+  createdAt    DateTime   @default(now())
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedBy  SongSave[]
+  seenBy   SongSeen[]
+
+  @@index([status, createdAt])
+}
+
+model SongSave {
+  userId    String
+  songId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([userId, songId])
+  @@index([songId, createdAt])
+}
+
+/// Hooks a viewer already heard, so the feed keeps bringing new ones.
+model SongSeen {
+  userId    String
+  songId    String
+  createdAt DateTime @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@id([userId, songId])
 }

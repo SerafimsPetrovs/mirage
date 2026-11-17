@@ -10,6 +10,7 @@ import { PosterMorph } from "@/components/media/poster-morph";
 import { PwaRegister } from "@/components/pwa/pwa";
 import { CookieNotice } from "@/components/legal/cookie-notice";
 import { ReminderWatcher } from "@/components/tv/reminders";
+import { MusicPlayerProvider } from "@/components/songs/player";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-unbounded", display: "swap" });
@@ -45,12 +46,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-dvh">
         <I18nProvider locale={locale} mode67={mode67}>
           <ToastProvider>
+            <MusicPlayerProvider>
             {children}
             <CommandPalette kids={kids} />
             <PosterMorph />
             <PwaRegister />
             <CookieNotice />
             <ReminderWatcher />
+            </MusicPlayerProvider>
           </ToastProvider>
         </I18nProvider>
       </body>

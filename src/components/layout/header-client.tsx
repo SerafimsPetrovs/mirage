@@ -4,7 +4,7 @@ import { APPS_ENABLED } from "@/lib/features";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { Boxes, LibraryBig, Radio } from "lucide-react";
+import { Boxes, LibraryBig, Music2, Radio } from "lucide-react";
 
 export function HeaderShell({ children }: { children: React.ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
@@ -27,7 +27,7 @@ export function HeaderShell({ children }: { children: React.ReactNode }) {
 }
 
 /** Live TV / Catalog / AI apps — one click between the three worlds of MIRAGE. */
-export function SectionSwitch({ labels }: { labels: { live: string; catalog: string; apps: string } }) {
+export function SectionSwitch({ labels }: { labels: { live: string; catalog: string; apps: string; songs: string } }) {
   const path = usePathname();
   const items = [
     { href: "/", label: labels.live, icon: Radio, active: path === "/" || path.startsWith("/tv") },
@@ -37,6 +37,7 @@ export function SectionSwitch({ labels }: { labels: { live: string; catalog: str
       icon: LibraryBig,
       active: ["/library", "/browse", "/series", "/feed", "/search", "/watch"].some((p) => path.startsWith(p)),
     },
+    { href: "/songs", label: labels.songs, icon: Music2, active: path.startsWith("/songs") },
     ...(APPS_ENABLED ? [{ href: "/apps", label: labels.apps, icon: Boxes, active: path.startsWith("/apps") }] : []),
   ];
   return (

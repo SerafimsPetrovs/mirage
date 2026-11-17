@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LibraryBig, PlaySquare, Radio, Search, User } from "lucide-react";
+import { Boxes, LibraryBig, Music2, PlaySquare, Radio, Search, User } from "lucide-react";
 import clsx from "clsx";
 import { useI18n } from "@/i18n/client";
 import { APPS_ENABLED } from "@/lib/features";
@@ -19,6 +19,7 @@ export function MobileTabBar({ overlay = false, kids = false }: { overlay?: bool
         { href: "/", label: t.v3.nav.live, icon: Radio },
         { href: "/library", label: t.v3.nav.catalog, icon: LibraryBig },
         { href: "/feed", label: t.nav.feed, icon: PlaySquare },
+        { href: "/songs", label: t.songs.nav, icon: Music2 },
         ...(APPS_ENABLED ? [{ href: "/apps", label: t.v3.nav.apps, icon: Boxes }] : []),
         { href: "/me", label: t.nav.profile, icon: User },
       ];

@@ -128,6 +128,11 @@ export function TvInfoBar({
             <Music2 size={16} className="text-accent" /> {t.music.orderTitle}
           </Link>
         )}
+        {channel.kind === "MUSIC" && (
+          <Link href="/songs" className="flex h-9 items-center gap-1.5 rounded-full bg-white/[.07] px-3.5 text-sm font-semibold ring-1 ring-white/10 hover:bg-white/[.12]">
+            <Music2 size={16} /> {t.songs.feed}: {t.songs.nav}
+          </Link>
+        )}
         {slot.series && (
           <a
             href={"/series/" + slot.series.slug}

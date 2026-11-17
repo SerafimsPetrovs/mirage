@@ -32,7 +32,7 @@ export async function SiteHeader() {
             </span>
           )}
         </Link>
-        {!kids && <SectionSwitch labels={{ live: t.v3.nav.live, catalog: t.v3.nav.catalog, apps: t.v3.nav.apps }} />}
+        {!kids && <SectionSwitch labels={{ live: t.v3.nav.live, catalog: t.v3.nav.catalog, apps: t.v3.nav.apps, songs: t.songs.nav }} />}
         <div className="ml-auto flex items-center gap-1.5 md:gap-2.5">
           <SearchButton label={t.nav.search} />
           {kids ? (
