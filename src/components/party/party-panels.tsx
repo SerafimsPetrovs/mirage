@@ -10,6 +10,7 @@ import { fmt, formatMoney } from "@/i18n/shared";
 import { FOOD_SERVICES, PARTY_POLL_OPTIONS_MAX, PARTY_REACTIONS, type FoodService } from "@/lib/party-rules";
 import type { PartyStateDTO } from "@/lib/party";
 import type { PartyEvent } from "./use-party";
+import { FoodProgress } from "./food-progress";
 
 type State = PartyStateDTO;
 type Send = (op: import("@/lib/party").PartyOp) => Promise<{ ok: boolean; error?: string }>;
@@ -218,16 +219,10 @@ export function FoodTab({ state, send, clock }: { state: State; send: Send; cloc
   const toast = useToast();
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
-  const [now, setNow] = useState(() => clock());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(clock()), 15_000);
-    return () => clearInterval(id);
-  }, [clock]);
   const food = state.party.food;
   const orderer = state.members.find((m) => m.id === food.byId);
   const iAmOrdering = food.byId === state.me.id;
   const money = (c: number) => formatMoney(c / 100, "EUR", locale);
-  const etaMin = food.etaAt ? Math.max(0, Math.round((food.etaAt - now) / 60_000)) : null;
   const err = (r: { ok: boolean; error?: string }) => !r.ok && toast((p.errors as Record<string, string>)[r.error ?? ""] ?? t.common.error, "error");
 
   const add = async (e: React.FormEvent) => {
@@ -255,12 +250,10 @@ export function FoodTab({ state, send, clock }: { state: State; send: Send; cloc
       {food.arrivedAt ? (
         <div className="rounded-2xl bg-ok/15 p-3 text-sm font-semibold text-ok ring-1 ring-ok/30">🍕 {f.arrived}</div>
       ) : food.etaAt ? (
-        <div className="flex items-center justify-between gap-2 rounded-2xl bg-coin/10 p-3 text-sm ring-1 ring-coin/30">
-          <span className="flex items-center gap-2 font-semibold text-coin">
-            <Bike size={16} /> {etaMin ? fmt(f.arriving, { n: etaMin }) : f.arrivingSoon}
-          </span>
-          <button type="button" onClick={() => send({ op: "foodArrived" }).then(err)} className={btn("coin", "sm")}>
-            {f.arrivedBtn}
+        <div className="space-y-2">
+          <FoodProgress setAt={food.etaSetAt ?? food.etaAt - 30 * 60_000} etaAt={food.etaAt} arrivedAt={food.arrivedAt} clock={clock} />
+          <button type="button" onClick={() => send({ op: "foodArrived" }).then(err)} className={btn("coin", "sm", "w-full")}>
+            <Bike size={16} /> {f.arrivedBtn}
           </button>
         </div>
       ) : null}
@@ -338,7 +331,13 @@ export function FoodTab({ state, send, clock }: { state: State; send: Send; cloc
         {iAmOrdering && food.service && (
           <div className="space-y-2 rounded-2xl bg-white/[.03] p-3 ring-1 ring-line">
             <div className="flex flex-wrap gap-2">
-              <a href={FOOD_SERVICES[food.service].url} target="_blank" rel="noopener noreferrer" className={btn("primary", "sm")}>
+              <a
+                href={FOOD_SERVICES[food.service].url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => void send({ op: "foodOpen", service: food.service! })}
+                className={btn("primary", "sm")}
+              >
                 <ExternalLink size={15} /> {fmt(f.openApp, { service: FOOD_SERVICES[food.service].name })}
               </a>
               {state.food.length > 0 && (

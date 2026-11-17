@@ -14,6 +14,7 @@ import { fmt } from "@/i18n/shared";
 import { PARTY_THEMES, type PartyTheme } from "@/lib/party-rules";
 import type { PartyOp, PartyStateDTO } from "@/lib/party";
 import { useParty } from "./use-party";
+import { FoodProgress } from "./food-progress";
 import { PartyEpisodePlayer, PartyTvPlayer } from "./party-players";
 import { ChatTab, FoodTab, PeopleTab, ReactionBar, ReactionsLayer, useSysText, VoteTab } from "./party-panels";
 
@@ -173,9 +174,9 @@ export function PartyRoom({ code, initial, channels }: { code: string; initial: 
           </div>
 
           {/* food on its way / arrived */}
-          {etaMin !== null && (
-            <button type="button" onClick={() => setTab("food")} className="flex w-full items-center gap-2 rounded-2xl bg-coin/10 px-4 py-2.5 text-left text-sm font-semibold text-coin ring-1 ring-coin/30">
-              🛵 {etaMin ? fmt(p.food.arriving, { n: etaMin }) : p.food.arrivingSoon}
+          {etaMin !== null && food.etaAt && (
+            <button type="button" onClick={() => setTab("food")} className="block w-full text-left">
+              <FoodProgress setAt={food.etaSetAt ?? food.etaAt - 30 * 60_000} etaAt={food.etaAt} arrivedAt={food.arrivedAt} clock={clock} compact />
             </button>
           )}
 

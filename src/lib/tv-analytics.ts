@@ -41,7 +41,21 @@ export async function tvAnalytics(days = 7, now = new Date()) {
   const clips = topLikes.length
     ? await prisma.tvClip.findMany({ where: { id: { in: topLikes.map((x) => x.clipId) } }, select: { id: true, title: true, artist: true, plays: true, kind: true, channel: { select: { nameEn: true, nameRu: true } } } })
     : [];
+  // partner numbers: how often watch parties open a delivery app through our button (7 and 30 days)
+  const month = new Date(now.getTime() - 30 * 86400_000);
+  const [food7, food30, foodRooms] = await Promise.all([
+    prisma.outboundClick.groupBy({ by: ["target"], where: { kind: "FOOD", createdAt: { gte: since } }, _count: { _all: true } }),
+    prisma.outboundClick.groupBy({ by: ["target"], where: { kind: "FOOD", createdAt: { gte: month } }, _count: { _all: true } }),
+    prisma.outboundClick.findMany({ where: { kind: "FOOD", createdAt: { gte: month } }, distinct: ["partyId"], select: { partyId: true } }),
+  ]);
+  const food = [...new Set([...food30.map((x) => x.target)])].map((target) => ({
+    target,
+    week: food7.find((x) => x.target === target)?._count._all ?? 0,
+    month: food30.find((x) => x.target === target)?._count._all ?? 0,
+  }));
   return {
+    food,
+    foodRooms: foodRooms.length,
     days,
     channels: channels.map((c) => ({
       ...c,

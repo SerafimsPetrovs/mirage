@@ -1428,6 +1428,8 @@ model Party {
   foodById     String?
   foodService  String?
   foodEtaAt    DateTime?
+  /// When the ETA was set (start of the playful "cooking → on the way → at the door" progress).
+  foodEtaSetAt DateTime?
   foodArrivedAt DateTime?
   /// Active poll: JSON { id, question, options: string[] }; votes in PartyVote.
   pollJson     String?
@@ -1534,4 +1536,18 @@ model TvChannelStat {
 
   @@id([channelId, day, hour])
   @@index([day])
+}
+
+/// Clicks that leave MIRAGE for a partner (e.g. "Open Bolt Food" in a watch party). Numbers to show partners.
+model OutboundClick {
+  id        String   @id @default(cuid())
+  /// FOOD
+  kind      String
+  /// e.g. BOLT, WOLT
+  target    String
+  userId    String?
+  partyId   String?
+  createdAt DateTime @default(now())
+
+  @@index([kind, createdAt])
 }

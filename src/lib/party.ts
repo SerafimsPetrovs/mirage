@@ -207,6 +207,7 @@ export async function partyState(rawUser: User | null, code: string, since: numb
         byId: p.foodById,
         service: (p.foodService as FoodService | null) ?? null,
         etaAt: p.foodEtaAt?.getTime() ?? null,
+        etaSetAt: p.foodEtaSetAt?.getTime() ?? null,
         arrivedAt: p.foodArrivedAt?.getTime() ?? null,
       },
       poll: poll
@@ -262,6 +263,7 @@ export type PartyOp =
   | { op: "foodClaim"; service: string }
   | { op: "foodEta"; minutes: number }
   | { op: "foodArrived" }
+  | { op: "foodOpen"; service: string }
   | { op: "foodReset" }
   | { op: "leave" }
   | { op: "end" };
@@ -411,15 +413,22 @@ export async function partyAction(rawUser: User | null, code: string, a: PartyOp
     case "foodClaim": {
       if (!isFoodService(a.service)) throw new PartyError("INVALID");
       if (p.foodById && p.foodById !== user.id && !host && !p.foodArrivedAt) throw new PartyError("FORBIDDEN");
-      await touch({ foodById: user.id, foodService: a.service, foodArrivedAt: null, foodEtaAt: null });
+      await touch({ foodById: user.id, foodService: a.service, foodArrivedAt: null, foodEtaAt: null, foodEtaSetAt: null });
       return sys(p.id, "foodClaim", { name: user.name, service: FOOD_SERVICES[a.service].name }, user.id);
     }
     case "foodEta": {
       if (p.foodById !== user.id && !host) throw new PartyError("FORBIDDEN");
       const minutes = Math.round(Number(a.minutes));
       if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) throw new PartyError("INVALID");
-      await touch({ foodEtaAt: new Date(now.getTime() + minutes * 60_000) });
+      await touch({ foodEtaAt: new Date(now.getTime() + minutes * 60_000), foodEtaSetAt: now, foodArrivedAt: null });
       return sys(p.id, "foodEta", { name: user.name, minutes }, user.id);
+    }
+    case "foodOpen": {
+      // counted for partner talks ("N rooms a week order through our button"); no personal data leaves MIRAGE
+      if (!isFoodService(a.service)) throw new PartyError("INVALID");
+      if (!rateLimit(`food-open:${user.id}`, 20, 3600_000).allowed) return;
+      await prisma.outboundClick.create({ data: { kind: "FOOD", target: a.service, userId: user.id, partyId: p.id } });
+      return;
     }
     case "foodArrived": {
       // the doorbell rang: pause the episode for everyone so nobody misses anything
@@ -431,7 +440,7 @@ export async function partyAction(rawUser: User | null, code: string, a: PartyOp
     case "foodReset": {
       if (!host && p.foodById !== user.id) throw new PartyError("FORBIDDEN");
       await prisma.partyFood.deleteMany({ where: { partyId: p.id } });
-      return touch({ foodById: null, foodService: null, foodEtaAt: null, foodArrivedAt: null });
+      return touch({ foodById: null, foodService: null, foodEtaAt: null, foodEtaSetAt: null, foodArrivedAt: null });
     }
     case "leave": {
       await prisma.partyMember.delete({ where: { partyId_userId: { partyId: p.id, userId: user.id } } });

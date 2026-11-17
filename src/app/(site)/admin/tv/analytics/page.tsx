@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import { Heart } from "lucide-react";
 import { tvAnalytics } from "@/lib/tv-analytics";
+import { FOOD_SERVICES } from "@/lib/party-rules";
 import { getI18n } from "@/i18n/server";
 import { fmt, formatNumber, pick } from "@/i18n/shared";
 
@@ -69,6 +70,34 @@ export default async function AdminTvAnalytics() {
             <span key={h} className="flex-1 text-center">{h % 3 === 0 ? h : ""}</span>
           ))}
         </div>
+      </section>
+
+      <section className={card}>
+        <h2 className="font-display text-lg font-semibold">{s.foodTitle}</h2>
+        <p className="mt-1 max-w-3xl text-sm text-muted">{s.foodSub}</p>
+        {a.food.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">{s.empty}</p>
+        ) : (
+          <table className="mt-3 w-full max-w-md text-sm">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-muted">
+                <th className="py-1.5 font-semibold" />
+                <th className="py-1.5 text-right font-semibold">{s.foodWeek}</th>
+                <th className="py-1.5 text-right font-semibold">{s.foodMonth}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {a.food.map((f) => (
+                <tr key={f.target}>
+                  <td className="py-2">{FOOD_SERVICES[f.target as keyof typeof FOOD_SERVICES]?.name ?? f.target}</td>
+                  <td className="py-2 text-right tabular-nums">{f.week}</td>
+                  <td className="py-2 text-right tabular-nums">{f.month}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="mt-3 text-sm text-muted">{fmt(s.foodRooms, { n: a.foodRooms })}</p>
       </section>
 
       <section className={card}>

@@ -101,11 +101,14 @@ describe("watch party", () => {
     await partyAction(viewer(a), p.code, { op: "foodClaim", service: "BOLT" });
     expect(await fails(partyAction(viewer(host), p.code, { op: "foodClaim", service: "EVIL" }))).toBe("INVALID");
     await partyAction(viewer(a), p.code, { op: "foodEta", minutes: 30 });
+    await partyAction(viewer(a), p.code, { op: "foodOpen", service: "BOLT" });
+    expect(await prisma.outboundClick.count({ where: { partyId: (await prisma.party.findUniqueOrThrow({ where: { code: p.code } })).id, target: "BOLT" } })).toBe(1);
     st = await partyState(viewer(host), p.code, 0);
     expect(st.split.total).toBe(1700);
     expect(st.split.perUser[a.id]).toBe(500);
     expect(st.party.food.service).toBe("BOLT");
     expect(st.party.food.etaAt).toBeGreaterThan(Date.now() + 29 * 60_000);
+    expect(st.party.food.etaSetAt).toBeLessThanOrEqual(Date.now());
     await partyAction(viewer(host), p.code, { op: "play", positionSec: 50 });
     await partyAction(viewer(a), p.code, { op: "foodArrived" });
     st = await partyState(viewer(a), p.code, 0);
