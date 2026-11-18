@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "./db";
 import { grantCoins, spendCoins } from "./coins";
 import { enqueue, registerJob } from "./jobs";
+import { analyzeClipBeats } from "./clip-beats";
 import { renderTrack } from "./music-render";
 import { rebuildRestOfDay, TvError } from "./tv";
 import { cleanLrc, isMusicStyle, LYRICS_MAX, lrcToVtt, MUSIC_MAX_IMAGES, MUSIC_ORDER_MAX_OPEN, MUSIC_ORDER_PRICE, type LrcLine } from "./music-rules";
@@ -174,6 +175,8 @@ export async function renderJob(trackId: string) {
           },
         });
     await prisma.musicTrack.update({ where: { id: t.id }, data: { status: "READY", progress: 100, videoRef: ref, clipId: clip.id, error: null } });
+    // tempo + drops for the watch buddy's rave (from the clean song file)
+    await analyzeClipBeats(clip.id, t.audioRef).catch((e) => console.error("[music beats]", e));
     if (clip.status === "APPROVED") await rebuildRestOfDay(t.channelId).catch((e) => console.error("[music rebuild]", e));
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

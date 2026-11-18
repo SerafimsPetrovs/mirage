@@ -9,6 +9,8 @@ import { getI18n } from "@/i18n/server";
 import { fmt } from "@/i18n/shared";
 import { SongList } from "@/components/songs/song-list";
 import { SongsNav } from "@/components/songs/songs-nav";
+import { SeriesChip } from "@/components/songs/song-chip";
+import { songUses } from "@/lib/song-links";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -29,11 +31,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** Public song page: play it, ♥ it, read the lyrics; shared links land here. */
 export default async function SongPage({ params }: Props) {
   const { id } = await params;
-  const [s, { t }, user] = await Promise.all([getSong(id), getI18n(), getCurrentUser()]);
+  const [s, { t, locale }, user] = await Promise.all([getSong(id), getI18n(), getCurrentUser()]);
   if (!s) notFound();
   const visible = s.status === "PUBLISHED" || (user && (user.id === s.user.id || user.role === "ADMIN"));
   if (!visible) notFound();
   const cover = mediaUrl(s.coverRef);
+  const uses = await songUses(s.id, user, locale);
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-[calc(var(--header-h)+24px)] md:px-10">
       <SongsNav active="song" />
@@ -58,6 +61,16 @@ export default async function SongPage({ params }: Props) {
       <div className="mt-6">
         <SongList songs={[{ id: s.id, title: s.title, artist: s.artist, cover, userName: s.user.name, aiTool: s.aiTool, saves: s.saves, airedTrackId: s.airedTrackId, durationSec: s.durationSec }]} />
       </div>
+      {uses.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 font-display text-lg font-semibold">{t.songs.link.usedIn}</h2>
+          <div className="flex flex-wrap gap-2">
+            {uses.map((u) => (
+              <SeriesChip key={u.episodeId} use={u} className="px-4 py-2 text-sm" />
+            ))}
+          </div>
+        </section>
+      )}
       {s.lyrics.trim() && (
         <section className="mt-8">
           <h2 className="mb-3 font-display text-lg font-semibold">{t.songs.lyrics}</h2>

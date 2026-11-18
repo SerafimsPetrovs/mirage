@@ -13,8 +13,9 @@ import { getOrCreateRefCode } from "@/lib/referrals";
 import { hasKidsAllowance } from "@/lib/kids";
 import { getEpisodePrediction } from "@/lib/predictions";
 import { readyAssetFor } from "@/lib/watermark";
+import { episodeSongs } from "@/lib/song-links";
 
-type Props = { params: Promise<{ episodeId: string }> };
+type Props = { params: Promise<{ episodeId: string }>; searchParams?: Promise<{ t?: string }> };
 
 async function load(episodeId: string) {
   const ep = await prisma.episode.findUnique({ where: { id: episodeId }, include: { series: true } });
@@ -28,8 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${pick(ep.series, "title", locale)} · ${t.common.episode} ${ep.number}` };
 }
 
-export default async function WatchPage({ params }: Props) {
+export default async function WatchPage({ params, searchParams }: Props) {
   const { episodeId } = await params;
+  // ?t=<sec>: open at that moment (links from a song: "plays in this episode at 12:30")
+  const jump = Math.max(0, Math.floor(Number((await searchParams)?.t) || 0));
   const [{ locale }, user, ep] = await Promise.all([getI18n(), getCurrentUser(), load(episodeId)]);
   if (!ep) notFound();
   const s = await getSeriesPage(ep.series.slug, user, locale);
@@ -64,7 +67,7 @@ export default async function WatchPage({ params }: Props) {
         locked: !access.ok,
         reason: access.ok ? null : access.reason,
         price: access.ok ? 0 : access.price,
-        startAt: progress && !progress.completed ? progress.positionSec : 0,
+        startAt: jump > 0 ? Math.min(jump, Math.max(0, ep.durationSec - 2)) : progress && !progress.completed ? progress.positionSec : 0,
         hls: access.ok && !!(await readyAssetFor(ep.videoUrl)),
       }}
       series={{ slug: s.slug, title: s.title, orientation: s.orientation, poster: s.poster, backdrop: s.backdrop, episodes: s.episodes }}
@@ -82,6 +85,7 @@ export default async function WatchPage({ params }: Props) {
       spicy={spicy}
       ads={ads}
       refCode={user && !kids ? await getOrCreateRefCode(user.id) : null}
+      songs={kids ? [] : await episodeSongs(ep.id)}
       cameos={(await prisma.cameo.findMany({ where: { episodeId: ep.id, status: "AIRED" }, orderBy: { createdAt: "asc" }, select: { name: true } })).map((c) => c.name)}
     />
   );

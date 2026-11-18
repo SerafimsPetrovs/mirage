@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { beatSegments, buildAss, cleanLrc, detectBeats, evenLrc, karaokeTags, lrcToVtt, lyricLines, parseLrc, renderArgs, toLrc } from "./music-rules";
+import { detectDrops, dropAt, parseBeatMap } from "./music-rules";
 
 describe("lyrics", () => {
   it("drops empty lines and [Chorus] tags", () => {
@@ -81,5 +82,40 @@ describe("render plan", () => {
     });
     expect(a.filter((x) => x === "-i")).toHaveLength(3);
     expect(a[a.indexOf("-filter_complex") + 1]).toContain("concat=n=2");
+  });
+});
+
+describe("drops", () => {
+  // quiet hi-hat-ish verse, then a loud kick + bass section, quiet again, second drop
+  const rate = 11025;
+  const song = (parts: [number, number][]) => {
+    const total = parts.reduce((a, [d]) => a + d, 0);
+    const pcm = new Float32Array(Math.round(total * rate));
+    let at = 0;
+    for (const [d, loud] of parts) {
+      for (let i = 0; i < d * rate; i++) {
+        const t = i / rate;
+        const kick = loud ? Math.sin(2 * Math.PI * 55 * t) * Math.exp(-((t % 0.5) * 8)) * 0.9 : 0;
+        const hat = Math.sin(2 * Math.PI * 3000 * t) * 0.05;
+        pcm[at + i] = kick + hat;
+      }
+      at += Math.round(d * rate);
+    }
+    return pcm;
+  };
+  it("finds where the track gets big", () => {
+    const pcm = song([[20, 0], [15, 1], [15, 0], [15, 1]]);
+    const drops = detectDrops(pcm, rate);
+    expect(drops.length).toBe(2);
+    expect(Math.abs(drops[0].t - 20)).toBeLessThan(1.5);
+    expect(Math.abs(drops[1].t - 50)).toBeLessThan(1.5);
+    expect(drops[0].len).toBeGreaterThanOrEqual(6);
+    expect(dropAt(drops, drops[0].t + 1)).toBeGreaterThan(0);
+    expect(dropAt(drops, 5)).toBe(-1);
+  });
+  it("finds nothing in a flat track and parses stored maps safely", () => {
+    expect(detectDrops(song([[40, 0]]), rate)).toEqual([]);
+    expect(parseBeatMap("nope")).toBeNull();
+    expect(parseBeatMap(JSON.stringify({ bpm: 128, beat0: 0.2, drops: [{ t: 30, len: 12 }] }))?.drops).toHaveLength(1);
   });
 });

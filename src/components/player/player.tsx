@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import {
-  ChevronDown, ChevronLeft, ChevronUp, FastForward, Gem, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX, Mic2 } from "lucide-react";
+  ChevronDown, ChevronLeft, ChevronUp, FastForward, Gem, Heart, LayoutGrid, Maximize, MessageCircle, MessageCircleHeart, Pause, Play, Share2, Shirt, SkipForward, Volume2, VolumeX, Mic2, Music2 } from "lucide-react";
 import type { EpisodeItem } from "@/lib/series";
 import { useI18n } from "@/i18n/client";
 import { fmt, formatNumber } from "@/i18n/shared";
@@ -20,6 +20,7 @@ import { Sheet } from "./sheet";
 import { Comments } from "./comments";
 import { LockOverlay } from "./lock-overlay";
 import { Ambient } from "./ambient";
+import { SongChip } from "@/components/songs/song-chip";
 import { CharacterStrip, SceneOffer, SkinsSheet, useSpicyRunner, type SpicyData } from "./spicy";
 import { ParentGate } from "@/components/kids/parent-gate";
 import { HardLoginWall, useGuestWall } from "@/components/auth/guest-wall";
@@ -52,6 +53,8 @@ export type PlayerProps = {
   refCode: string | null;
   /** Interactive series: viewer names that appear in this episode. */
   cameos: string[];
+  /** Songs the author tagged in this episode: a "♪ Add to My music" chip shows while each one plays. */
+  songs: { id: string; title: string; artist: string; cover: string | null; atSec: number; lenSec: number }[];
 };
 
 function clock(s: number) {
@@ -391,6 +394,26 @@ export function Player(props: PlayerProps) {
     </div>
   );
 
+  const playingSong = !episode.locked ? props.songs.find((x) => time >= x.atSec && time < x.atSec + x.lenSec) : undefined;
+  // vertical: under the top bar (back, title, sound); horizontal: the free top-left corner of the picture
+  const songChip = playingSong && (
+    <div className={clsx("pointer-events-auto absolute left-3 z-[15]", series.orientation === "VERTICAL" ? "top-[calc(max(12px,env(safe-area-inset-top))+64px)]" : "top-3 md:left-4 md:top-4")}>
+      <SongChip key={playingSong.id} song={playingSong} loggedIn={!!user} />
+    </div>
+  );
+  const songsLine = props.songs.length > 0 && (
+    <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-xs text-white/70">
+      <Music2 size={12} className="shrink-0 text-accent" aria-hidden />
+      <span className="sr-only">{t.songs.link.inEpisode}: </span>
+      {props.songs.map((x, i) => (
+        <span key={x.id} className="truncate">
+          {i > 0 && ", "}
+          <Link href={`/songs/${x.id}`} className="hover:text-white hover:underline">{x.title}</Link>
+        </span>
+      ))}
+    </p>
+  );
+
   const predictionOverlay = predPrompt && props.prediction && (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/65 p-6 backdrop-blur-sm">
       <div className="animate-pop max-w-xs text-center">
@@ -584,6 +607,7 @@ export function Player(props: PlayerProps) {
                   {t.show.creditsTitle}: {props.cameos.join(", ")}
                 </p>
               )}
+              {songsLine && <div className="pr-16 md:pr-0">{songsLine}</div>}
               {!episode.locked && (
                 <>
                   {progressBar}
@@ -595,6 +619,7 @@ export function Player(props: PlayerProps) {
               )}
             </div>
 
+            {songChip}
             {nextOverlay}
             {predictionOverlay}
             {viewerMark}
@@ -666,6 +691,7 @@ export function Player(props: PlayerProps) {
                 {t.show.creditsTitle}: {props.cameos.join(", ")}
               </p>
             )}
+            {songsLine}
           </div>
         </div>
         <div className="relative mx-auto max-w-[calc(78vh*16/9)]">
@@ -707,6 +733,7 @@ export function Player(props: PlayerProps) {
             </div>
           )}
           {sceneOffer && <div className="absolute right-4 top-4 z-20">{sceneOffer}</div>}
+          {songChip}
           {nextOverlay}
           {lock}
         </div>

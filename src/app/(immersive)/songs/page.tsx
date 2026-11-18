@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { mediaUrl } from "@/lib/files";
 import { canUploadSongs, songFeed } from "@/lib/songs";
+import { firstUses } from "@/lib/song-links";
 import { getI18n } from "@/i18n/server";
 import { SongFeed } from "@/components/songs/song-feed";
 
@@ -16,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SongsFeedPage() {
   const user = await getCurrentUser();
   const viewer = user && !user.kidsMode ? user : null;
-  const items = await songFeed(viewer);
-  return <SongFeed loggedIn={!!viewer} canUpload={canUploadSongs(viewer)} initial={items.map((s) => ({ ...s, cover: mediaUrl(s.coverRef) }))} />;
+  const [items, { locale }] = await Promise.all([songFeed(viewer), getI18n()]);
+  const uses = await firstUses(items.map((s) => s.id), user, locale);
+  return <SongFeed loggedIn={!!viewer} canUpload={canUploadSongs(viewer)} initial={items.map((s) => ({ ...s, cover: mediaUrl(s.coverRef), usedIn: uses.get(s.id) ?? null }))} />;
 }

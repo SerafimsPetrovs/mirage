@@ -284,6 +284,7 @@ model Episode {
   cameos       Cameo[]
   predictions  Prediction[]
   tvSlots      TvSlot[]
+  songUses     SongUse[]
 
   @@unique([seriesId, number])
 }
@@ -984,6 +985,8 @@ model TvClip {
   title       String
   /// Music videos: performer shown in the corner caption.
   artist      String      @default("")
+  /// Music videos: JSON BeatMap { bpm, beat0, drops: [{ t, len }] } — the watch buddy raves on the drops ("" = not analysed yet, "-" = no audio).
+  beatJson    String      @default("")
   videoUrl    String
   durationSec Int         @default(30)
   orientation Orientation @default(HORIZONTAL)
@@ -1582,6 +1585,7 @@ model Song {
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   savedBy  SongSave[]
   seenBy   SongSeen[]
+  uses     SongUse[]
 
   @@index([status, createdAt])
 }
@@ -1607,4 +1611,23 @@ model SongSeen {
   song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
 
   @@id([userId, songId])
+}
+
+/// "This song plays in episode N at 12:30": series authors tag songs from the songs section in their episodes.
+/// The player shows a "♪ song → My music" chip while it plays; the song page links back to the episode.
+model SongUse {
+  id        String   @id @default(cuid())
+  songId    String
+  episodeId String
+  /// Where in the episode the song starts, and roughly how long it plays (the chip shows meanwhile).
+  atSec     Float    @default(0)
+  lenSec    Float    @default(30)
+  addedById String
+  createdAt DateTime @default(now())
+
+  song    Song    @relation(fields: [songId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, episodeId])
+  @@index([episodeId])
 }

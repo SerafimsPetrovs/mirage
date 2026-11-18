@@ -15,6 +15,9 @@ import { StatusBadge } from "@/components/studio/status-badge";
 import { ExtrasManager } from "@/components/studio/extras-manager";
 import { PredictionManager } from "@/components/studio/prediction-manager";
 import { getStudioPredictions } from "@/lib/predictions";
+import { seriesSongUses } from "@/lib/song-links";
+import { SongTagger } from "@/components/studio/song-tagger";
+import { Music2 } from "lucide-react";
 
 export default async function EditSeriesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,6 +65,25 @@ export default async function EditSeriesPage({ params }: { params: Promise<{ id:
           seriesId={s.id}
           defaultPrice={s.defaultCoinPrice}
           episodes={s.episodes.map((e) => ({ id: e.id, number: e.number, title: pick(e, "title", locale), durationSec: e.durationSec, coinPrice: e.coinPrice, views: e.views }))}
+        />
+      </section>
+
+      <section className="rounded-3xl p-5 ring-1 ring-line md:p-7" style={{ background: "radial-gradient(90% 120% at 100% 0%, rgba(124,92,255,.14), transparent 60%), var(--surface)" }}>
+        <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-semibold">
+          <Music2 size={20} className="text-accent" /> {t.songs.link.studio.title}
+        </h2>
+        <SongTagger
+          episodes={s.episodes.map((e) => ({ id: e.id, number: e.number, durationSec: e.durationSec }))}
+          tagged={(await seriesSongUses(s.id)).map((u) => ({
+            id: u.id,
+            episodeNumber: u.episode.number,
+            atSec: u.atSec,
+            lenSec: u.lenSec,
+            songId: u.song.id,
+            title: u.song.title,
+            artist: u.song.artist || u.song.user.name,
+            hidden: u.song.status !== "PUBLISHED",
+          }))}
         />
       </section>
 

@@ -21,6 +21,8 @@ import { ChannelStrip, RewindBar, TvInfoBar, type StripItem } from "./tv-home-pa
 import { TV_REWIND_MAX_SEC } from "@/lib/tv-rules";
 import { MomentButton } from "./moment-view";
 import { BuddyCompanion } from "@/components/buddy/buddy-companion";
+import { BuddyRave } from "@/components/buddy/buddy-rave";
+import { TvSongLinks } from "./tv-song-links";
 import { buddyDef, type Outfit } from "@/lib/buddy-catalog";
 
 type Viewer = { loggedIn: boolean; coins: number; kids: boolean; name: string; gold: number; admin: boolean; buddy?: { buddy: string; outfit: Outfit } | null };
@@ -96,6 +98,8 @@ export function TvScreen({
   const [voice, setVoice] = useStored("tv-voice", true);
   /** The watch buddy in the corner (full screen and theatre). */
   const [buddyOn, setBuddyOn] = useStored("tv-buddy", true);
+  /** The buddy is raving over the picture on a music drop (the corner one steps out meanwhile). */
+  const [raving, setRaving] = useState(false);
   /** Desktop: the chat column (collapsible). */
   const [chatOpen, setChatOpen] = useStored("tv-chat-col", true);
   /** Phones: the full chat sheet over the TikTok-style overlay. */
@@ -482,6 +486,9 @@ export function TvScreen({
       {social && <ReactionsLayer items={floating.items} />}
       {social && <PinnedBanner pinned={chat.pinned} />}
       {!walled && slot.series && <FunnelCta key={slot.id} slot={slot} clock={clock} channel={channel.slug} corner={!embedded} />}
+      {!walled && !viewer.kids && !raving && (slot.song || slot.songs.length > 0) && (
+        <TvSongLinks key={`songs-${slot.id}`} slot={slot} timeRef={videoTime} loggedIn={viewer.loggedIn} className="pointer-events-auto absolute left-3 z-[18] bottom-[calc(var(--tv-ui-full)+12px)] md:left-6" />
+      )}
       {social && chat.poll && slot.kind !== "QUIZ" && (
         <div className={clsx("absolute right-3 z-[18] transition-opacity md:right-6", embedded ? "top-14" : "top-[max(76px,calc(env(safe-area-inset-top)+70px))] md:right-8 md:top-24", chat.pinned && "max-md:top-[150px]")}>
           <PollCard key={chat.poll.id} poll={chat.poll} clock={clock} loggedIn={viewer.loggedIn} onVoted={chat.setPoll} />
@@ -489,6 +496,9 @@ export function TvScreen({
       )}
       {!viewer.kids && <AlertsBar alerts={chat.alerts} top={embedded ? 0 : undefined} />}
       {!viewer.kids && chat.pip && slot.kind !== "NEWS" && !walled && <PipMascot pip={chat.pip} clock={clock} speak={!silent && voice} />}
+      {buddyOn && (fs || !embedded) && !walled && !asleep && slot.beat && slot.beat.drops.length > 0 && (
+        <BuddyRave buddy={buddyDef(viewer.buddy?.buddy ?? "").id} outfit={viewer.buddy?.outfit ?? {}} beat={slot.beat} timeRef={videoTime} slotKey={slot.id} onRaving={setRaving} />
+      )}
       {buddyOn && (fs || !embedded) && !walled && !asleep && (
         <BuddyCompanion
           buddy={buddyDef(viewer.buddy?.buddy ?? "").id}
@@ -501,7 +511,7 @@ export function TvScreen({
           controls={!hideUi}
           makeRoom={!!chat.pip && slot.kind !== "NEWS"}
           onHide={() => setBuddyOn(false)}
-          className={embedded ? "bottom-[calc(var(--tv-ui-full)+6px)]" : "bottom-[calc(var(--tv-ui-full)+64px)] md:bottom-[calc(var(--tv-ui-full)+6px)]"}
+          className={clsx(embedded ? "bottom-[calc(var(--tv-ui-full)+6px)]" : "bottom-[calc(var(--tv-ui-full)+64px)] md:bottom-[calc(var(--tv-ui-full)+6px)]", raving && "invisible")}
         />
       )}
       {switching && (

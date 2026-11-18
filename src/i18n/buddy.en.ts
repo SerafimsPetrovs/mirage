@@ -231,4 +231,11 @@ export const buddyEn: typeof buddyRu = {
     },
   }, MORE_EN),
   chaos: CHAOS_EN,
+  rave: {
+    build: ["Feel that? Here it comes…", "Shh… shh… NOW!", "Get ready. Get ready!", "Calm before the storm"],
+    drop: ["DRO-O-OP!!!", "LET'S GO!!!", "HERE IT IS!!!", "IT SLAPS!!!", "BREAK THE FLOOR!", "BASS IN YOUR FACE!!!"],
+    drop67: ["SIX SEVEN DROP!!!", "6-7-6-7-6-7!!!", "LASERS ON!!!", "BRAIN HAS LEFT THE CHAT!!!", "67 BPM (NOT REALLY)!!!", "I RADIATE 67!!!"],
+    after: ["Phew… that was huge", "I'm drenched. Again!", "Someone call an ambulance for my legs"],
+    toggle: "Buddy raves on drops",
+  },
 };

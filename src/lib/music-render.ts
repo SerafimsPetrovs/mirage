@@ -13,11 +13,13 @@ import {
   buildAss,
   cleanLrc,
   detectBeats,
+  detectDrops,
   evenLrc,
   isMusicStyle,
   lyricLines,
   MUSIC_MAX_SECONDS,
   renderArgs,
+  type BeatMap,
   type LrcLine,
   type MusicStyle,
 } from "./music-rules";
@@ -54,7 +56,13 @@ export async function analyzeAudio(file: string) {
   const duration = pcm.length / PCM_RATE;
   if (duration < 5) throw new Error("AUDIO_TOO_SHORT");
   const { bpm, beats } = detectBeats(pcm, PCM_RATE);
-  return { duration, bpm, beats };
+  return { duration, bpm, beats, drops: detectDrops(pcm, PCM_RATE, beats) };
+}
+
+/** Beat map for the TV (the watch buddy raves on drops): from a song or a music video file. */
+export async function beatMapOf(file: string): Promise<BeatMap> {
+  const { bpm, beats, drops } = await analyzeAudio(file);
+  return { bpm, beat0: beats[0] ?? 0, drops };
 }
 
 /** Runs ffmpeg in `cwd` and reports progress 0..1 from `-progress`. */

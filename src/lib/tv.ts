@@ -44,6 +44,8 @@ import {
 } from "./tv-rules";
 import type { TvChannelDTO, TvChatDTO, TvNowDTO, TvOrderDTO, TvSlotDTO } from "./tv-types";
 import type { TimelineItem } from "./mascot";
+import { clipBeatMap } from "./clip-beats";
+import { episodeSongs, songForClip, songUses } from "./song-links";
 
 /** The one host of every channel (the brand mascot). */
 export const MASCOT_NAME = { ru: "Мистер Помеха", en: "Mr. Static" } as const;
@@ -425,6 +427,9 @@ async function toDTO(s: SlotRow, ch: TvChannel, locale: Locale, userId: string |
     info: null,
     captions: null,
     mascot: null,
+    beat: null,
+    songs: [],
+    song: null,
   };
   const clipId = s.kind === "BREAK" ? breakClipId ?? s.breakClipId : s.clipId;
   const clip = s.kind === "BREAK" ? (clipId ? await prisma.tvClip.findUnique({ where: { id: clipId }, include: clipInclude }) : null) : s.clip;
@@ -435,8 +440,11 @@ async function toDTO(s: SlotRow, ch: TvChannel, locale: Locale, userId: string |
           userId ? prisma.tvClipLike.findUnique({ where: { userId_clipId: { userId, clipId: clip.id } } }).then(Boolean) : false,
         ])
       : [0, false];
+    const song = clip.kind === "MUSIC" ? await songForClip(clip.id) : null;
     return {
       ...base,
+      beat: clipBeatMap(clip),
+      song: song ? { id: song.id, title: song.title, artist: song.artist || song.user.name, usedIn: await songUses(song.id, null, locale) } : null,
       title: clip.title,
       subtitle: clip.artist,
       video: { src: `/api/tv/clip/${clip.id}`, hls: null, orientation: clip.orientation },
@@ -468,6 +476,7 @@ async function toDTO(s: SlotRow, ch: TvChannel, locale: Locale, userId: string |
       subtitle: String(e.number),
       video: { src: hls ? null : `/api/stream/${e.id}`, hls: hls ? `/api/hls/${e.id}` : null, orientation: e.series.orientation },
       series,
+      songs: await episodeSongs(e.id),
       info: {
         title: series.title,
         lore: pick(e.series, "description", locale),

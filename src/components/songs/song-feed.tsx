@@ -10,6 +10,7 @@ import { fmt } from "@/i18n/shared";
 import { hookHeardAction, toggleSaveAction } from "@/app/actions/songs";
 import { isAiMusic } from "@/lib/song-rules";
 import { useMusicPlayer } from "./player";
+import { SeriesChip, type ChipUse } from "./song-chip";
 
 export type FeedItem = {
   id: string;
@@ -25,6 +26,8 @@ export type FeedItem = {
   saved: boolean;
   airedTrackId: string | null;
   user: { id: string; name: string };
+  /** First series episode this song plays in (→ watch it there). */
+  usedIn: ChipUse | null;
 };
 
 /**
@@ -189,6 +192,7 @@ export function SongFeed({ initial, loggedIn, canUpload }: { initial: FeedItem[]
                 </div>
                 <Link href={`/songs/${it.id}`} className="block font-display text-2xl font-bold leading-tight drop-shadow">{it.title}</Link>
                 <p className="mt-0.5 text-white/80">{it.artist || it.user.name}</p>
+                {it.usedIn && <SeriesChip use={it.usedIn} className="mt-2.5" />}
                 {/* 15 s hook progress */}
                 <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/20">
                   <div className="h-full bg-white transition-[width] duration-200 ease-linear" style={{ width: `${i === active ? progress * 100 : 0}%` }} />

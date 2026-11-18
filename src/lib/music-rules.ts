@@ -374,3 +374,98 @@ export function renderArgs(p: {
   );
   return args;
 }
+
+/** A drop: where the track suddenly gets big (bass + loudness jump after a quieter build), and for how long. */
+export type Drop = { t: number; len: number };
+/** What the TV needs to make the watch buddy rave in time: tempo, first beat, drops. */
+export type BeatMap = { bpm: number; beat0: number; drops: Drop[] };
+
+/**
+ * Finds drops in mono PCM: a bass-weighted loudness curve (0.25 s frames, ~1 s smoothing), then points where the
+ * next 2 s are much louder than the 1–4 s before and loud for this song overall (≥ 80 % of its 70th percentile). At least 16 s apart, at most 6,
+ * snapped to the nearest beat. No clear jump → the single biggest one if it's still a real lift.
+ */
+export function detectDrops(samples: Float32Array, rate: number, beats: number[] = []): Drop[] {
+  const frame = Math.max(1, Math.round(rate / 4));
+  const n = Math.floor(samples.length / frame);
+  if (n < 32) return [];
+  // one-pole low-pass ≈ 150 Hz for the bass part
+  const a = Math.exp((-2 * Math.PI * 150) / rate);
+  let lp = 0;
+  const e = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let full = 0;
+    let bass = 0;
+    for (let j = i * frame, end = j + frame; j < end; j++) {
+      const x = samples[j];
+      lp = (1 - a) * x + a * lp;
+      full += x * x;
+      bass += lp * lp;
+    }
+    e[i] = 0.4 * Math.sqrt(full / frame) + 0.6 * Math.sqrt(bass / frame) * 2;
+  }
+  const s = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let acc = 0;
+    let c = 0;
+    for (let k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 1); k++, c++) acc += e[k];
+    s[i] = acc / c;
+  }
+  const sorted = Array.from(s).sort((x, y) => x - y);
+  const p70 = sorted[Math.floor(sorted.length * 0.7)];
+  const peak = sorted[sorted.length - 1] || 1;
+  const mean = (from: number, to: number) => {
+    let acc = 0;
+    let c = 0;
+    for (let k = Math.max(0, from); k < Math.min(n, to); k++, c++) acc += s[k];
+    return c ? acc / c : 0;
+  };
+  const cands: { i: number; ratio: number; post: number }[] = [];
+  for (let i = 8; i < n - 8; i++) {
+    const pre = mean(i - 16, i - 4);
+    const post = mean(i, i + 8);
+    cands.push({ i, ratio: post / (pre + peak * 0.02), post });
+  }
+  const pick = (minRatio: number) => {
+    const out: typeof cands = [];
+    for (const c of [...cands].filter((c) => c.ratio >= minRatio && c.post >= p70 * 0.8).sort((x, y) => y.ratio - x.ratio)) {
+      if (out.length >= 6) break;
+      if (out.every((o) => Math.abs(o.i - c.i) >= 64)) out.push(c);
+    }
+    return out;
+  };
+  let found = pick(1.6);
+  if (!found.length) found = pick(1.3).slice(0, 1);
+  const snap = (t: number) => {
+    let best = t;
+    for (const b of beats) if (Math.abs(b - t) < Math.abs(best - t) && Math.abs(b - t) < 0.4) best = b;
+    return best;
+  };
+  return found
+    .map(({ i, post }) => {
+      // the drop lasts while it stays loud (≥ 70 % of its first seconds), 6–20 s
+      let j = i + 8;
+      while (j < n && j - i < 80 && s[j] >= post * 0.7) j++;
+      const t = snap(i / 4);
+      return { t: Math.round(t * 100) / 100, len: Math.max(6, Math.min(20, (j - i) / 4)) };
+    })
+    .sort((x, y) => x.t - y.t);
+}
+
+/** Is `sec` inside a drop? Returns how far into it (0..1) or -1. */
+export function dropAt(drops: Drop[], sec: number) {
+  for (const d of drops) if (sec >= d.t && sec < d.t + d.len) return (sec - d.t) / d.len;
+  return -1;
+}
+
+/** Parses a stored beat map; anything malformed → null. */
+export function parseBeatMap(json: string | null | undefined): BeatMap | null {
+  if (!json) return null;
+  try {
+    const m = JSON.parse(json) as BeatMap;
+    if (!(m.bpm > 0) || !Array.isArray(m.drops)) return null;
+    return { bpm: m.bpm, beat0: Number(m.beat0) || 0, drops: m.drops.filter((d) => d.t >= 0 && d.len > 0).slice(0, 8) };
+  } catch {
+    return null;
+  }
+}

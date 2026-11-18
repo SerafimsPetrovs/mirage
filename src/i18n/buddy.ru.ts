@@ -234,6 +234,14 @@ export const buddyRu = {
   } satisfies Record<BuddyId, Lines>, MORE_RU),
   /** 67 mode: unhinged lines mixed into what the buddy says. */
   chaos: CHAOS_RU as Record<BuddyId, string[]>,
+  /** Music videos: the buddy raves across the whole screen on drops. */
+  rave: {
+    build: ["Чувствуешь? Сейчас будет…", "Тихо… тихо… ЩА!", "Готовься. Готовься!", "Это затишье перед бурей"],
+    drop: ["ДРО-О-ОП!!!", "ПОГНАЛИ!!!", "ВОТ ОНО!!!", "КАЧАЕТ!!!", "ЛОМАЕМ ТАНЦПОЛ!", "БАС В ЛИЦО!!!"],
+    drop67: ["СИКС СЕВЕН ДРОП!!!", "6-7-6-7-6-7!!!", "ЛАЗЕРЫ ВКЛ!!!", "МОЗГ ВЫШЕЛ ИЗ ЧАТА!!!", "67 УДАРОВ В МИНУТУ (НЕТ)!!!", "Я ИЗЛУЧАЮ 67!!!"],
+    after: ["Фух… это было мощно", "Я весь мокрый. Ещё!", "Кто-нибудь, вызовите скорую моим ногам"],
+    toggle: "Рейв бади на дропах",
+  },
 };
 
 /** Adds extra lines to the pools (more variety, fewer repeats). */

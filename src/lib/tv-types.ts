@@ -51,6 +51,12 @@ export type TvSlotDTO = {
   captions: string | null;
   /** NEWS (breaking news by the mascot): the emotional timeline and optional TTS file. */
   mascot: TvMascotDTO | null;
+  /** Music videos: tempo + drops (the watch buddy raves on drops). */
+  beat: { bpm: number; beat0: number; drops: { t: number; len: number }[] } | null;
+  /** Episodes: songs tagged by the author, with when they play ("♪ song → My music" chip). */
+  songs: { id: string; title: string; artist: string; cover: string | null; atSec: number; lenSec: number }[];
+  /** Music videos sent from the songs section: the song, and the series it plays in. */
+  song: { id: string; title: string; artist: string; usedIn: { episodeId: string; number: number; seriesSlug: string; seriesTitle: string; atSec: number }[] } | null;
 };
 
 export type TvChannelDTO = {
