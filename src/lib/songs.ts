@@ -10,8 +10,11 @@ import { AI_TOOLS, BLOCKED_TOOLS, clampHook, feedScore, SONG_GENRES, type AiTool
 
 type User = { id: string; role: string; kidsMode: boolean; banned?: boolean } | null;
 
+/** Only authors (CREATOR) and admins publish songs; viewers listen and ♥. */
+export const canUploadSongs = (u: { role: string; kidsMode?: boolean } | null | undefined) => !!u && !u.kidsMode && (u.role === "CREATOR" || u.role === "ADMIN");
+
 export class SongError extends Error {
-  constructor(public code: "AUTH" | "KIDS" | "INVALID" | "RIGHTS" | "SUNO_FREE" | "RATE" | "NOT_FOUND" | "TOO_SHORT") {
+  constructor(public code: "AUTH" | "KIDS" | "CREATOR" | "INVALID" | "RIGHTS" | "SUNO_FREE" | "RATE" | "NOT_FOUND" | "TOO_SHORT") {
     super(code);
   }
 }
@@ -34,9 +37,10 @@ export type SongInput = {
   rightsOk: boolean;
 };
 
-/** Anyone signed in publishes a song (rights confirmed; free-plan Suno refused). */
+/** Authors and admins publish songs (rights confirmed; free-plan Suno refused). */
 export async function createSong(rawUser: User, i: SongInput) {
   const user = need(rawUser);
+  if (!canUploadSongs(user)) throw new SongError("CREATOR");
   if (!rateLimit(`song-create:${user.id}`, 10, 24 * 3600_000).allowed) throw new SongError("RATE");
   const title = normalizeText(String(i.title ?? "")).slice(0, 100);
   if (title.length < 1) throw new SongError("INVALID");
@@ -47,7 +51,8 @@ export async function createSong(rawUser: User, i: SongInput) {
   if (!i.rightsOk) throw new SongError("RIGHTS");
   const file = resolveMediaPath(i.audioRef);
   if (!file) throw new SongError("INVALID");
-  const { duration, bpm } = await analyzeAudio(file).catch(() => {
+  const { duration, bpm } = await analyzeAudio(file).catch((e) => {
+    console.error("[songs] audio analysis failed", i.audioRef, e);
     throw new SongError("INVALID");
   });
   if (duration < HOOK_MIN_SONG) throw new SongError("TOO_SHORT");

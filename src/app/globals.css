@@ -74,6 +74,13 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* native <select> popups: transparent control backgrounds made the list white-on-white on Windows */
+select option,
+select optgroup {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
 body {
   background: var(--bg);
   color: var(--text);

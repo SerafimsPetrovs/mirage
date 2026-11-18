@@ -31,7 +31,7 @@ export type FeedItem = {
  * The song feed: full-screen cards, swipe up for the next one. Each card plays only the author's 15-second hook
  * in a loop; ♥ adds the whole song to "My music"; ▶ plays it in the site-wide player.
  */
-export function SongFeed({ initial, loggedIn }: { initial: FeedItem[]; loggedIn: boolean }) {
+export function SongFeed({ initial, loggedIn, canUpload }: { initial: FeedItem[]; loggedIn: boolean; canUpload: boolean }) {
   const { t } = useI18n();
   const s = t.songs;
   const toast = useToast();
@@ -144,7 +144,7 @@ export function SongFeed({ initial, loggedIn }: { initial: FeedItem[]; loggedIn:
         <div className="pointer-events-auto ml-auto flex gap-1.5">
           <Link href="/songs/chart" aria-label={s.chart} title={s.chart} className="rounded-full bg-white/10 p-2.5 backdrop-blur hover:bg-white/20"><BarChart3 size={18} /></Link>
           <Link href="/songs/library" aria-label={s.library} title={s.library} className="rounded-full bg-white/10 p-2.5 backdrop-blur hover:bg-white/20"><Library size={18} /></Link>
-          <Link href="/songs/new" aria-label={s.upload} title={s.upload} className="rounded-full bg-accent p-2.5 hover:brightness-110"><Plus size={18} /></Link>
+          {canUpload && <Link href="/songs/new" aria-label={s.upload} title={s.upload} className="rounded-full bg-accent p-2.5 hover:brightness-110"><Plus size={18} /></Link>}
         </div>
       </div>
 
@@ -152,7 +152,7 @@ export function SongFeed({ initial, loggedIn }: { initial: FeedItem[]; loggedIn:
         <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
           <ListMusic size={40} className="text-muted" />
           <p className="text-muted">{s.empty}</p>
-          <Link href="/songs/new" className="rounded-full bg-accent px-5 py-2.5 font-semibold">{s.upload}</Link>
+          {canUpload && <Link href="/songs/new" className="rounded-full bg-accent px-5 py-2.5 font-semibold">{s.upload}</Link>}
         </div>
       ) : (
         <div ref={list} className="no-scrollbar h-full snap-y snap-mandatory overflow-y-scroll">

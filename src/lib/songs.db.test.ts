@@ -21,7 +21,7 @@ beforeAll(async () => {
   const dir = path.join(process.cwd(), "storage", "audio");
   fs.mkdirSync(dir, { recursive: true });
   execFileSync(ffmpegPath as string, ["-y", "-loglevel", "error", "-f", "lavfi", "-i", "sine=f=330:d=40", "-b:a", "64k", path.join(dir, audioName)]);
-  author = await prisma.user.create({ data: { email: `sa-${tag}@s.test`, name: "Author", passwordHash: "x" } });
+  author = await prisma.user.create({ data: { email: `sa-${tag}@s.test`, name: "Author", role: "CREATOR", passwordHash: "x" } });
   fan = await prisma.user.create({ data: { email: `sf-${tag}@s.test`, name: "Fan", passwordHash: "x" } });
   admin = await prisma.user.create({ data: { email: `sx-${tag}@s.test`, name: "Admin", role: "ADMIN", passwordHash: "x" } });
   channelId = (await prisma.tvChannel.create({ data: { slug: `sch-${tag}`, number: 9900 + Math.floor(Math.random() * 99), nameRu: "М", nameEn: "M", kind: "MUSIC", hostName: "H", hostPersona: "p" } })).id;
@@ -57,6 +57,7 @@ describe("songs", () => {
     expect(await code(createSong(as(author), { ...base(), aiTool: "SUNO_FREE" }))).toBe("SUNO_FREE");
     expect(await code(createSong(as(author), { ...base(), rightsOk: false }))).toBe("RIGHTS");
     expect(await code(createSong(null, base()))).toBe("AUTH");
+    expect(await code(createSong(as(fan), base()))).toBe("CREATOR"); // viewers listen, they don't upload
     const s = await createSong(as(author), base());
     expect(s.durationSec).toBe(40);
     expect(s.hookStart).toBe(10);

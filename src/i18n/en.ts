@@ -776,6 +776,7 @@ export const en: Dict = {
       errors: {
         RIGHTS: "Confirm you have the rights to the song",
         SUNO_FREE: "Free-plan Suno songs can't be published",
+        CREATOR: "Only creators can upload songs",
         TOO_SHORT: "The song is too short — at least 20 seconds",
         RATE: "Too many uploads today",
         INVALID: "Check the fields and the file",

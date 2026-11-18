@@ -172,7 +172,13 @@ export function SongForm() {
       <div className="grid gap-4 md:grid-cols-[1fr_200px]">
         <div className="space-y-4">
           <div>
-            <Uploader kind="audio" endpoint="/api/music/upload" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" label={f.audio} onDone={setAudio} onFile={setFile} />
+            <Uploader kind="audio" endpoint="/api/music/upload" accept=".mp3,.wav,.m4a,.ogg,.flac,audio/*" label={f.audio} onDone={setAudio}
+              onFile={(fl) => {
+                setFile(fl);
+                // "Artist - Title.mp3" → title (the author can still edit it)
+                if (fl && !title.trim()) setTitle(fl.name.replace(/\.[^.]+$/, "").replace(/^.+?\s[-–—]\s/, "").replace(/[_]+/g, " ").trim().slice(0, 100));
+              }}
+            />
             <p className="mt-1.5 text-xs text-muted">{f.audioHint}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

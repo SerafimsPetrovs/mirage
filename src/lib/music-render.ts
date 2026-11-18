@@ -32,14 +32,14 @@ function ffmpeg() {
 /** Decodes the song to mono float PCM (for duration and beat detection). */
 export function decodePcm(file: string): Promise<Float32Array> {
   return new Promise((resolve, reject) => {
-    const p = spawn(ffmpeg(), ["-hide_banner", "-loglevel", "error", "-t", String(MUSIC_MAX_SECONDS), "-i", file, "-ac", "1", "-ar", String(PCM_RATE), "-f", "f32le", "-"]);
+    const p = spawn(ffmpeg(), ["-hide_banner", "-loglevel", "error", "-t", String(MUSIC_MAX_SECONDS), "-i", file, "-ac", "1", "-ar", String(PCM_RATE), "-f", "f32le", "-"], { windowsHide: true });
     const chunks: Buffer[] = [];
     let err = "";
     p.stdout.on("data", (c: Buffer) => chunks.push(c));
     p.stderr.on("data", (c: Buffer) => (err += c.toString()));
     p.on("error", reject);
     p.on("close", (code) => {
-      if (code !== 0) return reject(new Error(`DECODE_FAILED ${err.slice(0, 200)}`));
+      if (code !== 0) return reject(new Error(`DECODE_FAILED exit ${code} ${err.slice(0, 200)}`));
       const buf = Buffer.concat(chunks);
       const aligned = new Float32Array(buf.byteLength >> 2);
       new Uint8Array(aligned.buffer).set(buf.subarray(0, aligned.byteLength));
@@ -60,7 +60,7 @@ export async function analyzeAudio(file: string) {
 /** Runs ffmpeg in `cwd` and reports progress 0..1 from `-progress`. */
 function runFfmpeg(args: string[], cwd: string, duration: number, onProgress: (f: number) => void) {
   return new Promise<void>((resolve, reject) => {
-    const p = spawn(ffmpeg(), ["-progress", "pipe:1", "-nostats", ...args], { cwd });
+    const p = spawn(ffmpeg(), ["-progress", "pipe:1", "-nostats", ...args], { cwd, windowsHide: true });
     let err = "";
     let lastReport = 0;
     p.stdout.on("data", (c: Buffer) => {

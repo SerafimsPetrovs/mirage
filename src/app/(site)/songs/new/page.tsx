@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
+import { canUploadSongs } from "@/lib/songs";
 import { getI18n } from "@/i18n/server";
 import { SongForm } from "@/components/songs/song-form";
 import { SongsNav } from "@/components/songs/songs-nav";
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function NewSongPage() {
   const user = await requireUser("/songs/new");
-  if (user.kidsMode) notFound();
+  if (!canUploadSongs(user)) notFound();
   const { t } = await getI18n();
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24 pt-[calc(var(--header-h)+24px)] md:px-10">

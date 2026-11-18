@@ -47,7 +47,13 @@ describe("moments", () => {
   });
 
   it("refuses host cards, guests and family mode", async () => {
-    await expect(createMoment(viewer(), slug, Date.now() - 30_000)).rejects.toMatchObject({ code: "STATE" });
+    // only admins can rewind the air: an admin clipping 30 s back lands on the host card…
+    await expect(createMoment({ ...viewer(), role: "ADMIN" }, slug, Date.now() - 30_000)).rejects.toMatchObject({ code: "STATE" });
+    // …a viewer's past time is ignored, they always clip "now"
+    const m = await createMoment(viewer(), slug, Date.now() - 30_000);
+    expect(m.title).toBe("Funny bit");
+    await prisma.job.deleteMany({ where: { payload: { contains: m.id } } });
+    await prisma.tvMoment.delete({ where: { id: m.id } });
     await expect(createMoment(null, slug, Date.now())).rejects.toBeInstanceOf(TvError);
     await expect(createMoment({ ...viewer(), kidsMode: true }, slug, Date.now())).rejects.toMatchObject({ code: "AUTH" });
   });

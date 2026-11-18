@@ -624,15 +624,20 @@ export function TvScreen({
             </div>
           </div>
           <TvInfoBar channel={channel} slot={slot} next={data.next} clock={clock} viewers={chat.viewers} onOrder={openOrder} onGuide={() => setGuideOpen(true)} social={social} loggedIn={viewer.loggedIn} />
-          <RewindBar
-            back={back}
-            onRewind={rewind}
-            extra={
-              social && viewer.loggedIn ? (
+          {viewer.admin ? (
+            <RewindBar
+              back={back}
+              onRewind={rewind}
+              extra={social ? <MomentButton slug={channel.slug} clock={clock} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[.06] px-3 text-xs font-semibold ring-1 ring-white/10 hover:bg-white/[.12]" /> : null}
+            />
+          ) : (
+            social &&
+            viewer.loggedIn && (
+              <div className="flex justify-end px-4 pb-3 md:px-6">
                 <MomentButton slug={channel.slug} clock={clock} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[.06] px-3 text-xs font-semibold ring-1 ring-white/10 hover:bg-white/[.12]" />
-              ) : null
-            }
-          />
+              </div>
+            )
+          )}
           {viewer.kids && <p className="px-4 pb-3 text-sm text-muted md:px-6">{t.tv.familyHint}</p>}
           <ChannelStrip items={items} current={channel.slug} onPick={(s) => void tune(s)} />
           {below}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getCurrentUser } from "@/lib/auth";
 import { mediaUrl } from "@/lib/files";
-import { songFeed } from "@/lib/songs";
+import { canUploadSongs, songFeed } from "@/lib/songs";
 import { getI18n } from "@/i18n/server";
 import { SongFeed } from "@/components/songs/song-feed";
 
@@ -17,5 +17,5 @@ export default async function SongsFeedPage() {
   const user = await getCurrentUser();
   const viewer = user && !user.kidsMode ? user : null;
   const items = await songFeed(viewer);
-  return <SongFeed loggedIn={!!viewer} initial={items.map((s) => ({ ...s, cover: mediaUrl(s.coverRef) }))} />;
+  return <SongFeed loggedIn={!!viewer} canUpload={canUploadSongs(viewer)} initial={items.map((s) => ({ ...s, cover: mediaUrl(s.coverRef) }))} />;
 }

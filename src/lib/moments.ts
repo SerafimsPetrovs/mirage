@@ -11,7 +11,12 @@ import { channelFor, fileDuration, TvError } from "./tv";
 import { rateLimit } from "./rate-limit";
 import { TV_REWIND_MAX_SEC } from "./tv-rules";
 
-const run = promisify(execFile);
+const exec = promisify(execFile);
+/** ffmpeg with the exit code in the error (an empty stderr alone says nothing). */
+const run = (bin: string, args: string[]) =>
+  exec(bin, args, { windowsHide: true, maxBuffer: 8 * 1024 * 1024 }).catch((e: { code?: unknown; signal?: unknown; stderr?: string }) => {
+    throw new Error(`ffmpeg exit ${String(e.code)}${e.signal ? ` ${String(e.signal)}` : ""}: ${(e.stderr ?? "").trim().slice(0, 300) || "(no output)"}`);
+  });
 
 /** Length of a "moment" clip: the last N seconds before the button was pressed. */
 export const MOMENT_SEC = 20;
@@ -28,7 +33,8 @@ export async function createMoment(user: Viewer, slug: string, atMs: number) {
   const ch = await channelFor(slug, user);
   if (!ch) throw new TvError("NOT_FOUND");
   const now = Date.now();
-  const at = Math.min(now, Math.max(now - TV_REWIND_MAX_SEC * 1000, Number(atMs) || now));
+  // only admins can rewind the air, so only they can clip the past
+  const at = user.role === "ADMIN" ? Math.min(now, Math.max(now - TV_REWIND_MAX_SEC * 1000, Number(atMs) || now)) : now;
   const slot = await prisma.tvSlot.findFirst({
     where: { channelId: ch.id, startsAt: { lte: new Date(at) } },
     orderBy: { startsAt: "desc" },
